@@ -1,4 +1,4 @@
-# Calculo de Glebas da Região na Nordeste
+# Calculo de Glebas da Região do Nordeste
 
 Este projeto exibe um mapa interativo dos municípios brasileiros, colorindo-os de acordo com sua Unidade Federativa (UF). Utiliza dados fornecidos pelo IBGE e pela SUDENE para mapear e visualizar municípios de forma eficiente.
 
