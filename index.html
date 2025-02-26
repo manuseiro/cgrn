@@ -137,12 +137,8 @@
       },
       draw: {
         polygon: {
-          allowIntersection: false, // Impede autointerseção durante o desenho
-          shapeOptions: {
-            color: '#3388ff',
-            weight: 2,
-            fillOpacity: 0.5
-          }
+          allowIntersection: false,
+          shapeOptions: { color: '#3388ff', weight: 2, fillOpacity: 0.5 }
         },
         polyline: false,
         rectangle: false,
@@ -159,7 +155,7 @@
       console.log('Polígono desenhado com coordenadas:', coords);
       document.getElementById('coordenadas').value = coords.join('\n');
       processarCoordenadas();
-      drawnItems.addLayer(layer); // Adiciona temporariamente até a validação
+      // Não adiciona ao drawnItems aqui ainda; será feito após validação
     });
 
     // Função para exibir mensagens
@@ -350,7 +346,7 @@
       console.log('Criando polígonos para glebas:', glebas);
       const maxArea = Math.max(...glebas.map(g => g.area));
 
-      drawnItems.clearLayers();
+      drawnItems.clearLayers(); // Limpa apenas os polígonos desenhados anteriormente
       polygonLayers.forEach(layer => map.removeLayer(layer));
       polygonLayers = [];
 
@@ -398,7 +394,7 @@
       console.log('Marcadores criados:', markerLayers);
     }
 
-    // Carregar e adicionar camada da SUDENE sem bordas
+    // Carregar e adicionar camada da SUDENE sem bordas usando L.featureGroup
     async function loadSudeneLayer() {
       const loading = document.getElementById('loading');
       loading.classList.remove('d-none');
@@ -406,6 +402,13 @@
       try {
         const responseSudene = await fetch('https://manuseiro.github.io/SUDENE_2021.json');
         const sudeneData = await responseSudene.json();
+        
+        // Verificação de existência de dados
+        if (!sudeneData || !Array.isArray(sudeneData.features)) {
+          console.error('Dados da SUDENE não carregados corretamente.');
+          exibirMensagem('Erro ao carregar os dados da SUDENE: formato inválido.', 'danger');
+          return;
+        }
         console.log('Dados da SUDENE carregados:', sudeneData);
 
         const stateColors = {
@@ -414,28 +417,31 @@
           'ES': '#FF33BD'
         };
 
-        sudeneLayer = L.geoJSON(sudeneData, {
-          style: function (feature) {
-            const uf = feature.properties.NM_ESTADO;
-            const isSemiArido = feature.properties.ID_SMA === "1";
-            const color = stateColors[uf] || '#888888';
-            console.log(`Aplicando cor ${color} para ${feature.properties.NM_MUNICIP} - ${uf} (Semiárido: ${isSemiArido})`);
-            return {
+        const sudeneGroup = L.featureGroup(); // Usando L.featureGroup para otimização
+        sudeneData.features.forEach(feature => {
+          const uf = feature.properties.NM_ESTADO;
+          const isSemiArido = feature.properties.ID_SMA === "1";
+          const color = stateColors[uf] || '#888888';
+          const layer = L.geoJSON(feature, {
+            style: {
               color: color,
-              weight: 0, // Remove as bordas
-              fillOpacity: isSemiArido ? 0.3 : 0.2, // Ajuste de opacidade para diferenciar semiárido
-            };
-          },
-          onEachFeature: function (feature, layer) {
-            const nome = feature.properties.NM_MUNICIP;
-            const uf = feature.properties.NM_ESTADO;
-            const isSemiArido = feature.properties.ID_SMA === "1";
-            const semiAridoText = isSemiArido ? "Semiárido" : "Fora do Semiárido";
-            layer.bindPopup(`<b>${nome}</b> - ${uf} (${semiAridoText})`);
-          }
-        }).addTo(map);
+              weight: 0, // Sem bordas
+              fillOpacity: isSemiArido ? 0.3 : 0.2,
+            },
+            onEachFeature: function (feat, lyr) {
+              const nome = feat.properties.NM_MUNICIP;
+              const uf = feat.properties.NM_ESTADO;
+              const isSemiArido = feat.properties.ID_SMA === "1";
+              const semiAridoText = isSemiArido ? "Semiárido" : "Fora do Semiárido";
+              lyr.bindPopup(`<b>${nome}</b> - ${uf} (${semiAridoText})`);
+            }
+          });
+          sudeneGroup.addLayer(layer);
+        });
 
-        console.log('Camada SUDENE adicionada ao mapa sem bordas');
+        sudeneLayer = sudeneGroup;
+        sudeneLayer.addTo(map);
+        console.log('Camada SUDENE adicionada ao mapa sem bordas usando L.featureGroup');
 
         map.on('click', function (e) {
           const latlng = e.latlng;
@@ -506,7 +512,7 @@
     // Função para desenhar gleba
     function desenharGleba() {
       console.log('Botão "Desenhar Gleba" clicado');
-      map.addControl(drawControl); // Garante que o controle de desenho esteja visível
+      map.addControl(drawControl);
       new L.Draw.Polygon(map, drawControl.options.draw.polygon).enable();
     }
 
