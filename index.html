@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <title>CGRN - Calculo de Glebas da Região do Nordeste</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  <style>
+    #map { height: 100vh; }
+    .d-none { display: none; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg bg-dark" data-bs-theme="dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">CGRN</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="#">Home</a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              Glebas
+            </a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#adicionarGleba" href="#">Adicionar Glebas</a></li>
+              <li><a class="dropdown-item" href="#" id="calcularArea">Calcular Área</a></li>
+              <li><a class="dropdown-item" href="#" id="desenharGleba">Desenhar Gleba</a></li>
+            </ul>
+          </li>
+        </ul>
+        <ul class="navbar-nav flex-row flex-wrap ms-md-auto">
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="#">Sobre o CGRN</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <div id="map"></div>
+  <div id="loading" class="d-none text-center my-2">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Carregando...</span>
+    </div>
+  </div>
+
+  <!-- Modal Adicionar Glebas -->
+  <div class="modal fade" id="adicionarGleba" tabindex="-1" aria-labelledby="adicionarGlebaLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="adicionarGlebaLabel">Adicionar Gleba</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="messageArea" class="mb-2"></div>
+          <div class="input-group">
+            <textarea id="coordenadas" rows="10" cols="50" class="form-control" placeholder="Exemplo (Recife, PE):\n1 1 -8.05 -34.95\n1 2 -8.10 -34.95\n1 3 -8.10 -34.90\n1 4 -8.05 -34.95"></textarea>
+          </div>
+          <div class="mt-2">
+            <button class="btn btn-info btn-sm" onclick="document.getElementById('coordenadas').value = '1 1 -8.05 -34.95\n1 2 -8.10 -34.95\n1 3 -8.10 -34.90\n1 4 -8.05 -34.95'">Inserir Exemplo</button>
+          </div>
+          <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" id="mostrarMarcadores">
+            <label class="form-check-label" for="mostrarMarcadores">Mostrar Marcadores</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="limparMapa" class="btn btn-secondary">Limpar</button>
+          <button type="button" id="adicionar-gleba-btn" class="btn btn-primary">Adicionar Gleba</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Resultados -->
+  <div class="modal fade" id="resultadosModal" tabindex="-1" aria-labelledby="resultadosModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="resultadosModalLabel">Resultados das Áreas das Glebas</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Gleba</th>
+                <th>Área (ha)</th>
+              </tr>
+            </thead>
+            <tbody id="resultadosTableBody"></tbody>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="exportCSV" class="btn btn-success">Exportar CSV</button>
+          <button type="button" id="exportImage" class="btn btn-primary mx-2">Exportar Imagem</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+  <script src="https://unpkg.com/leaflet-image@0.4.0/leaflet-image.js"></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <script>
+    // Inicialização do mapa centrado no Nordeste
+    const map = L.map('map').setView([-9.5, -40.5], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: 'Map data © <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+      maxZoom: 18,
+    }).addTo(map);
+
+    let polygonLayers = [];
+    let markerLayers = [];
+    let glebas = [];
+    let coordCache = {};
+    let drawnItems = new L.FeatureGroup();
+    let sudeneLayer = null;
+    map.addLayer(drawnItems);
+
+    // Configuração do Leaflet.Draw para edição e desenho
+    const drawControl = new L.Control.Draw({
+      edit: {
+        featureGroup: drawnItems,
+        remove: false
+      },
+      draw: {
+        polygon: {
+          allowIntersection: false, // Impede autointerseção durante o desenho
+          shapeOptions: {
+            color: '#3388ff',
+            weight: 2,
+            fillOpacity: 0.5
+          }
+        },
+        polyline: false,
+        rectangle: false,
+        circle: false,
+        marker: false
+      }
+    });
+    map.addControl(drawControl);
+
+    // Evento para capturar o polígono desenhado
+    map.on('draw:created', function (e) {
+      const layer = e.layer;
+      const coords = layer.getLatLngs()[0].map((ll, idx) => `1 ${idx + 1} ${ll.lat.toFixed(5)} ${ll.lng.toFixed(5)}`);
+      console.log('Polígono desenhado com coordenadas:', coords);
+      document.getElementById('coordenadas').value = coords.join('\n');
+      processarCoordenadas();
+      drawnItems.addLayer(layer); // Adiciona temporariamente até a validação
+    });
+
+    // Função para exibir mensagens
+    function exibirMensagem(mensagem, tipo) {
+      console.log(`Exibindo mensagem ${tipo}: ${mensagem}`);
+      document.getElementById('messageArea').innerHTML = `<div class="alert alert-${tipo}">${mensagem}</div>`;
+    }
+
+    // Atualiza a textarea quando o polígono é editado
+    map.on('draw:edited', function (e) {
+      console.log('Evento de edição disparado');
+      const layers = e.layers;
+      let updatedCoords = [];
+      layers.eachLayer(function (layer) {
+        const coords = layer.getLatLngs()[0].map((ll, idx) => `1 ${idx + 1} ${ll.lat.toFixed(5)} ${ll.lng.toFixed(5)}`);
+        updatedCoords.push(...coords);
+      });
+      console.log('Coordenadas atualizadas:', updatedCoords);
+      document.getElementById('coordenadas').value = updatedCoords.join('\n');
+      processarCoordenadas();
+    });
+
+    // Validar coordenadas com regras do BACEN
+    function validarCoordenadas() {
+      console.log('Início da validação das coordenadas');
+      const coordenadasText = document.getElementById('coordenadas').value.trim();
+      if (!coordenadasText) {
+        exibirMensagem('Digite pelo menos uma coordenada ou desenhe uma gleba.', 'warning');
+        console.log('Nenhuma coordenada fornecida');
+        return null;
+      }
+
+      if (coordCache[coordenadasText]) {
+        console.log('Usando resultado do cache para:', coordenadasText);
+        return coordCache[coordenadasText];
+      }
+
+      const linhas = coordenadasText.split('\n');
+      const glebaMap = new Map();
+      const coordenadas = [];
+      let errorMessages = [];
+
+      console.log('Processando linhas:', linhas);
+      linhas.forEach((linha, idx) => {
+        const valores = linha.trim().split(/\s+/);
+        if (valores.length !== 4) {
+          errorMessages.push(`Linha ${idx + 1}: Deve conter exatamente 4 valores (gleba, ponto, latitude, longitude).`);
+          console.log(`Erro na linha ${idx + 1}: Formato inválido`);
+          return;
+        }
+
+        const [gleba, ponto, latitude, longitude] = valores.map(Number);
+        if (isNaN(latitude) || isNaN(longitude)) {
+          errorMessages.push(`Linha ${idx + 1}: Coordenadas devem ser numéricas.`);
+          console.log(`Erro na linha ${idx + 1}: Coordenadas não numéricas`);
+          return;
+        }
+
+        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+          errorMessages.push(`Linha ${idx + 1}: Coordenadas fora dos limites globais.`);
+          console.log(`Erro na linha ${idx + 1}: Fora dos limites globais`);
+          return;
+        }
+        if (latitude > -1 || latitude < -18 || longitude > -34 || longitude < -48) {
+          errorMessages.push(`Linha ${idx + 1}: Fora do Nordeste brasileiro.`);
+          console.log(`Erro na linha ${idx + 1}: Fora do Nordeste`);
+          return;
+        }
+
+        if (!glebaMap.has(gleba)) glebaMap.set(gleba, []);
+        glebaMap.get(gleba).push([longitude, latitude]);
+      });
+
+      if (errorMessages.length > 0) {
+        exibirMensagem(errorMessages.join('<br>'), 'danger');
+        console.log('Erros encontrados:', errorMessages);
+        return null;
+      }
+
+      glebaMap.forEach((points, gleba) => {
+        console.log(`Validando gleba ${gleba} com pontos:`, points);
+
+        // Critério 3: Mínimo de 4 pontos
+        if (points.length < 4) {
+          errorMessages.push(`Gleba ${gleba} deve possuir no mínimo quatro pontos.`);
+          console.log(`Erro: Gleba ${gleba} tem menos de 4 pontos`);
+          return;
+        }
+
+        // Critério 1: Polígono fechado (primeiro e último ponto iguais)
+        const firstPoint = points[0];
+        const lastPoint = points[points.length - 1];
+        if (firstPoint[0] !== lastPoint[0] || firstPoint[1] !== lastPoint[1]) {
+          errorMessages.push(`O polígono da gleba ${gleba} não está fechado. O primeiro e o último ponto devem ter as mesmas coordenadas.`);
+          console.log(`Erro: Gleba ${gleba} não está fechada`);
+          return;
+        }
+
+        // Critério 2: Pontos consecutivos distintos (exceto o fechamento)
+        const seenCoords = new Set();
+        for (let i = 0; i < points.length - 1; i++) {
+          const current = points[i];
+          const next = points[i + 1];
+          const coordKey = `${current[0]},${current[1]}`;
+
+          if (i < points.length - 2 && current[0] === next[0] && current[1] === next[1]) {
+            errorMessages.push(`Dois pontos consecutivos da gleba ${gleba} não podem ser iguais. Verifique as coordenadas repetidas na posição ${i + 1}.`);
+            console.log(`Erro: Pontos consecutivos repetidos na gleba ${gleba} na posição ${i + 1}`);
+            return;
+          }
+
+          if (seenCoords.has(coordKey) && i !== points.length - 2) {
+            errorMessages.push(`Coordenada duplicada na gleba ${gleba} na posição ${i + 1}, fora do fechamento permitido.`);
+            console.log(`Erro: Duplicata inválida na gleba ${gleba} na posição ${i + 1}`);
+          }
+          seenCoords.add(coordKey);
+        }
+
+        // Critério 5: Sem autointerseção
+        const turfPolygon = turf.polygon([points]);
+        try {
+          if (turf.kinks(turfPolygon).features.length > 0) {
+            errorMessages.push(`A gleba ${gleba} possui linhas que se cruzam, formando um polígono inválido.`);
+            console.log(`Erro: Gleba ${gleba} possui autointerseção`);
+            return;
+          }
+        } catch (e) {
+          errorMessages.push(`Erro ao verificar a validade do polígono da gleba ${gleba}.`);
+          console.log(`Erro ao validar polígono da gleba ${gleba}:`, e);
+          return;
+        }
+
+        // Critério 4: No máximo 4 municípios
+        if (!sudeneLayer) {
+          errorMessages.push('A camada de municípios da SUDENE ainda não foi carregada. Tente novamente.');
+          console.log('Erro: sudeneLayer não está disponível');
+          return;
+        }
+
+        const municipios = new Set();
+        points.forEach(([lon, lat], idx) => {
+          sudeneLayer.eachLayer(layer => {
+            if (turf.booleanPointInPolygon([lon, lat], layer.toGeoJSON())) {
+              municipios.add(layer.feature.properties.CD_GEOCMU);
+            }
+          });
+        });
+        console.log(`Gleba ${gleba} intersecta ${municipios.size} municípios:`, Array.from(municipios));
+        if (municipios.size > 4) {
+          errorMessages.push(`A gleba ${gleba} está contida em mais de 4 municípios (${municipios.size}).`);
+          console.log(`Erro: Gleba ${gleba} excede o limite de 4 municípios`);
+          return;
+        }
+
+        try {
+          const area = turf.area(turfPolygon) / 10000;
+          coordenadas.push({ gleba: parseInt(gleba), coords: points.map(([lon, lat]) => [lat, lon]), area, municipios: Array.from(municipios) });
+          console.log(`Gleba ${gleba} validada com área ${area.toFixed(2)} ha`);
+        } catch (e) {
+          errorMessages.push(`Erro ao calcular a área da gleba ${gleba}.`);
+          console.log(`Erro ao calcular área da gleba ${gleba}:`, e);
+        }
+      });
+
+      if (errorMessages.length > 0) {
+        exibirMensagem(errorMessages.join('<br>'), 'danger');
+        console.log('Erros encontrados na validação:', errorMessages);
+        return null;
+      }
+
+      exibirMensagem('Coordenadas válidas!', 'success');
+      setTimeout(() => document.getElementById('messageArea').innerHTML = '', 2000);
+      console.log('Validação concluída com sucesso:', coordenadas);
+
+      coordCache[coordenadasText] = coordenadas;
+      return coordenadas;
+    }
+
+    // Atualizar tabela de resultados
+    function atualizarTabela(glebas) {
+      console.log('Atualizando tabela com glebas:', glebas);
+      const tableBody = document.getElementById('resultadosTableBody');
+      tableBody.innerHTML = glebas.map(g => `<tr><td>${g.gleba}</td><td>${g.area.toFixed(2)} ha</td></tr>`).join('');
+    }
+
+    // Criar ou atualizar polígonos no mapa
+    function criarPoligonos(glebas) {
+      console.log('Criando polígonos para glebas:', glebas);
+      const maxArea = Math.max(...glebas.map(g => g.area));
+
+      drawnItems.clearLayers();
+      polygonLayers.forEach(layer => map.removeLayer(layer));
+      polygonLayers = [];
+
+      glebas.forEach((g, idx) => {
+        const intensity = Math.min(255, Math.floor((g.area / maxArea) * 255));
+        const color = `rgb(${intensity}, 100, 150)`;
+        const polygon = L.polygon(g.coords, { color, weight: 2, fillOpacity: 0.5 })
+          .addTo(map)
+          .addTo(drawnItems)
+          .bindPopup(`Gleba ${g.gleba}: ${g.area.toFixed(2)} ha (Municípios: ${g.municipios.length})`);
+        polygonLayers.push(polygon);
+      });
+
+      const bounds = L.featureGroup(polygonLayers).getBounds();
+      map.fitBounds(bounds, { padding: [50, 50] });
+      console.log('Polígonos criados e adicionados ao drawnItems:', drawnItems.getLayers());
+    }
+
+    // Criar ou atualizar marcadores no mapa
+    function criarMarcadores(glebas) {
+      console.log('Criando marcadores para glebas:', glebas);
+      const totalCoords = glebas.reduce((sum, g) => sum + g.coords.length, 0);
+
+      if (markerLayers.length !== totalCoords) {
+        markerLayers.forEach(layer => map.removeLayer(layer));
+        markerLayers = [];
+        glebas.forEach(g => {
+          g.coords.forEach((coord, idx) => {
+            const marker = L.marker(coord)
+              .addTo(map)
+              .bindPopup(`Gleba ${g.gleba}, Ponto ${idx + 1}: [${coord[0]}, ${coord[1]}]`);
+            markerLayers.push(marker);
+          });
+        });
+      } else {
+        let markerIdx = 0;
+        glebas.forEach(g => {
+          g.coords.forEach((coord, idx) => {
+            markerLayers[markerIdx].setLatLng(coord);
+            markerLayers[markerIdx].setPopupContent(`Gleba ${g.gleba}, Ponto ${idx + 1}: [${coord[0]}, ${coord[1]}]`);
+            markerIdx++;
+          });
+        });
+      }
+      console.log('Marcadores criados:', markerLayers);
+    }
+
+    // Carregar e adicionar camada da SUDENE sem bordas
+    async function loadSudeneLayer() {
+      const loading = document.getElementById('loading');
+      loading.classList.remove('d-none');
+
+      try {
+        const responseSudene = await fetch('https://manuseiro.github.io/SUDENE_2021.json');
+        const sudeneData = await responseSudene.json();
+        console.log('Dados da SUDENE carregados:', sudeneData);
+
+        const stateColors = {
+          'AL': '#FF5733', 'BA': '#ffd740', 'CE': '#448aff', 'MA': '#FF33A1', 'PB': '#A133FF',
+          'PE': '#ff6e40', 'PI': '#e040fb', 'RN': '#5733FF', 'SE': '#33A1FF', 'MG': '#A1FF33',
+          'ES': '#FF33BD'
+        };
+
+        sudeneLayer = L.geoJSON(sudeneData, {
+          style: function (feature) {
+            const uf = feature.properties.NM_ESTADO;
+            const isSemiArido = feature.properties.ID_SMA === "1";
+            const color = stateColors[uf] || '#888888';
+            console.log(`Aplicando cor ${color} para ${feature.properties.NM_MUNICIP} - ${uf} (Semiárido: ${isSemiArido})`);
+            return {
+              color: color,
+              weight: 0, // Remove as bordas
+              fillOpacity: isSemiArido ? 0.3 : 0.2, // Ajuste de opacidade para diferenciar semiárido
+            };
+          },
+          onEachFeature: function (feature, layer) {
+            const nome = feature.properties.NM_MUNICIP;
+            const uf = feature.properties.NM_ESTADO;
+            const isSemiArido = feature.properties.ID_SMA === "1";
+            const semiAridoText = isSemiArido ? "Semiárido" : "Fora do Semiárido";
+            layer.bindPopup(`<b>${nome}</b> - ${uf} (${semiAridoText})`);
+          }
+        }).addTo(map);
+
+        console.log('Camada SUDENE adicionada ao mapa sem bordas');
+
+        map.on('click', function (e) {
+          const latlng = e.latlng;
+          console.log('Clique no mapa em:', latlng);
+          let municipioFound = false;
+          sudeneLayer.eachLayer(function (layer) {
+            if (!municipioFound && turf.booleanPointInPolygon([latlng.lng, latlng.lat], layer.toGeoJSON())) {
+              const nome = layer.feature.properties.NM_MUNICIP;
+              const uf = layer.feature.properties.NM_ESTADO;
+              const isSemiArido = layer.feature.properties.ID_SMA === "1";
+              const semiAridoText = isSemiArido ? "Semiárido" : "Fora do Semiárido";
+              console.log(`Município encontrado: ${nome} - ${uf} (${semiAridoText})`);
+              L.popup()
+                .setLatLng(latlng)
+                .setContent(`${nome} - ${uf} (${semiAridoText})`)
+                .openOn(map);
+              municipioFound = true;
+            }
+          });
+          if (!municipioFound) {
+            console.log('Clique fora da área da SUDENE');
+            L.popup()
+              .setLatLng(latlng)
+              .setContent('Fora da área da SUDENE')
+              .openOn(map);
+          }
+        });
+
+      } catch (error) {
+        console.error('Erro ao carregar a camada da SUDENE:', error);
+        exibirMensagem('Não foi possível carregar os dados da SUDENE.', 'danger');
+      } finally {
+        loading.classList.add('d-none');
+      }
+    }
+
+    // Processar coordenadas
+    function processarCoordenadas() {
+      console.log('Processando coordenadas');
+      const loading = document.getElementById('loading');
+      loading.classList.remove('d-none');
+      const validatedGlebas = validarCoordenadas();
+      if (validatedGlebas) {
+        glebas = validatedGlebas;
+        console.log('Glebas validadas:', glebas);
+        atualizarTabela(glebas);
+        criarPoligonos(glebas);
+        if (document.getElementById('mostrarMarcadores').checked) {
+          criarMarcadores(glebas);
+        }
+      } else {
+        console.log('Validação falhou, glebas não processadas');
+      }
+      loading.classList.add('d-none');
+    }
+
+    // Função para adicionar glebas ao mapa e fechar o modal
+    function adicionarGlebas() {
+      console.log('Botão "Adicionar Gleba" clicado');
+      processarCoordenadas();
+      if (glebas.length > 0) {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('adicionarGleba'));
+        modal.hide();
+        console.log('Modal fechado, glebas adicionadas');
+      }
+    }
+
+    // Função para desenhar gleba
+    function desenharGleba() {
+      console.log('Botão "Desenhar Gleba" clicado');
+      map.addControl(drawControl); // Garante que o controle de desenho esteja visível
+      new L.Draw.Polygon(map, drawControl.options.draw.polygon).enable();
+    }
+
+    // Função para calcular áreas e mostrar o modal de resultados
+    function calcularAreas() {
+      console.log('Botão "Calcular Área" clicado');
+      processarCoordenadas();
+      if (glebas.length > 0) {
+        const modal = new bootstrap.Modal(document.getElementById('resultadosModal'));
+        modal.show();
+        document.getElementById('exportCSV').onclick = () => exportToCSV(glebas);
+        document.getElementById('exportImage').onclick = () => exportMapImage;
+        console.log('Modal de resultados exibido');
+      }
+    }
+
+    // Exportar para CSV
+    function exportToCSV(glebas) {
+      console.log('Exportando para CSV:', glebas);
+      const csvContent = "data:text/csv;charset=utf-8," 
+        + "Gleba,Área (ha)\n" 
+        + glebas.map(g => `${g.gleba},${g.area.toFixed(2)}`).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "glebas_resultados.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Exportar imagem do mapa
+    function exportMapImage() {
+      console.log('Exportando imagem do mapa');
+      leafletImage(map, function(err, canvas) {
+        if (err) return exibirMensagem('Erro ao exportar imagem: ' + err, 'danger');
+        const link = document.createElement("a");
+        link.href = canvas.toDataURL('image/png');
+        link.download = 'mapa_glebas.png';
+        link.click();
+      });
+    }
+
+    // Limpar mapa e coordenadas
+    document.getElementById('limparMapa').addEventListener('click', () => {
+      console.log('Limpando mapa');
+      polygonLayers.forEach(layer => map.removeLayer(layer));
+      markerLayers.forEach(layer => map.removeLayer(layer));
+      drawnItems.clearLayers();
+      polygonLayers = [];
+      markerLayers = [];
+      glebas = [];
+      document.getElementById('coordenadas').value = '';
+      document.getElementById('messageArea').innerHTML = '';
+      coordCache = {};
+    });
+
+    // Event listeners
+    document.getElementById('adicionar-gleba-btn').addEventListener('click', adicionarGlebas);
+    document.getElementById('calcularArea').addEventListener('click', calcularAreas);
+    document.getElementById('desenharGleba').addEventListener('click', desenharGleba);
+
+    // Carrega a camada da SUDENE ao iniciar
+    loadSudeneLayer();
+  </script>
+</body>
+</html>
