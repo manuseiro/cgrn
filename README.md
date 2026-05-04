@@ -1,88 +1,61 @@
-# 🌍 GlebasNord — Cálculo e Análise de Glebas do Nordeste (v3.2)
+# 🌍 GlebasNord v3.3 — Cálculo e Análise de Glebas do Nordeste
 
-Aplicação web para **cálculo, validação e análise geoespacial de glebas rurais**, com foco na **Região Nordeste do Brasil**.
-
----
-
-## 🚀 Novidades da versão 3.2
-
-- Melhorias na importação de arquivos (KML)
-- Aprimoramento das validações geométricas
-- Refatoração de scripts para melhor manutenção
-- Ajustes na renderização do mapa e camadas
-- Melhor tratamento de erros e feedback ao usuário
+**Ferramenta completa para cálculo, validação e conformidade de glebas rurais para crédito agrícola no Nordeste Brasileiro.**
 
 ---
 
-## 🧠 Funcionalidades
+## ✨ Funcionalidades
 
-### 📐 Cálculo de Área
-- Cálculo automático com base em coordenadas
-- Suporte a múltiplas glebas
-- Conversão para hectares
-
-### 🗺️ Mapa Interativo
-- Leaflet + Leaflet Draw
-- Desenho e edição de polígonos
-- Camadas geoespaciais externas
-
-### 📂 Importação
-- Arquivos KML
-- Conversão para GeoJSON
-
-### ✅ Validação
-- Polígonos inválidos
-- Sobreposição de áreas
-- Geometrias inconsistentes
-
-### 📊 Conformidade
-- Terras Indígenas
-- Embargos IBAMA
-- Unidades de Conservação
-- Região SUDENE
-
-### 💾 Persistência
-- LocalStorage
-
-### 📤 Exportação
-- Estrutura pronta para relatórios
+- **Cálculo preciso de área e perímetro** (usando Turf.js)
+- **Validação completa de polígonos** (fechamento, autointerseção, duplicidade de pontos)
+- **Verificação automática de municípios** (máximo 4 — exigência SICOR)
+- **Camada SUDENE 2021** com detecção de Semiárido
+- **Terras Indígenas (FUNAI)** — detecção de sobreposição
+- **Conformidade BACEN/SICOR completa**:
+  - Terras Indígenas
+  - Unidades de Conservação (Proteção Integral e Uso Sustentável)
+  - Embargos IBAMA
+  - Alertas de desmatamento (PRODES/DETER)
+  - Cadastro Ambiental Rural (CAR) com análise espacial
+  - Bioma e marco legal
+- **Importação**: TXT, CSV e **KML** (Google Earth)
+- **Exportação**: CSV, GeoJSON, **KML** e PNG do mapa
+- **Desenho direto no mapa** (Leaflet Draw)
+- **Modo escuro**, responsivo e otimizado para campo
 
 ---
 
-## 🧱 Estrutura
+## 🗂️ Tecnologias
 
-```
-cgrn/
-├── index.html
-├── css/
-├── js/
-├── api/
-├── assets/
-```
-
----
-
-## 🛠️ Tecnologias
-
-- HTML5 / CSS3
-- JavaScript
-- Bootstrap 5
-- Leaflet
-- GeoJSON / KML
+- **Frontend**: HTML5, Bootstrap 5.3, Leaflet 1.9
+- **Geoprocessamento**: Turf.js 6
+- **APIs Governamentais**:
+  - SUDENE
+  - FUNAI (Terras Indígenas)
+  - ICMBio (Unidades de Conservação)
+  - IBAMA (Embargos)
+  - IBGE (Biomas)
+  - SICAR (Cadastro Ambiental Rural)
+  - INPE TerraBrasilis
 
 ---
 
-## ▶️ Execução
+## 📥 Como usar
 
-Abrir:
-```
-index.html
+1. Clone o repositório:
+   ```bash
+   git clone https://github.com/SEU_USUARIO/cgrn.git
+   cd cgrn
 ```
 
 Ou usar servidor:
 ```
 python -m http.server
 ```
+2. Abra o arquivo index.html no navegador (recomendado Chrome/Edge).
+3. Pronto! Não é necessário instalar nada.
+
+Dica: Para melhor experiência, sirva os arquivos com um servidor local (Live Server do VS Code, Python, etc.).
 
 ---
 

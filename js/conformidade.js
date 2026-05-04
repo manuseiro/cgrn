@@ -106,7 +106,11 @@ export async function verificarConformidade(gleba, { skipApi = false } = {}) {
     itens.push(buildEmbargoItem(gleba, embargoRes));
     itens.push(buildBiomaItem(gleba, biomaRes));
     itens.push(buildDesmatItem(gleba, desmatRes));
-    itens.push(buildCARItem(gleba, carRes));
+    const carAnalisado = carRes.status === 'fulfilled'
+      ? { status: 'fulfilled', value: analyzeGlebaInCAR(gleba, carRes.value) }
+      : carRes; // se rejeitado, passa como está (buildCARItem já trata rejected)
+
+    itens.push(buildCARItem(gleba, carAnalisado));
   } else {
     [CHECKS.UC_INTEGRAL, CHECKS.UC_SUSTENTAVEL, CHECKS.EMBARGO, CHECKS.BIOMA, CHECKS.DESMATAMENTO, CHECKS.CAR]
       .forEach(c => itens.push({ ...c, status: 'pendente', mensagem: 'Verificação via API desativada.', dados: [] }));

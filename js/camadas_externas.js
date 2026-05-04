@@ -258,62 +258,117 @@ export async function checkDesmatamento(gleba) {
  * @param {object} gleba 
  * @returns {string} Sigla da UF em minúsculas (ex: 'ce', 'ba')
  */
+/**
+ * Mapa completo: primeiros 2 dígitos do código IBGE → sigla UF (minúsculas).
+ * Os códigos IBGE de 7 dígitos seguem o padrão nacional — os 2 primeiros
+ * identificam o estado de forma inequívoca (ex: "23" → Ceará).
+ * Este é o mesmo CD_GEOCMU recuperado da camada SUDENE e armazenado
+ * em gleba.municipios pelo módulo validation.js.
+ */
+const IBGE_PREFIX_TO_UF = Object.freeze({
+  '11': 'ro', '12': 'ac', '13': 'am', '14': 'rr', '15': 'pa', '16': 'ap', '17': 'to',
+  '21': 'ma', '22': 'pi', '23': 'ce', '24': 'rn', '25': 'pb', '26': 'pe', '27': 'al',
+  '28': 'se', '29': 'ba',
+  '31': 'mg', '32': 'es', '33': 'rj', '35': 'sp',
+  '41': 'pr', '42': 'sc', '43': 'rs',
+  '50': 'ms', '51': 'mt', '52': 'go', '53': 'df',
+});
+
+/**
+ * Detecta a UF da gleba de forma robusta, em ordem de confiabilidade:
+ *
+ *  1. Código IBGE (CD_GEOCMU de 7 dígitos) em gleba.municipios
+ *     — Fonte primária: é exatamente o que validation.js armazena a
+ *       partir do campo CD_GEOCMU da SUDENE. Ex: "2300101" → "23" → "ce"
+ *     — Era o bug: a versão anterior tentava regex de texto ("/CE")
+ *       neste campo numérico, sempre falhando.
+ *
+ *  2. Nome do município com sigla ao final (ex: "Fortaleza/CE")
+ *     — Para compatibilidade com dados importados externamente.
+ *
+ *  3. Bounding boxes do centroid
+ *     — Fallback quando municipios está vazio (gleba desenhada no mapa).
+ *
+ * @param {GlebaData} gleba
+ * @returns {string} Sigla UF em minúsculas (ex: 'ce', 'ba')
+ */
 export function detectarUF(gleba) {
-  // (Mantenha sua versão atualizada que você já tem)
+
+  // ── 1. Código IBGE de 7 dígitos (fonte primária — SUDENE/CD_GEOCMU) ──────
   if (Array.isArray(gleba.municipios) && gleba.municipios.length > 0) {
     for (const mun of gleba.municipios) {
-      if (!mun || typeof mun !== 'string') continue;
-      const match = mun.trim().match(/(?:[\/\-\s])([A-Z]{2})$/);
-      if (match) return match[1].toLowerCase();
-    }
-  }
+      if (!mun) continue;
+      const str = String(mun).trim();
 
-  const codIBGE = gleba.cod_municipio_ibge || gleba.codigo_ibge;
-  if (codIBGE) {
-    const prefixo = String(codIBGE).substring(0, 2);
-    const ufMap = {
-      '11': 'ro', '12': 'ac', '13': 'am', '14': 'rr', '15': 'pa', '16': 'ap', '17': 'to',
-      '21': 'ma', '22': 'pi', '23': 'ce', '24': 'rn', '25': 'pb', '26': 'pe', '27': 'al',
-      '28': 'se', '29': 'ba', '31': 'mg', '32': 'es', '33': 'rj', '35': 'sp', '41': 'pr',
-      '42': 'sc', '43': 'rs', '50': 'ms', '51': 'mt', '52': 'go', '53': 'df'
-    };
-    if (ufMap[prefixo]) return ufMap[prefixo];
-  }
-
-  // 3. Tenta extrair do nome do município (ex: "Fortaleza/CE")
-  if (Array.isArray(gleba.municipios) && gleba.municipios.length > 0) {
-    for (const mun of gleba.municipios) {
-      if (!mun || typeof mun !== 'string') continue;
-
-      // Busca formato padrão "/UF" ou "- UF"
-      const match = mun.trim().match(/(?:[\/\-\s])([A-Z]{2})$/);
-      if (match) return match[1].toLowerCase();
-
-      // Limpeza de caracteres não-alfabéticos para pegar UF "suja"
-      const cleaned = mun.replace(/[^A-Z]/g, '');
-      if (cleaned.length >= 2) {
-        const possibleUF = cleaned.slice(-2).toLowerCase();
-        if (['ba', 'ce', 'pe', 'ma', 'pi', 'rn', 'pb', 'al', 'se'].includes(possibleUF)) return possibleUF;
+      // Código IBGE puro: exatamente 7 dígitos numéricos
+      if (/^\d{7}$/.test(str)) {
+        const prefixo = str.substring(0, 2);
+        if (IBGE_PREFIX_TO_UF[prefixo]) {
+          log(`detectarUF: código IBGE "${str}" → prefixo "${prefixo}" → ${IBGE_PREFIX_TO_UF[prefixo].toUpperCase()}`);
+          return IBGE_PREFIX_TO_UF[prefixo];
+        }
       }
     }
   }
 
-  // 4. Fallback inteligente: Coordenadas (Centroide) - Nordeste focus
-  if (gleba.centroid && Array.isArray(gleba.centroid) && gleba.centroid.length === 2) {
-    const [lng, lat] = gleba.centroid;
-    // Bounding boxes simplificadas para os estados (foco Nordeste)
-    if (lng > -41.9 && lng < -37.2 && lat > -7.9 && lat < -2.7) return 'ce';
-    if (lng > -46.6 && lng < -37.3 && lat > -18.3 && lat < -8.5) return 'ba';
-    if (lng > -48.8 && lng < -39.7 && lat > -10.3 && lat < -1.0) return 'ma';
-    if (lng > -45.9 && lng < -40.3 && lat > -10.9 && lat < -2.7) return 'pi';
-    if (lng > -41.4 && lng < -34.8 && lat > -9.5 && lat < -7.1) return 'pe';
-    if (lng > -38.9 && lng < -34.7 && lat > -7.0 && lat < -4.8) return 'rn';
-    if (lng > -38.8 && lng < -34.7 && lat > -8.4 && lat < -5.9) return 'pb';
-    if (lng > -38.3 && lng < -35.1 && lat > -10.5 && lat < -8.8) return 'al';
-    if (lng > -38.3 && lng < -36.3 && lat > -11.6 && lat < -9.8) return 'se';
+  // ── 2. Nome com sigla UF ao final (ex: "Fortaleza/CE" ou "Fortaleza - CE") ─
+  if (Array.isArray(gleba.municipios) && gleba.municipios.length > 0) {
+    for (const mun of gleba.municipios) {
+      if (!mun || typeof mun !== 'string') continue;
+      const match = mun.trim().match(/[/\-\s]([A-Z]{2})$/);
+      if (match && IBGE_PREFIX_TO_UF[Object.keys(IBGE_PREFIX_TO_UF).find(k => IBGE_PREFIX_TO_UF[k] === match[1].toLowerCase())]) {
+        return match[1].toLowerCase();
+      }
+      // Verifica se os 2 últimos caracteres maiúsculos são UF válida
+      const upper = mun.replace(/[^A-Z]/g, '');
+      if (upper.length >= 2) {
+        const uf = upper.slice(-2).toLowerCase();
+        if (Object.values(IBGE_PREFIX_TO_UF).includes(uf)) return uf;
+      }
+    }
   }
 
-  return 'ce'; // Fallback final
+  // ── 3. Centroid — bounding boxes dos estados do Nordeste ──────────────────
+  if (Array.isArray(gleba.centroid) && gleba.centroid.length === 2) {
+    const [lng, lat] = gleba.centroid; // centroid é [lon, lat] no GeoJSON
+    // Bounding boxes precisas (fonte: IBGE limites estaduais)
+    if (lat > -7.87 && lat < -2.78 && lng > -41.36 && lng < -37.25) return 'ce';
+    if (lat > -18.35 && lat < -8.53 && lng > -46.62 && lng < -37.34) return 'ba';
+    if (lat > -10.25 && lat < -1.04 && lng > -48.75 && lng < -41.82) return 'ma';
+    if (lat > -10.93 && lat < -2.74 && lng > -45.98 && lng < -40.37) return 'pi';
+    if (lat > -9.48 && lat < -7.15 && lng > -41.36 && lng < -34.83) return 'pe';
+    if (lat > -6.98 && lat < -4.83 && lng > -38.58 && lng < -34.97) return 'rn';
+    if (lat > -8.32 && lat < -6.03 && lng > -38.81 && lng < -34.77) return 'pb';
+    if (lat > -10.50 && lat < -8.81 && lng > -38.25 && lng < -35.13) return 'al';
+    if (lat > -11.57 && lat < -9.52 && lng > -38.23 && lng < -36.37) return 'se';
+  }
+
+  warn('detectarUF: não foi possível determinar UF — usando fallback "ce"');
+  return 'ce';
+}
+
+/**
+ * Detecta TODAS as UFs abrangidas pela gleba (para glebas que cruzam fronteiras estaduais).
+ * Uma gleba com até 4 municípios pode abranger até 2 estados diferentes.
+ * Retorna array com UFs únicas, ex: ['ce'] ou ['ce', 'ba'] para gleba na divisa.
+ *
+ * @param {GlebaData} gleba
+ * @returns {string[]} Array de siglas UF em minúsculas, ex: ['ce', 'ba']
+ */
+export function detectarTodasUFs(gleba) {
+  const ufs = new Set();
+  if (Array.isArray(gleba.municipios)) {
+    for (const mun of gleba.municipios) {
+      const str = String(mun).trim();
+      if (/^\d{7}$/.test(str)) {
+        const uf = IBGE_PREFIX_TO_UF[str.substring(0, 2)];
+        if (uf) ufs.add(uf);
+      }
+    }
+  }
+  // Fallback: usa detectarUF (que tem fallback por coordenadas)
+  if (ufs.size === 0) ufs.add(detectarUF(gleba));
+  return [...ufs];
 }
 
 /**
@@ -324,8 +379,32 @@ export function detectarUF(gleba) {
  * @returns {Promise<CARResult[]>}
  */
 export async function checkCAR(gleba) {
-  const uf = detectarUF(gleba);
-  log(`Consultando SICAR para UF: ${uf.toUpperCase()}...`);
+  // Detecta TODAS as UFs da gleba (cobre glebas que cruzam fronteiras estaduais)
+  const ufs = detectarTodasUFs(gleba);
+  log(`Consultando SICAR para UF(s): ${ufs.map(u => u.toUpperCase()).join(', ')}...`);
+
+  // Consulta todas as UFs em paralelo e consolida os resultados
+  if (ufs.length > 1) {
+    const resultados = await Promise.allSettled(ufs.map(uf => checkCARporUF(gleba, uf)));
+    const todos = resultados
+      .filter(r => r.status === 'fulfilled')
+      .flatMap(r => r.value);
+    log(`SICAR multi-estado: ${todos.length} imóvel(is) no total`);
+    return todos;
+  }
+
+  return checkCARporUF(gleba, ufs[0]);
+}
+
+/**
+ * Consulta o SICAR para uma UF específica.
+ * Separado de checkCAR para permitir chamadas paralelas em glebas multi-estado.
+ * @param {GlebaData} gleba
+ * @param {string} uf  - sigla em minúsculas, ex: 'ce'
+ * @returns {Promise<CARResult[]>}
+ */
+async function checkCARporUF(gleba, uf) {
+  log(`Consultando SICAR: sicar:sicar_imoveis_${uf}...`);
 
   // ─────────────────────────────────────────────
   // 🔹 Extrair coordenadas para o filtro CQL
@@ -420,7 +499,7 @@ export async function checkCAR(gleba) {
     warn(`CAR API (${uf}) erro:`, e.message);
     return [];
   }
-}
+} // checkCARporUF
 
 /**
  * Analisa a relação espacial entre a gleba e os imóveis do CAR encontrados.
@@ -430,100 +509,170 @@ export async function checkCAR(gleba) {
  * @param {CARResult[]} carFeatures 
  * @returns {object} Resultado da análise detalhada
  */
+/**
+ * Analisa a relação espacial entre a gleba e os imóveis do CAR encontrados.
+ *
+ * Regra de negócio (Res. CMN 5.081/2023):
+ *   Uma gleba de crédito rural deve estar contida em UM único imóvel rural.
+ *   A presença de múltiplos CARs — mesmo que a cobertura total seja 100% —
+ *   indica que a gleba cruza fronteiras de propriedades, o que exige análise
+ *   manual e gera alerta obrigatório.
+ *
+ * @param {GlebaData}   gleba
+ * @param {CARResult[]} carFeatures  - Array retornado por checkCAR()
+ * @returns {object}    Resultado com status, mensagem, dados e métricas
+ */
 export function analyzeGlebaInCAR(gleba, carFeatures) {
+
+  // ── 0. Nenhum CAR encontrado ───────────────────────────────────────────
   if (!carFeatures || carFeatures.length === 0) {
     return {
       status: 'bloqueio',
-      mensagem: 'Nenhum Cadastro Ambiental Rural (CAR) localizado para esta geometria.',
+      mensagem: 'Nenhum Cadastro Ambiental Rural (CAR) localizado para esta geometria. '
+        + 'Obrigatório para crédito rural (Cód. Florestal Art. 29).',
       dados: [],
       coverage: 0,
-      carAreaHa: 0
+      coverageMelhorCAR: 0,
+      carAreaHa: 0,
+      nCARs: 0
     };
   }
 
   const glebaPoly = gleba.turfPolygon;
+  const glebaAreaM2 = turf.area(glebaPoly);
   const featuresComGeo = carFeatures.filter(f => f.geometry);
 
-  // Se não houver geometrias (ex: fallback XML), faz análise baseada no primeiro item
+  // ── 1. Sem geometria retornada (fallback XML sem coordenadas) ──────────
   if (featuresComGeo.length === 0) {
-    const car = carFeatures[0];
+    const maisDeUm = carFeatures.length > 1;
     return {
-      status: 'ok',
-      mensagem: `Imóvel Rural localizado: ${car.codigo}. (Análise espacial simplificada — sem geometria)`,
+      status: maisDeUm ? 'alerta' : 'ok',
+      mensagem: maisDeUm
+        ? `Gleba abrange ${carFeatures.length} imóveis CAR: `
+        + `${carFeatures.map(c => c.codigo).join(', ')}. `
+        + `Verificar limites entre propriedades. (análise espacial indisponível — sem geometria)`
+        : `Imóvel Rural localizado: ${carFeatures[0].codigo}. `
+        + `(Análise espacial simplificada — geometria não retornada pelo servidor)`,
       dados: carFeatures,
       coverage: 100,
-      carAreaHa: car.areaHa
+      coverageMelhorCAR: 100,
+      carAreaHa: carFeatures.reduce((s, c) => s + (c.areaHa || 0), 0),
+      nCARs: carFeatures.length
     };
   }
 
   try {
-    // 1. Unir todas as geometrias dos CARs para tratar sobreposições ou glebas em múltiplos imóveis
-    let carUnion = turf.feature(featuresComGeo[0].geometry);
-    
-    if (featuresComGeo.length > 1) {
-      for (let i = 1; i < featuresComGeo.length; i++) {
-        const feat = turf.feature(featuresComGeo[i].geometry);
-        try {
-          const union = turf.union(carUnion, feat);
-          if (union) carUnion = union;
-        } catch (err) {
-          warn('Erro ao unir geometrias CAR:', err.message);
-        }
+    // ── 2. Cobertura INDIVIDUAL de cada CAR sobre a gleba ─────────────────
+    //
+    // Esta é a métrica-chave: quanto da gleba está dentro de CADA imóvel
+    // separadamente, não da sua união.
+    //
+    const analiseIndividual = featuresComGeo.map(car => {
+      try {
+        const carPoly = turf.feature(car.geometry);
+        const intersecao = turf.intersect(glebaPoly, carPoly);
+        const areaIntersM2 = intersecao ? turf.area(intersecao) : 0;
+        const covRaw = (areaIntersM2 / glebaAreaM2) * 100;
+        return {
+          ...car,
+          coverageIndividual: covRaw > 99.9 ? 100 : Math.round(covRaw * 10) / 10
+        };
+      } catch (err) {
+        warn(`Erro ao analisar CAR ${car.codigo}:`, err.message);
+        return { ...car, coverageIndividual: 0 };
       }
+    });
+
+    // Ordena: maior cobertura individual primeiro
+    analiseIndividual.sort((a, b) => b.coverageIndividual - a.coverageIndividual);
+    const melhorCAR = analiseIndividual[0];
+    const nCARs = analiseIndividual.length;
+
+    // ── 3. Cobertura TOTAL (união) — apenas para detectar área descoberta ──
+    let carUnion = turf.feature(featuresComGeo[0].geometry);
+    for (let i = 1; i < featuresComGeo.length; i++) {
+      try {
+        const u = turf.union(carUnion, turf.feature(featuresComGeo[i].geometry));
+        if (u) carUnion = u;
+      } catch (_) { /* geometria inválida — ignora este CAR na união */ }
     }
+    const intersTotal = turf.intersect(glebaPoly, carUnion);
+    const covTotalRaw = intersTotal ? (turf.area(intersTotal) / glebaAreaM2) * 100 : 0;
+    const coverageTotal = covTotalRaw > 99.9 ? 100 : Math.round(covTotalRaw * 10) / 10;
 
-    // 2. Calcular interseção entre gleba e a união dos CARs
-    const intersection = turf.intersect(glebaPoly, carUnion);
+    // ── 4. Regras de negócio ───────────────────────────────────────────────
+    let status, mensagem;
 
-    if (!intersection) {
-      return {
-        status: 'bloqueio',
-        mensagem: 'Gleba totalmente fora do perímetro do(s) CAR(s) localizado(s).',
-        dados: carFeatures,
-        coverage: 0,
-        carAreaHa: featuresComGeo.reduce((s, f) => s + f.areaHa, 0)
-      };
-    }
+    if (nCARs === 1) {
+      // ── Caso simples: apenas um imóvel ──────────────────────────────────
+      const cov = melhorCAR.coverageIndividual;
+      if (cov >= 98) {
+        status = 'ok';
+        mensagem = `Gleba em conformidade com o CAR ${melhorCAR.codigo} `
+          + `(${melhorCAR.municipio} · Cobertura: ${cov}%).`;
+      } else if (cov >= 10) {
+        status = 'alerta';
+        mensagem = `Gleba parcialmente fora do CAR ${melhorCAR.codigo}. `
+          + `Cobertura: ${cov}% — ${(100 - cov).toFixed(1)}% da gleba está fora do imóvel registrado.`;
+      } else {
+        status = 'bloqueio';
+        mensagem = `Gleba com baixa cobertura no CAR ${melhorCAR.codigo} (${cov}%). `
+          + `O imóvel registrado não abrange a área da gleba pretendida.`;
+      }
 
-    // 3. Calcular áreas e percentual de cobertura
-    const intersectArea = turf.area(intersection);
-    const glebaArea = turf.area(glebaPoly);
-    const coverageRaw = (intersectArea / glebaArea) * 100;
-    
-    // Arredondamento inteligente: se > 99.9%, considera 100% para evitar flutuação de ponto flutuante
-    const coverage = coverageRaw > 99.9 ? 100 : Math.round(coverageRaw * 10) / 10;
-
-    let status = 'bloqueio';
-    let mensagem = '';
-
-    if (coverage >= 98) {
-      status = 'ok';
-      mensagem = `Gleba em conformidade com o CAR (Cobertura: ${coverage}%).`;
-    } else if (coverage >= 10) {
-      status = 'alerta';
-      mensagem = `Gleba parcialmente fora do CAR. Cobertura: ${coverage}% | Total CAR: ${featuresComGeo.reduce((s, f) => s + f.areaHa, 0).toFixed(1)} ha`;
     } else {
-      status = 'bloqueio';
-      mensagem = `Gleba com baixa cobertura no CAR (${coverage}%). Verifique o perímetro.`;
+      // ── Múltiplos imóveis — sempre requer atenção ───────────────────────
+      const listaResumida = analiseIndividual
+        .map(c => `${c.codigo} (${c.coverageIndividual}%)`)
+        .join(', ');
+
+      if (melhorCAR.coverageIndividual >= 98) {
+        // Um único CAR já contém a gleba; os outros são apenas adjacentes/sobrepostos
+        const adjacentes = analiseIndividual.slice(1).map(c => c.codigo).join(', ');
+        status = 'alerta';
+        mensagem = `Gleba contida no CAR ${melhorCAR.codigo} (${melhorCAR.coverageIndividual}%), `
+          + `porém ${nCARs - 1} imóvel(is) adjacente(s) também interceptam a consulta: ${adjacentes}. `
+          + `Confirme que a operação de crédito se refere exclusivamente ao imóvel ${melhorCAR.codigo}.`;
+
+      } else if (coverageTotal >= 98) {
+        // A gleba só é coberta quando somados 2+ imóveis — ela cruza fronteiras
+        status = 'alerta';
+        mensagem = `Gleba dividida entre ${nCARs} imóveis distintos do CAR `
+          + `(cobertura total: ${coverageTotal}%, maior imóvel individual: ${melhorCAR.coverageIndividual}%). `
+          + `Para crédito rural, a gleba deve estar contida em um único imóvel. `
+          + `CARs detectados: ${listaResumida}.`;
+
+      } else {
+        // Nem a união cobre adequadamente — parte da gleba está descoberta
+        status = 'bloqueio';
+        mensagem = `Gleba parcialmente fora dos ${nCARs} CARs detectados `
+          + `(cobertura total: ${coverageTotal}%, maior individual: ${melhorCAR.coverageIndividual}%). `
+          + `Área sem cobertura CAR: ~${(100 - coverageTotal).toFixed(1)}%. `
+          + `CARs: ${listaResumida}.`;
+      }
     }
 
     return {
       status,
       mensagem,
-      dados: carFeatures,
-      coverage: coverage,
-      carAreaHa: featuresComGeo.reduce((s, f) => s + f.areaHa, 0)
+      dados: analiseIndividual,   // cada item agora tem coverageIndividual
+      coverage: coverageTotal,
+      coverageMelhorCAR: melhorCAR.coverageIndividual,
+      carAreaHa: featuresComGeo.reduce((s, f) => s + (f.areaHa || 0), 0),
+      nCARs
     };
 
   } catch (e) {
     warn('Erro na análise espacial do CAR:', e.message);
-    const car = carFeatures[0];
     return {
-      status: 'ok',
-      mensagem: `Imóvel Rural localizado: ${car.codigo}. (Erro no cálculo espacial)`,
+      status: 'info',
+      mensagem: `CAR localizado: ${carFeatures[0].codigo}. `
+        + `Erro no cálculo espacial — verifique manualmente em car.gov.br.`,
       dados: carFeatures,
-      coverage: 100,
-      carAreaHa: car.areaHa
+      coverage: 0,
+      coverageMelhorCAR: 0,
+      carAreaHa: carFeatures.reduce((s, f) => s + (f.areaHa || 0), 0),
+      nCARs: carFeatures.length
     };
   }
 }

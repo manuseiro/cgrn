@@ -130,8 +130,10 @@ export function renderCentroids(glebas) {
       html: `<div class="cgrn-centroid" style="background:${color};border-color:${color}">${g.glebaId}</div>`,
       iconSize: [26, 26], iconAnchor: [13, 13],
     });
-    L.marker([lat, lon], { icon }).bindPopup(buildPopup(g), { maxWidth: 300 }).addTo(state.map);
-    state.centroidLayers.push();
+    const centroidMarker = L.marker([lat, lon], { icon })
+      .bindPopup(buildPopup(g), { maxWidth: 300 })
+      .addTo(state.map);
+    state.centroidLayers.push(centroidMarker); // Bug corrigido: era push() sem argumento
   });
 }
 

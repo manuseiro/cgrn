@@ -112,12 +112,30 @@ function bindEvents() {
   // Checkboxes de visualização
   el.mostrarGlebas?.addEventListener('change', e => setGlebasVisible(e.target.checked));
   el.mostrarMarcadores?.addEventListener('change', e => {
-    if (e.target.checked && !state.markerLayers.length) renderMarkers(state.glebas);
-    else setMarkersVisible(e.target.checked);
+    // Bug corrigido: state.showMarkers deve ser atualizado SEMPRE
+    // e a lógica precisa cobrir 3 casos:
+    //   1) ativar sem glebas ainda → não faz nada (renderiza quando glebas chegarem)
+    //   2) ativar com glebas mas sem layers criados → renderiza pela primeira vez
+    //   3) ativar com layers já criados (foram ocultados) → apenas reexibe
+    state.showMarkers = e.target.checked;
+    if (e.target.checked) {
+      if (!state.glebas.length) return; // sem glebas: processAndRender fará isso depois
+      if (!state.markerLayers.length) renderMarkers(state.glebas); // caso 2
+      else setMarkersVisible(true);                                 // caso 3
+    } else {
+      setMarkersVisible(false);
+    }
   });
   el.mostrarCentroids?.addEventListener('change', e => {
-    if (e.target.checked && !state.centroidLayers.length) renderCentroids(state.glebas);
-    else setCentroidsVisible(e.target.checked);
+    // Mesma lógica corrigida para centroids
+    state.showCentroids = e.target.checked;
+    if (e.target.checked) {
+      if (!state.glebas.length) return;
+      if (!state.centroidLayers.length) renderCentroids(state.glebas);
+      else setCentroidsVisible(true);
+    } else {
+      setCentroidsVisible(false);
+    }
   });
   el.mostrarTI?.addEventListener('change', e => {
     setTerrasIndigenasVisible(e.target.checked);
