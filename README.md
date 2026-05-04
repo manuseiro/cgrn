@@ -28,7 +28,8 @@
 ## 📥 Como usar
 1. **Clone o repositório**:
    ```bash
-   git clone [https://github.com/SEU_USUARIO/glebasnord.git](https://github.com/SEU_USUARIO/glebasnord.git)
+   git clone 
+   [https://github.com/manuseiro/cgrn.git](https://github.com/manuseiro/cgrn.git)
    cd glebasnord
    ```
 2. Execução:
