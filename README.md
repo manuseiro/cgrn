@@ -1,29 +1,29 @@
-# GlebasNord — Cálculo e Análise de Glebas do Nordeste (v3.3)
+# GlebasNord — Cálculo e Análise de Glebas do Nordeste (v3.4)
 
 **Aplicação web especializada no cálculo, validação e análise geoespacial de glebas rurais, com foco nas exigências normativas da Região Nordeste do Brasil.**
 
-## ✨ Funcionalidades
+## ✨ Principais Funcionalidades (v3.4)
 
 - **Cálculo de Precisão**: Área e perímetro calculados via **Turf.js**.
-- **Validação Geométrica**: Verificação de fechamento de polígono, autointerseção e duplicidade de pontos.
-- **Conformidade SICOR/BACEN**: 
+- **Validação Geométrica**: Fechamento de polígono, autointerseção, duplicidade de pontos e limites do Nordeste.
+- **Conformidade SICOR/BACEN Avançada**:
   - Verificação automática de limite de municípios (máximo 4).
-  - Identificação de sobreposição em **Terras Indígenas (FUNAI)**.
+  - Detecção de sobreposição em **Terras Indígenas (FUNAI)**.
   - Consulta a **Unidades de Conservação** (Proteção Integral e Uso Sustentável).
   - Verificação de **Embargos IBAMA** e alertas de desmatamento (**PRODES/DETER**).
-  - Integração com dados do **CAR (Cadastro Ambiental Rural)**.
-- **Geografia Regional**: Camada **SUDENE 2021** com detecção automática de áreas do Semiárido.
+  - **Análise aprimorada do CAR** com barras de cobertura visual, área descoberta, imóveis individuais e links diretos para o SICAR.
+- **Geografia Regional**: Camada **SUDENE 2021** com detecção automática de Semiárido.
 - **Manipulação de Dados**:
-  - **Importação**: TXT, CSV e KML (Google Earth).
-  - **Exportação**: CSV, GeoJSON, KML e captura do mapa em PNG.
-- **Interface e Usabilidade**: Desenho direto via Leaflet Draw, modo escuro, layout responsivo e otimizado para uso em campo.
+  - **Importação**: TXT, CSV e **KML** (Google Earth).
+  - **Exportação**: CSV, GeoJSON, **KML** e captura do mapa em PNG.
+- **Interface e Usabilidade**: Desenho direto no mapa (Leaflet Draw), modo escuro, layout responsivo e otimizado para uso em campo.
 
 ## 🗂️ Tecnologias
 
-- **Frontend**: HTML5, Bootstrap 5.3, Leaflet 1.9.
-- **Geoprocessamento**: Turf.js 6.
-- **Fontes de Dados e APIs**:
-  - SUDENE, FUNAI, ICMBio, IBAMA, IBGE, SICAR e INPE (TerraBrasilis).
+- **Frontend**: HTML5, Bootstrap 5.3, Leaflet 1.9
+- **Geoprocessamento**: Turf.js 6
+- **Fontes Governamentais**:
+  - SUDENE, FUNAI, ICMBio, IBAMA, IBGE, SICAR e INPE (TerraBrasilis)
 
 ## 📥 Como usar
 1. **Clone o repositório**:
@@ -34,11 +34,14 @@
 2. Execução:
 Abra o arquivo 'index.html' no seu navegador (recomendado Chrome ou Edge).
 
-Dica: Para garantir o funcionamento pleno das requisições de API e camadas externas, utilize um servidor local (como a extensão Live Server do VS Code ou o comando 'python -m http.server').
+Dica importante: Para pleno funcionamento das APIs governamentais e camadas externas, utilize um servidor local:
+
+- VS Code + extensão Live Server
+- Ou via terminal: python -m http.server
 
 ## 📋 Formatos de Entrada Aceitos
 - TXT / CSV
-O formato deve seguir o padrão: '[ID_Gleba] [Ordem_Vértice] [Latitude] [Longitude]'
+O formato deve seguir o padrão: `[ID_Gleba] [Ordem_Vértice] [Latitude] [Longitude]`
 ```
 1 1 -6.2410 -38.9140
 1 2 -6.2410 -38.8980
@@ -54,28 +57,31 @@ Suporte a arquivos gerados no Google Earth contendo múltiplos Placemark do tipo
 - [x] Polígono fechado (primeiro e último pontos idênticos).
 - [x] Mínimo de 4 vértices.
 - [x] Máximo de 4 municípios por operação.
-- [x] Cruzamento com áreas restritivas (Indígenas e Proteção Integral).
-- [x] Análise de sobreposição com a base do CAR.
-- [x] Verificação de passivos ambientais (Embargos/Desmatamento).
+- [x] Detecção de Terras Indígenas
+- [x] Unidades de Conservação de Proteção Integral
+- [x] Análise detalhada de CAR (cobertura espacial + área descoberta)
+- [x] Embargos IBAMA e desmatamento
 
 ## 📂 Estrutura do Projeto
 ```
 cgrn/
-├── index.html              # Página principal
+├── index.html
 ├── css/
-│   └── style.css           # Estilizações customizadas e temas
+│   └── style.css
 ├── js/
-│   ├── main.js             # Inicialização e orquestração
-│   ├── map.js              # Configuração do mapa e camadas
-│   ├── validation.js       # Lógica de validação geométrica
-│   ├── conformidade.js     # Regras de negócio SICOR/BACEN
-│   ├── terras_indigenas.js # Lógica de busca em áreas FUNAI
-│   ├── sudene.js           # Delimitação do Semiárido
-│   ├── kml.js              # Parser de arquivos KML
-│   ├── ui.js               # Manipulação da interface e alertas
-│   └── ...                 # Outros módulos auxiliares
+│   ├── main.js
+│   ├── map.js
+│   ├── validation.js
+│   ├── conformidade.js          # Motor de conformidade BACEN/SICOR
+│   ├── terras_indigenas.js
+│   ├── camadas_externas.js
+│   ├── sudene.js
+│   ├── kml.js
+│   ├── ui.js
+│   ├── export.js
+│   └── ...
 ├── api/
-│   ├── proxy.php           # Bridge para contornar restrições de CORS
+│   ├── proxy.php                # Proxy para contornar CORS
 │   └── terras_indigenas_nordeste.geojson
 └── README.md
 ```
@@ -92,3 +98,9 @@ Este projeto é open source sob a licença MIT.
 **Equipe GlebasNord** — Desenvolvido para apoiar projetistas, assistência técnica rural (ATER), cooperativas e agentes financeiros no desenvolvimento do agronegócio nordestino.
 
 ## ⭐ Se este projeto foi útil para você, considere dar uma estrela no repositório!
+Qualquer sugestão ou bug, abra uma Issue.
+
+---
+
+**Pronto!**  
+Este README está atualizado com as melhorias da **v3.4** (principalmente o painel CAR aprimorado) e mantém exatamente a mesma estrutura do arquivo anterior que você forneceu.
