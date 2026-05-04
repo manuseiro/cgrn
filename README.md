@@ -73,10 +73,8 @@ O formato deve seguir o padrão: `[ID_Gleba] [Ordem_Vértice] [Latitude] [Longit
 1 4 -6.2270 -38.9140
 1 5 -6.2410 -38.9140
 ```
-- KML
-Suporte a arquivos gerados no Google Earth contendo múltiplos Placemark do tipo Polygon.
-- Shapefile
-uporte a arquivos Shapefile, enviando o .zip contendo .shp + .dbf + arquivos auxiliares.
+- KML: Suporte a arquivos gerados no Google Earth contendo múltiplos Placemark do tipo Polygon.
+- Shapefile: Suporte a arquivos Shapefile, enviando o .zip contendo .shp + .dbf + arquivos auxiliares.
 
 ---
 
