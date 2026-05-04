@@ -1,8 +1,8 @@
-# GlebasNord — Cálculo e Análise de Glebas do Nordeste (v3.4)
+# GlebasNord — Cálculo e Análise de Glebas do Nordeste
 
 **Aplicação web especializada no cálculo, validação e análise geoespacial de glebas rurais, com foco nas exigências normativas da Região Nordeste do Brasil.**
 
-## ✨ Principais Funcionalidades (v3.4)
+## ✨ Principais Funcionalidades
 
 - **Cálculo de Precisão**: Área e perímetro calculados via **Turf.js**.
 - **Validação Geométrica**: Fechamento de polígono, autointerseção, duplicidade de pontos e limites do Nordeste.
@@ -101,6 +101,3 @@ Este projeto é open source sob a licença MIT.
 Qualquer sugestão ou bug, abra uma Issue.
 
 ---
-
-**Pronto!**  
-Este README está atualizado com as melhorias da **v3.4** (principalmente o painel CAR aprimorado) e mantém exatamente a mesma estrutura do arquivo anterior que você forneceu.

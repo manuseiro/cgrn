@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-bs-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Changelog - CGRN</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body {
+      background-color: var(--bs-body-bg);
+    }
+
+    .timeline {
+      border-left: 2px solid var(--bs-primary);
+      margin-left: 20px;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 40px;
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -31px;
+      top: 0;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--bs-primary);
+      border: 4px solid var(--bs-body-bg);
+    }
+
+    .timeline-item.future::before {
+      background: var(--bs-secondary);
+    }
+
+    .version-badge {
+      font-family: monospace;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container py-4" style="max-width: 800px;">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm mb-5 rounded-4 px-3">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="index.html">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        <span class="fw-bold">GlebasNord</span>
+      </a>
+      <div class="ms-auto">
+        <a href="index.html" class="btn btn-outline-light btn-sm rounded-pill">
+          <i class="bi bi-arrow-left me-1"></i>Voltar
+        </a>
+      </div>
+    </nav>
+
+    <div class="mb-5">
+      <h1 class="fw-bold mb-2">Notas de Lançamento</h1>
+      <p class="text-muted">Acompanhe a evolução do sistema e as melhorias em análise espacial.</p>
+    </div>
+
+    <div class="timeline">
+
+      <!-- Versão 3.5.1 -->
+      <div class="timeline-item">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-success version-badge">v3.5.1</span>
+          <span class="text-muted small">02/05/2026 (Atual)</span>
+        </div>
+        <div class="card border-0 shadow-sm rounded-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-3 text-primary">Refatoração de Busca e Robustez CAR</h5>
+            <ul class="mb-0 small">
+              <li><strong>Refatoração Spatial:</strong> Lógica de MultiPolygon movida para
+                <code>spatial_analysis.js</code> com tratamento de erros topológicos.</li>
+              <li><strong>Busca Inteligente CAR:</strong> Suporte a múltiplos formatos de código e detecção automática
+                de UF via Regex.</li>
+              <li><strong>Otimização de Performance:</strong> Debounce na busca CAR e cache alfanumérico por código de
+                imóvel.</li>
+              <li><strong>Interface Moderna:</strong> Renovação visual das páginas de Documentação e Changelog.</li>
+              <li><strong>UI Improvements:</strong> Novo botão para limpar cache do SICAR e feedback visual aprimorado
+                em processamentos longos.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Versão 3.5.0 -->
+      <div class="timeline-item">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-primary version-badge">v3.5.0</span>
+          <span class="text-muted small">30/04/2026</span>
+        </div>
+        <div class="card border-0 shadow-sm rounded-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-3">Módulo de Conformidade BACEN</h5>
+            <ul class="mb-0 small">
+              <li>Lançamento oficial da verificação automática BACEN/SICOR.</li>
+              <li>Integração com bases ICMBio, IBAMA e FUNAI via GeoServer.</li>
+              <li>Cálculo de sobreposição percentual em tempo real.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Futuro -->
+      <div class="timeline-item future">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-secondary version-badge">v3.6.0</span>
+          <span class="text-muted small">Planejado</span>
+        </div>
+        <div class="card border-0 shadow-sm rounded-4 bg-light">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-2">Próximas Melhorias</h5>
+            <p class="small text-muted mb-0">Exportação de relatórios em PDF, suporte a formatos GeoJSON em importação
+              direta e integração com APIs de Preços de Terras.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    if (localStorage.getItem('cgrn_theme') === 'dark') {
+      document.documentElement.setAttribute('data-bs-theme', 'dark');
+    }
+  </script>
+</body>
+
+</html>
