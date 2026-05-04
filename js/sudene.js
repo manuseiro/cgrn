@@ -1,128 +1,146 @@
 /**
- * sudene.js — Carregamento da camada SUDENE com índice espacial.
- *
- * Carrega o GeoJSON de municípios da SUDENE, renderiza no mapa
- * e constrói um índice espacial (bounding boxes) para consultas rápidas.
+ * @file sudene.js
+ * @description Carregamento e gerenciamento da camada SUDENE.
+ * Constrói índice espacial por bounding box ao carregar para
+ * acelerar consultas de ponto-em-polígono.
  */
 
-import { getMap, setSudeneLayer, setSudeneIndex, getSudeneIndex } from './state.js';
-import { log, logError, SUDENE_URL, STATE_COLORS, SUDENE_OPACITY } from './utils.js';
+import { CONFIG } from './config.js';
+import { state } from './state.js';
+import { log, warn, setSudeneStatus } from './ui.js';
 
-/* global L, turf */
+const { STATE_COLORS, DEFAULT_COLOR } = CONFIG.SUDENE;
 
 /**
- * Calcula o bounding box de um GeoJSON feature.
- * @param {object} feature
- * @returns {number[]} [minLon, minLat, maxLon, maxLat]
+ * Carrega os dados GeoJSON da SUDENE, constrói o índice espacial e
+ * adiciona a camada visual ao mapa.
+ * Deve ser chamada uma única vez durante a inicialização.
  */
-function computeBBox(feature) {
-  return turf.bbox(feature);
-}
-
-/**
- * Carrega a camada SUDENE do servidor e constrói o índice espacial.
- * @param {function} onStart — Callback chamado no início do carregamento
- * @param {function} onEnd — Callback chamado ao final (sucesso ou erro)
- * @returns {Promise<boolean>} — true se carregou com sucesso
- */
-export async function loadSudeneLayer(onStart, onEnd) {
-  const map = getMap();
-  if (!map) {
-    logError('sudene: mapa não inicializado');
-    return false;
-  }
-
-  onStart?.();
+export async function loadSudeneLayer() {
+  setSudeneStatus('loading');
 
   try {
-    log('sudene: carregando dados...');
-    const response = await fetch(SUDENE_URL);
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
+    const response = await fetch(CONFIG.SUDENE.URL);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     const sudeneData = await response.json();
 
-    if (!sudeneData || !Array.isArray(sudeneData.features)) {
-      throw new Error('Formato inválido: campo "features" ausente ou não é array');
+    if (!sudeneData?.features?.length) {
+      throw new Error('Formato de dados inválido (sem features)');
     }
 
-    log('sudene:', sudeneData.features.length, 'features carregadas');
+    log(`SUDENE: ${sudeneData.features.length} features carregadas`);
 
-    // ── Construir camada visual ──────────────────────────────────────
+    // ── Construção do índice espacial ────────────────────────────────────
+    // Para cada feature, pré-computa o bbox e armazena junto com o objeto GeoJSON.
+    // Isso reduz o custo de validação de município de O(n) para O(k)
+    // onde k << n (apenas features cujo bbox intersecta com a gleba).
+
+    state.sudeneFeatures = sudeneData.features
+      .filter(f => f?.geometry && f?.properties)
+      .map(feature => {
+        let bbox;
+        try {
+          bbox = turf.bbox(feature);
+        } catch (_) {
+          // Feature com geometria inválida — bbox impossível de calcular
+          bbox = [-180, -90, 180, 90]; // fallback: sempre incluir
+        }
+        return {
+          id: feature.properties.CD_GEOCMU || feature.properties.NM_MUNICIP,
+          bbox,
+          feature, // objeto GeoJSON original (usado no booleanPointInPolygon)
+        };
+      });
+
+    log(`Índice espacial: ${state.sudeneFeatures.length} features indexadas`);
+
+    // ── Criação da camada visual ─────────────────────────────────────────
     const sudeneGroup = L.featureGroup();
-    const spatialIndex = [];
 
     sudeneData.features.forEach(feature => {
-      const uf = feature.properties.NM_ESTADO;
-      const isSemiArido = feature.properties.ID_SMA === '1';
-      const color = STATE_COLORS[uf] || '#888888';
+      const uf = feature.properties?.NM_ESTADO ?? '';
+      const isSemiArido = feature.properties?.ID_SMA === '1';
+      const color = STATE_COLORS[uf] ?? DEFAULT_COLOR;
 
       const layer = L.geoJSON(feature, {
         style: {
           color,
-          weight: 0,
-          fillOpacity: isSemiArido ? SUDENE_OPACITY.semiArido : SUDENE_OPACITY.normal,
+          weight: 0,                          // Sem bordas visíveis
+          fillOpacity: isSemiArido ? 0.30 : 0.18, // Semiárido mais opaco
         },
         onEachFeature(feat, lyr) {
-          const nome = feat.properties.NM_MUNICIP;
-          const estado = feat.properties.NM_ESTADO;
-          const semiAridoText = feat.properties.ID_SMA === '1' ? 'Semiárido' : 'Fora do Semiárido';
-          lyr.bindPopup(`<b>${nome}</b> – ${estado} (${semiAridoText})`);
+          const nome = feat.properties?.NM_MUNICIP ?? 'Desconhecido';
+          const uf = feat.properties?.NM_ESTADO ?? '';
+          const semiarid = feat.properties?.ID_SMA === '1' ? 'Semiárido' : 'Fora do Semiárido';
+          lyr.bindPopup(
+            `<strong>${nome}</strong> — ${uf}<br><span class="badge bg-secondary">${semiarid}</span>`
+          );
         },
       });
 
       sudeneGroup.addLayer(layer);
-
-      // Entrada do índice espacial
-      spatialIndex.push({
-        geometry: feature,
-        bbox: computeBBox(feature),
-        properties: feature.properties,
-      });
     });
 
-    // Salvar no estado
-    setSudeneLayer(sudeneGroup);
-    setSudeneIndex(spatialIndex);
-    sudeneGroup.addTo(map);
+    state.sudeneLayer = sudeneGroup;
+    state.sudeneLoaded = true;
 
-    log('sudene: camada adicionada, índice com', spatialIndex.length, 'entradas');
-    return true;
+    sudeneGroup.addTo(state.map);
+    log('Camada SUDENE adicionada ao mapa');
+
+    // ── Clique no mapa → popup do município ──────────────────────────────
+    state.map.on('click', handleMapClick);
+
+    setSudeneStatus('ok');
 
   } catch (error) {
-    logError('sudene: erro ao carregar', error);
-    return false;
-
-  } finally {
-    onEnd?.();
+    warn('Erro ao carregar SUDENE:', error);
+    setSudeneStatus('error');
+    // Não lança o erro — a aplicação pode funcionar parcialmente sem SUDENE
+    // A validação de município mostrará erro descritivo ao usuário
   }
 }
 
 /**
- * Identifica o município sob um ponto clicado no mapa.
- * Utiliza o índice espacial para performance.
- * @param {number} lat
- * @param {number} lon
- * @returns {{ nome: string, uf: string, semiArido: boolean } | null}
+ * Handler de clique no mapa: identifica município e exibe popup.
+ * Usa o mesmo índice espacial para performance consistente.
+ * @param {L.LeafletMouseEvent} e
  */
-export function identificarMunicipio(lat, lon) {
-  const index = getSudeneIndex();
-  if (!index || index.length === 0) return null;
+function handleMapClick(e) {
+  // Se o clique foi em um polígono de gleba, não abre popup de município
+  if (e.originalEvent._glebaClicked) return;
 
-  for (const entry of index) {
-    const [minLon, minLat, maxLon, maxLat] = entry.bbox;
-    if (lon < minLon || lon > maxLon || lat < minLat || lat > maxLat) continue;
+  const { lat, lng } = e.latlng;
+  const pt = turf.point([lng, lat]);
 
-    if (turf.booleanPointInPolygon([lon, lat], entry.geometry)) {
-      return {
-        nome: entry.properties.NM_MUNICIP,
-        uf: entry.properties.NM_ESTADO,
-        semiArido: entry.properties.ID_SMA === '1',
-      };
+  // Pré-filtro por bbox antes de booleanPointInPolygon
+  let found = null;
+  for (const feat of state.sudeneFeatures) {
+    if (
+      lng >= feat.bbox[0] && lng <= feat.bbox[2] &&
+      lat >= feat.bbox[1] && lat <= feat.bbox[3]
+    ) {
+      try {
+        if (turf.booleanPointInPolygon(pt, feat.feature)) {
+          found = feat.feature;
+          break;
+        }
+      } catch (_) { /* geometria inválida */ }
     }
   }
 
-  return null;
+  const nome = found?.properties?.NM_MUNICIP ?? null;
+  const uf = found?.properties?.NM_ESTADO ?? '';
+  const semiarid = found?.properties?.ID_SMA === '1'
+    ? '<i class="bi bi-cloud-slash-fill"></i> Semiárido'
+    : '<i class="bi bi-cloud-rain-heavy-fill"></i> Fora do Semiárido';
+
+  const content = nome
+    ? `<strong>${nome}</strong> — ${uf}<br><small>${semiarid}</small>`
+    : '<em>Fora da área da SUDENE</em>';
+
+  L.popup({ className: 'cgrn-popup' })
+    .setLatLng(e.latlng)
+    .setContent(content)
+    .openOn(state.map);
 }

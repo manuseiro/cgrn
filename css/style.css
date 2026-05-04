@@ -1,0 +1,305 @@
+/* ============================================================
+   CGRN — Cálculo de Glebas da Região do Nordeste
+   style.css — Complementa Bootstrap 5.3
+   ============================================================ */
+
+/* ─── Variáveis de tema ─────────────────────────────────────── */
+:root {
+  --cgrn-primary:    #1e3a5f;
+  --cgrn-accent:     #448aff;
+  --cgrn-font-mono:  'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace;
+  --cgrn-nav-h:      56px;
+  --cgrn-status-h:   32px;
+  --cgrn-shadow:     0 2px 16px rgba(0,0,0,.14);
+  --cgrn-radius:     10px;
+}
+
+[data-bs-theme="dark"] {
+  --bs-body-bg: #111827;
+  --bs-body-bg-alt: #1f2937;
+}
+
+/* ─── Layout base ───────────────────────────────────────────── */
+html, body { height: 100%; overflow: hidden; margin: 0; }
+
+/* ─── Mapa ──────────────────────────────────────────────────── */
+#map {
+  position: fixed;
+  inset: var(--cgrn-nav-h) 0 var(--cgrn-status-h) 0;
+  z-index: 0;
+}
+
+/* ─── Navbar ────────────────────────────────────────────────── */
+.navbar {
+  position: relative;
+  z-index: 1030;
+  height: var(--cgrn-nav-h);
+  font-size: .88rem;
+}
+.navbar-brand { font-weight: 800; letter-spacing: .04em; }
+.navbar .dropdown-menu { font-size: .85rem; border-radius: var(--cgrn-radius); }
+
+/* ─── Status bar inferior ───────────────────────────────────── */
+#statusBar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: var(--cgrn-status-h);
+  z-index: 1020;
+  display: flex;
+  align-items: center;
+  padding: 0 .875rem;
+  gap: 1rem;
+  font-size: .72rem;
+  font-family: var(--cgrn-font-mono);
+  background: rgba(255,255,255,.96);
+  border-top: 1px solid var(--bs-border-color, #dee2e6);
+  backdrop-filter: blur(4px);
+}
+[data-bs-theme="dark"] #statusBar {
+  background: rgba(17, 24, 39, .96);
+}
+.status-item { white-space: nowrap; }
+.status-divider {
+  width: 1px; height: 14px;
+  background: var(--bs-border-color, #dee2e6);
+  flex-shrink: 0;
+}
+
+/* ─── Modais ────────────────────────────────────────────────── */
+.modal-content {
+  border: none;
+  border-radius: var(--cgrn-radius);
+  box-shadow: var(--cgrn-shadow);
+  overflow: hidden;
+}
+.modal-header { border-bottom: 1px solid var(--bs-border-color); padding: .875rem 1.125rem; }
+.modal-footer { border-top: 1px solid var(--bs-border-color); }
+
+/* ─── Textarea de coordenadas ───────────────────────────────── */
+.coord-area {
+  font-family: var(--cgrn-font-mono) !important;
+  font-size: .8rem;
+  line-height: 1.65;
+  resize: vertical;
+  min-height: 160px;
+  letter-spacing: .01em;
+}
+
+/* ─── Upload zone ───────────────────────────────────────────── */
+.upload-zone {
+  border: 2px dashed var(--bs-border-color, #dee2e6);
+  border-radius: var(--cgrn-radius);
+  padding: 2rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--cgrn-accent);
+  background: color-mix(in srgb, var(--cgrn-accent) 5%, transparent);
+}
+
+/* ─── Tabela de resultados ──────────────────────────────────── */
+.results-table thead {
+  background: var(--bs-dark-bg-subtle, #212529);
+  color: var(--bs-dark-color, #f8f9fa);
+}
+[data-bs-theme="dark"] .results-table thead {
+  background: #1f2937;
+}
+.results-table th {
+  font-size: .73rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: .6rem .75rem;
+}
+.results-table td {
+  font-size: .82rem;
+  padding: .5rem .75rem;
+  vertical-align: middle;
+}
+.results-table tr[data-gleba-id]:hover { cursor: default; }
+
+/* Chip de cor da gleba */
+.color-chip {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+/* ─── Botões ícone na tabela ────────────────────────────────── */
+.btn-icon {
+  width: 28px; height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .8rem;
+  border-radius: 6px;
+  transition: transform .15s, background .15s;
+}
+.btn-icon:hover { transform: scale(1.12); }
+
+/* ─── Centroid marker ───────────────────────────────────────── */
+.cgrn-centroid {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 2.5px solid;
+  color: #fff;
+  font-size: .68rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,.3);
+  transition: transform .15s;
+  filter: brightness(1.1);
+}
+.cgrn-centroid:hover { transform: scale(1.2); }
+
+/* ─── Popup do Leaflet ──────────────────────────────────────── */
+.leaflet-popup-content-wrapper {
+  border-radius: var(--cgrn-radius) !important;
+  box-shadow: var(--cgrn-shadow) !important;
+  padding: 2px !important;
+}
+.leaflet-popup-content { margin: 10px 14px !important; }
+[data-bs-theme="dark"] .leaflet-popup-content-wrapper,
+[data-bs-theme="dark"] .leaflet-popup-tip {
+  background: #1f2937 !important;
+  color: #e5e7eb !important;
+}
+
+/* ─── Área de mensagem inline ───────────────────────────────── */
+#msgGleba .alert, #msgProjeto .alert {
+  font-size: .83rem;
+  border-radius: 8px;
+  animation: fadein .2s ease;
+}
+
+/* ─── Toast container ───────────────────────────────────────── */
+.toast { border-radius: var(--cgrn-radius); overflow: hidden; min-width: 280px; }
+.toast-header { font-size: .82rem; }
+.toast-body { font-size: .82rem; }
+
+/* ─── Info de projeto salvo ─────────────────────────────────── */
+#savedProjectInfo { min-height: 3rem; }
+
+/* ─── Controles Leaflet no dark mode ────────────────────────── */
+[data-bs-theme="dark"] .leaflet-bar a,
+[data-bs-theme="dark"] .leaflet-draw-toolbar a {
+  background-color: #1f2937 !important;
+  color: #e5e7eb !important;
+  border-color: #374151 !important;
+}
+[data-bs-theme="dark"] .leaflet-bar a:hover,
+[data-bs-theme="dark"] .leaflet-draw-toolbar a:hover {
+  background-color: #374151 !important;
+}
+[data-bs-theme="dark"] .leaflet-control-attribution {
+  background: rgba(17,24,39,.9) !important;
+  color: #9ca3af !important;
+}
+[data-bs-theme="dark"] .leaflet-control-attribution a { color: #60a5fa !important; }
+[data-bs-theme="dark"] .leaflet-draw-tooltip { background: #1f2937; color: #e5e7eb; border: 1px solid #374151; }
+
+/* ─── Escala ─────────────────────────────────────────────────── */
+.leaflet-control-scale-line {
+  border-color: var(--cgrn-accent) !important;
+  font-size: .68rem !important;
+}
+[data-bs-theme="dark"] .leaflet-control-scale-line { color: #e5e7eb; background: rgba(17,24,39,.8); }
+
+/* ─── Spinner de botão ──────────────────────────────────────── */
+.spinner-border-sm { width: .85rem; height: .85rem; border-width: .15em; }
+
+/* ─── Animação ───────────────────────────────────────────────── */
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+.animate-fadein { animation: fadein .2s ease; }
+
+/* ─── Responsividade mobile ─────────────────────────────────── */
+@media (max-width: 767px) {
+  #statusBar { font-size: .65rem; gap: .5rem; padding: 0 .5rem; }
+  .modal-dialog { margin: .5rem; }
+  .coord-area { font-size: .75rem; }
+  .results-table th, .results-table td { font-size: .75rem; padding: .35rem .5rem; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TERRAS INDÍGENAS — Estilos adicionais
+══════════════════════════════════════════════════════════════ */
+
+/* ─── Painel de legenda TI (sobre o mapa) ────────────────────── */
+#tiLegendPanel {
+  position: fixed;
+  left: 10px;
+  bottom: calc(var(--cgrn-status-h) + 8px);
+  z-index: 1000;
+  background: rgba(255,255,255,.97);
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  border-radius: var(--cgrn-radius);
+  box-shadow: var(--cgrn-shadow);
+  min-width: 210px;
+  max-width: 240px;
+  overflow: hidden;
+  transition: box-shadow .2s;
+}
+[data-bs-theme="dark"] #tiLegendPanel {
+  background: rgba(31,41,55,.97);
+}
+
+.ti-legend-header {
+  display: flex;
+  align-items: center;
+  padding: .45rem .75rem;
+  font-size: .75rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(0,0,0,.03);
+  border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+  user-select: none;
+  gap: .4rem;
+  letter-spacing: .02em;
+}
+[data-bs-theme="dark"] .ti-legend-header { background: rgba(255,255,255,.04); }
+.ti-legend-header:hover { background: rgba(0,0,0,.06); }
+
+#tiLegendBody { padding: .6rem .75rem .75rem; }
+
+/* Conteúdo gerado por buildTILegend() em terras_indigenas.js */
+.ti-legend { font-size: .77rem; }
+.ti-legend > div:last-child { border-top: 1px solid var(--bs-border-color, #dee2e6); margin-top: .5rem; padding-top: .4rem; }
+
+/* ─── Badge TI na tabela ─────────────────────────────────────── */
+.ti-badge {
+  font-size: .72rem;
+  letter-spacing: .01em;
+  cursor: help;
+  transition: opacity .15s;
+}
+.ti-badge:hover { opacity: .85; }
+
+/* ─── Linha conflito TI na tabela ───────────────────────────── */
+.results-table tr.table-warning td { border-color: rgba(var(--bs-warning-rgb), .25); }
+
+/* ─── Legenda TI no rodapé do modal de resultados ───────────── */
+.ti-modal-legend {
+  font-size: .75rem;
+  background: var(--bs-body-tertiary, #f8f9fa);
+  border-top: 1px solid var(--bs-border-color, #dee2e6);
+}
+[data-bs-theme="dark"] .ti-modal-legend { background: rgba(255,255,255,.03); }
+
+/* ─── Responsividade: esconde legenda em mobile ─────────────── */
+@media (max-width: 576px) {
+  #tiLegendPanel { display: none !important; }
+  .ti-modal-legend { font-size: .68rem; }
+}

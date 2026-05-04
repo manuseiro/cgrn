@@ -1,404 +1,421 @@
 /**
- * main.js — Ponto de entrada da aplicação CGRN.
+ * @file main.js
+ * @description Ponto de entrada da aplicação CGRN.
+ * Coordena módulos — sem lógica de negócio própria.
  *
- * Orquestra a inicialização dos módulos, vincula eventos
- * e coordena o fluxo entre validação, mapa e UI.
+ * Fluxo replicado do site de referência (glebas.com.br):
+ *  1. Adicionar Gleba  → valida + desenha no mapa + fecha modal
+ *  2. Validar Glebas   → valida inline SEM fechar modal
+ *  3. Calcular Áreas   → processa + abre modal de resultados
  *
- * v2 — Melhorias:
- *  - Integração com Leaflet-Geoman (create, edit, remove)
- *  - State como single source of truth
- *  - Diagnóstico de pontos
- *  - Per-gleba editing
- *  - Popup edit/remove buttons
- *  - Enhanced coord edit table (add/remove rows)
+ * Adições v2.1:
+ *  - Verificação automática de sobreposição com Terras Indígenas
+ *  - Camada TI com toggle de visibilidade e legenda interativa
+ *  - Alerta visual e detalhes na tabela de resultados
  */
 
+import { CONFIG } from './config.js';
+import { state } from './state.js';
 import {
-  setGlebas, getGlebas, clearAll, cacheGet, cacheSet,
-  updateGleba, removeGleba, addGleba, getGlebaById,
-  glebasToText, subscribe,
-} from './state.js';
-
-import { log, hashString, $ } from './utils.js';
-import { validarCoordenadas, reprocessGlebaCoords } from './validation.js';
-import {
-  initMap, setupGeomanEvents, renderGlebas, renderMarkers,
-  clearMarkers, enableDrawMode, enableGlebaEdit, disableAllEdits, flashGleba,
+  initMap,
+  renderPolygons, renderMarkers, renderCentroids,
+  clearMapLayers, zoomToGleba,
+  setGlebasVisible, setMarkersVisible,
+  setCentroidsVisible
 } from './map.js';
-import { loadSudeneLayer } from './sudene.js';
-import { exportToCSV, exportToGeoJSON, exportMapImage } from './export.js';
-import { runDiagnostics, clearDiagnostics } from './diagnostics.js';
+import { validateCoordinates } from './validation.js';
 import {
-  initUI,
-  showMessage, showErrors, showWarnings, clearMessages,
-  startButtonLoader, toggleGlobalLoader,
-  updateResultsTable,
-  hideAdicionarModal, showResultadosModal, showCoordEditModal,
-  getCoordenadasText, setCoordenadasText, isMostrarMarcadores,
-  clearForm, addCoordRow,
-  setupFileUpload,
-  toggleDarkMode,
-  saveProject, loadProject, deleteProject, updateProjectList,
-  insertExample,
-  syncTableToTextarea, populateCoordTable, syncStateToTextarea,
+  showMessage, showToast, clearMessage,
+  setButtonLoading, setButtonNormal,
+  renderResultsTable, applyDarkMode,
+  setSudeneStatus, getCoordText,
+  setCoordText, hideModal, showModal,
+  updateStatusBar, el, log
 } from './ui.js';
+import {
+  exportToCSV, exportToGeoJSON,
+  exportMapImage
+} from './export.js';
+import { loadSudeneLayer } from './sudene.js';
+import { initFileUpload } from './upload.js';
+import {
+  saveProject, loadProject,
+  clearSavedProject,
+  checkSavedProject
+} from './persistence.js';
+import {
+  loadTerrasIndigenas,
+  setTerrasIndigenasVisible,
+  checkGlebaTI,
+  buildTILegend
+} from './terras_indigenas.js';
 
-/* global bootstrap */
-
-// ── Processamento principal ─────────────────────────────────────────────────
-
-/**
- * Valida e processa coordenadas do textarea.
- * Atualiza mapa e tabela se validação for bem-sucedida.
- * @param {HTMLButtonElement} [triggerBtn] — Botão que disparou a ação (para loader)
- * @returns {boolean} true se processou com sucesso
- */
-function processarCoordenadas(triggerBtn) {
-  const stopLoader = triggerBtn ? startButtonLoader(triggerBtn, 'Validando...') : () => {};
-
-  try {
-    const texto = getCoordenadasText();
-    if (!texto) {
-      showMessage('Digite pelo menos uma coordenada ou desenhe uma gleba.', 'warning');
-      return false;
-    }
-
-    // Limpar diagnóstico anterior
-    clearDiagnostics();
-
-    // Verificar cache
-    const hash = hashString(texto);
-    const cached = cacheGet(hash);
-    if (cached) {
-      log('main: usando resultado do cache');
-      setGlebas(cached);
-      updateResultsTable(cached);
-      renderGlebas(cached);
-      if (isMostrarMarcadores()) renderMarkers(cached);
-      showMessage('<i class="bi bi-check-circle-fill"></i> Coordenadas válidas! <span class="text-muted">(cache)</span>', 'success', 2000);
-      return true;
-    }
-
-    // Validar
-    const result = validarCoordenadas(texto);
-
-    if (!result.valid) {
-      showErrors(result.errors);
-      return false;
-    }
-
-    // Mostrar warnings se houver
-    if (result.warnings && result.warnings.length > 0) {
-      // Mostrar warnings temporariamente
-      setTimeout(() => showWarnings(result.warnings), 100);
-    }
-
-    // Sucesso
-    cacheSet(hash, result.data);
-    setGlebas(result.data);
-    updateResultsTable(result.data);
-    renderGlebas(result.data);
-
-    if (isMostrarMarcadores()) {
-      renderMarkers(result.data);
-    } else {
-      clearMarkers();
-    }
-
-    showMessage(`<i class="bi bi-check-circle-fill"></i> ${result.data.length} gleba(s) validada(s) com sucesso!`, 'success', 3000);
-    return true;
-
-  } finally {
-    stopLoader();
-  }
-}
-
-// ── Ações vinculadas a botões ───────────────────────────────────────────────
-
-function onAdicionarGleba() {
-  const btn = $('adicionar-gleba-btn');
-  const ok = processarCoordenadas(btn);
-  if (ok) hideAdicionarModal();
-}
-
-function onCalcularArea() {
-  const btn = $('calcularArea');
-  const ok = processarCoordenadas(btn);
-  if (ok) showResultadosModal();
-}
-
-function onDesenharGleba() {
-  enableDrawMode();
-  showMessage('<i class="bi bi-info-circle"></i> Clique no mapa para desenhar os vértices. Clique no primeiro ponto para fechar.', 'info', 5000);
-}
-
-function onLimpar() {
-  clearAll();
-  clearForm();
-  clearDiagnostics();
-}
-
-function onExportCSV() {
-  const glebas = getGlebas();
-  if (glebas.length > 0) exportToCSV(glebas);
-}
-
-function onExportGeoJSON() {
-  const glebas = getGlebas();
-  if (glebas.length > 0) exportToGeoJSON(glebas);
-}
-
-async function onExportImage() {
-  const btn = $('exportImage');
-  const stopLoader = startButtonLoader(btn, 'Exportando...');
-  try {
-    await exportMapImage();
-  } catch (e) {
-    showMessage('Erro ao exportar imagem: ' + e.message, 'danger');
-  } finally {
-    stopLoader();
-  }
-}
-
-function onSaveProject() {
-  saveProject();
-}
-
-function onToggleDarkMode() {
-  toggleDarkMode();
-}
-
-function onInsertExample() {
-  insertExample();
-}
-
-function onEditCoords() {
-  showCoordEditModal();
-}
-
-function onApplyCoordEdits() {
-  const text = syncTableToTextarea();
-  processarCoordenadas();
-  const modalEl = $('coordEditModal');
-  if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
-}
-
-function onValidarPontos() {
-  const text = getCoordenadasText();
-  runDiagnostics(text);
-}
-
-// ── Geoman callbacks ────────────────────────────────────────────────────────
-
-function onGlebaCreatedFromMap(glebaData) {
-  log('main: gleba criada via Geoman', glebaData.gleba);
-
-  // Adicionar ao state
-  addGleba(glebaData);
-
-  // Atualizar textarea e re-renderizar
-  syncStateToTextarea();
-  const glebas = getGlebas();
-  updateResultsTable(glebas);
-  renderGlebas(glebas);
-
-  if (isMostrarMarcadores()) renderMarkers(glebas);
-
-  showMessage(`<i class="bi bi-check-circle-fill"></i> Gleba ${glebaData.gleba} desenhada com sucesso!`, 'success', 3000);
-}
-
-function onGlebaEditedFromMap(glebaId, newRawCoords) {
-  const gleba = getGlebaById(glebaId);
-  if (!gleba) return;
-
-  const updated = reprocessGlebaCoords(newRawCoords, gleba.gleba);
-  if (!updated) return;
-
-  updateGleba(glebaId, {
-    rawCoords: updated.rawCoords,
-    coords: updated.coords,
-    area: updated.area,
-    perimeter: updated.perimeter,
-    centroid: updated.centroid,
-    municipios: updated.municipios,
-  });
-
-  syncStateToTextarea();
-  const glebas = getGlebas();
-  updateResultsTable(glebas);
-  // Re-render to update labels/colors
-  renderGlebas(glebas);
-  if (isMostrarMarcadores()) renderMarkers(glebas);
-
-  log('main: gleba', gleba.gleba, 'atualizada via edição visual');
-}
-
-function onGlebaRemovedFromMap(glebaId) {
-  removeGleba(glebaId);
-  syncStateToTextarea();
-  const glebas = getGlebas();
-  updateResultsTable(glebas);
-  renderGlebas(glebas);
-  if (isMostrarMarcadores()) renderMarkers(glebas);
-}
-
-// ── Per-gleba edit/remove (from popups, panel, results table) ───────────────
-
-function handleGlebaEdit(glebaId) {
-  enableGlebaEdit(glebaId);
-  showMessage('<i class="bi bi-info-circle"></i> Arraste os vértices para editar. Clique no segmento para adicionar vértices.', 'info', 5000);
-}
-
-function handleGlebaRemove(glebaId) {
-  const gleba = getGlebaById(glebaId);
-  if (!gleba) return;
-  if (!confirm(`Remover Gleba ${gleba.gleba}?`)) return;
-
-  onGlebaRemovedFromMap(glebaId);
-  showMessage(`Gleba ${gleba.gleba} removida.`, 'info', 2000);
-}
-
-function handleGlebaZoom(glebaId) {
-  flashGleba(glebaId);
-}
-
-// ── Inicialização ───────────────────────────────────────────────────────────
+// ─── Boot ─────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
-  log('main: inicializando aplicação CGRN');
+  log('CGRN v2.1 inicializando...');
 
-  // 1. Inicializar mapa
-  initMap();
+  initMap();                          // 1. Mapa Leaflet + controles
+  bindEvents();                       // 2. Todos os listeners
+  initFileUpload(el.fileUpload);      // 3. Upload CSV/TXT
+  checkSavedProject();                // 4. Info projeto salvo na UI
+  initLegend();                       // 5. Painel de legenda TI no mapa
 
-  // 2. Inicializar UI
-  initUI();
+  // Carregamentos em paralelo (não bloqueiam a UI)
+  setSudeneStatus('loading');
 
-  // 3. Configurar eventos Geoman
-  setupGeomanEvents(onGlebaCreatedFromMap, onGlebaEditedFromMap, onGlebaRemovedFromMap);
+  const [,] = await Promise.allSettled([
+    loadSudeneLayer(),
+    loadTerrasIndigenas(),
+  ]);
 
-  // 4. Vincular eventos de botões
-  $('adicionar-gleba-btn')?.addEventListener('click', onAdicionarGleba);
-  $('calcularArea')?.addEventListener('click', onCalcularArea);
-  $('desenharGleba')?.addEventListener('click', onDesenharGleba);
-  $('limparMapa')?.addEventListener('click', onLimpar);
-  $('exportCSV')?.addEventListener('click', onExportCSV);
-  $('exportGeoJSON')?.addEventListener('click', onExportGeoJSON);
-  $('exportImage')?.addEventListener('click', onExportImage);
-  $('saveProject')?.addEventListener('click', onSaveProject);
-  $('darkModeToggle')?.addEventListener('click', onToggleDarkMode);
-  $('insertExample')?.addEventListener('click', onInsertExample);
-  $('editarCoordsBtn')?.addEventListener('click', onEditCoords);
-  $('applyCoordEdits')?.addEventListener('click', onApplyCoordEdits);
-  $('validarPontosBtn')?.addEventListener('click', onValidarPontos);
-  $('addCoordRow')?.addEventListener('click', addCoordRow);
-  $('glebaPanelClose')?.addEventListener('click', () => {
-    $('glebaPanel')?.classList.add('d-none');
+  log('CGRN pronto.');
+});
+
+// ─── Legenda TI ───────────────────────────────────────────────────────────
+
+function initLegend() {
+  const el = document.getElementById('tiLegendContent');
+  if (el) el.innerHTML = buildTILegend();
+}
+
+// ─── Event Bindings ───────────────────────────────────────────────────────
+
+function bindEvents() {
+
+  // ━━ Modal: Adicionar / Validar Gleba ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  el.btnAdicionar?.addEventListener('click', async () => {
+    await processAndRender({ fecharModal: 'adicionarGleba' });
   });
 
-  // Mostrar marcadores toggle
-  $('mostrarMarcadores')?.addEventListener('change', () => {
-    if (isMostrarMarcadores()) {
-      const glebas = getGlebas();
-      if (glebas.length > 0) renderMarkers(glebas);
+  el.btnValidar?.addEventListener('click', async () => {
+    await validarInline();
+  });
+
+  el.btnInserirExemplo?.addEventListener('click', () => {
+    setCoordText(CONFIG.EXAMPLE_COORDS);
+    clearMessage();
+  });
+
+  el.btnLimparMapa?.addEventListener('click', () => {
+    clearMapLayers();
+    setCoordText('');
+    clearMessage();
+    state.cache.clear();
+    updateStatusBar([]);
+    renderResultsTable([]);
+    showToast('Mapa limpo com sucesso.', 'info', 2000);
+  });
+
+  // ━━ Navbar / Menu ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  el.btnCalcular?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await processAndRender({ abrirResultados: true });
+  });
+
+  el.btnValidarNav?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    showModal('adicionarGleba');
+    setTimeout(validarInline, 350);
+  });
+
+  el.btnDesenhar?.addEventListener('click', (e) => {
+    e.preventDefault();
+    hideModal('adicionarGleba');
+    new L.Draw.Polygon(state.map, state.drawControl.options.draw.polygon).enable();
+    showToast('Clique no mapa para iniciar. Clique no 1º ponto para fechar o polígono.', 'info', 6000);
+  });
+
+  el.btnDarkMode?.addEventListener('click', () => {
+    state.darkMode = !state.darkMode;
+    applyDarkMode(state.darkMode);
+  });
+
+  // ━━ Exportação — data-export em navbar E modal footer ━━━━━━━━━━━━━━━━━━
+
+  document.querySelectorAll('[data-export="csv"]').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.preventDefault(); exportToCSV(state.glebas); });
+  });
+  document.querySelectorAll('[data-export="geojson"]').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.preventDefault(); exportToGeoJSON(state.glebas); });
+  });
+  document.querySelectorAll('[data-export="image"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      exportMapImage(); // Bug corrigido: antes era `() => exportMapImage` sem chamar
+    });
+  });
+
+  // ━━ Checkboxes de visualização ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  el.mostrarGlebas?.addEventListener('change', (e) => {
+    setGlebasVisible(e.target.checked);
+  });
+
+  el.mostrarMarcadores?.addEventListener('change', (e) => {
+    if (e.target.checked && !state.markerLayers.length) renderMarkers(state.glebas);
+    else setMarkersVisible(e.target.checked);
+  });
+
+  el.mostrarCentroids?.addEventListener('change', (e) => {
+    if (e.target.checked && !state.centroidLayers.length) renderCentroids(state.glebas);
+    else setCentroidsVisible(e.target.checked);
+  });
+
+  // Toggle Terras Indígenas
+  el.mostrarTI?.addEventListener('change', (e) => {
+    setTerrasIndigenasVisible(e.target.checked);
+    // Mostra/oculta painel de legenda
+    const legend = document.getElementById('tiLegendPanel');
+    if (legend) legend.classList.toggle('d-none', !e.target.checked);
+  });
+
+  el.validarPontos?.addEventListener('change', (e) => {
+    state.validatePoints = e.target.checked;
+    state.cache.clear(); // Invalida cache ao mudar modo
+    log('validarPontos:', state.validatePoints);
+  });
+
+  // Toggle do painel de legenda TI no mapa
+  document.getElementById('btnToggleLegenda')?.addEventListener('click', () => {
+    const body = document.getElementById('tiLegendBody');
+    const icon = document.getElementById('legendToggleIcon');
+    if (!body) return;
+    const collapsed = body.classList.toggle('d-none');
+    if (icon) icon.className = collapsed ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
+  });
+
+  // ━━ Leaflet.Draw ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  state.map.on('draw:created', (e) => {
+    const latlngs = e.layer.getLatLngs()[0];
+    const lines = latlngs.map((ll, i) =>
+      `1 ${i + 1} ${ll.lat.toFixed(6)} ${ll.lng.toFixed(6)}`
+    );
+    // Fecha o polígono (repete o 1º ponto)
+    const first = latlngs[0];
+    lines.push(`1 ${lines.length + 1} ${first.lat.toFixed(6)} ${first.lng.toFixed(6)}`);
+    setCoordText(lines.join('\n'));
+    clearMessage();
+    showModal('adicionarGleba');
+    log(`Polígono desenhado: ${lines.length} pontos`);
+  });
+
+  state.map.on('draw:edited', (e) => {
+    const lines = [];
+    let glebaIdx = 1;
+    e.layers.eachLayer(layer => {
+      const pts = layer.getLatLngs()[0];
+      pts.forEach((ll, i) => {
+        lines.push(`${glebaIdx} ${i + 1} ${ll.lat.toFixed(6)} ${ll.lng.toFixed(6)}`);
+      });
+      // Fecha
+      const f = pts[0];
+      lines.push(`${glebaIdx} ${pts.length + 1} ${f.lat.toFixed(6)} ${f.lng.toFixed(6)}`);
+      glebaIdx++;
+    });
+    setCoordText(lines.join('\n'));
+    state.cache.clear();
+    processAndRender();
+  });
+
+  // ━━ Tabela de resultados (delegação de eventos) ━━━━━━━━━━━━━━━━━━━━━━━━
+
+  el.resultadosTableBody?.addEventListener('click', (e) => {
+    const btnEditar = e.target.closest('.btn-editar-gleba');
+    const btnZoom = e.target.closest('.btn-zoom-gleba');
+    if (btnEditar) editarGleba(parseInt(btnEditar.dataset.glebaId, 10));
+    if (btnZoom) {
+      hideModal('resultadosModal');
+      zoomToGleba(parseInt(btnZoom.dataset.glebaId, 10));
+    }
+  });
+
+  // ━━ Modal: Editar Gleba ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  document.getElementById('confirmarEdicao')?.addEventListener('click', async () => {
+    const novas = el.glebaEditArea?.value?.trim() ?? '';
+    if (!novas) return;
+    const glebaId = parseInt(el.editGlebaId?.value ?? '0', 10);
+    const outras = getCoordText()
+      .split('\n')
+      .filter(l => parseInt(l.trim().split(/\s+/)[0]) !== glebaId);
+    setCoordText([...outras, ...novas.split('\n').filter(l => l.trim())].join('\n'));
+    state.cache.clear();
+    hideModal('editarGlebaModal');
+    await processAndRender({ abrirResultados: true });
+  });
+
+  // ━━ Modal: Projeto ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  el.btnSalvarProjeto?.addEventListener('click', () => {
+    saveProject(el.projectName?.value?.trim() || 'Projeto CGRN', state.glebas.length);
+  });
+
+  el.btnCarregarProjeto?.addEventListener('click', () => {
+    const project = loadProject();
+    if (project && el.projectName) el.projectName.value = project.name;
+  });
+
+  document.getElementById('btnLimparProjeto')?.addEventListener('click', () => {
+    if (confirm('Apagar o projeto salvo do armazenamento local?')) clearSavedProject();
+  });
+
+  log('Todos os eventos vinculados');
+}
+
+// ─── Fluxo principal ──────────────────────────────────────────────────────
+
+/**
+ * Valida, processa glebas, verifica Terras Indígenas e renderiza.
+ *
+ * @param {object}  [opts]
+ * @param {string}  [opts.fecharModal]     ID do modal a fechar após sucesso
+ * @param {boolean} [opts.abrirResultados] Abre o modal de resultados
+ */
+async function processAndRender(opts = {}) {
+  if (state.isProcessing) return;
+  state.isProcessing = true;
+
+  const btn = opts.fecharModal ? el.btnAdicionar
+    : opts.abrirResultados ? el.btnCalcular
+      : null;
+
+  if (btn) setButtonLoading(btn, 'Processando...');
+
+  try {
+    // ── 1. Validação geoespacial ─────────────────────────────────────────
+    const result = validateCoordinates(getCoordText(), {
+      validarPontos: state.validatePoints,
+    });
+
+    if (!result.valid) {
+      const modalAberto = document.querySelector('.modal.show');
+      if (modalAberto?.id === 'adicionarGleba') showMessage(result.errors, 'danger');
+      else showToast(result.errors, 'danger', 8000);
+      return;
+    }
+
+    // ── 2. Verificação de sobreposição com Terras Indígenas ─────────────
+    //   Executado após validação bem-sucedida; enriquece cada GlebaData
+    //   com campo `tiIntersecoes` (array) para uso na tabela e alertas.
+    const glebas = result.data;
+    let totalTiConflitos = 0;
+
+    if (state.tiLoaded) {
+      glebas.forEach(g => {
+        g.tiIntersecoes = checkGlebaTI(g);    // [] ou [{ nome, fase, areaHa, ... }]
+        totalTiConflitos += g.tiIntersecoes.length;
+      });
     } else {
-      clearMarkers();
-    }
-  });
-
-  // Filtro de glebas no modal de edição de coordenadas
-  $('coordEditGlebaSelect')?.addEventListener('change', (e) => {
-    populateCoordTable(e.target.value);
-  });
-
-  // 5. Upload de arquivo
-  setupFileUpload((normalized) => {
-    processarCoordenadas();
-  });
-
-  // 6. Delegação de cliques globais (projetos, popup editar/remover, painel, resultados, coord table)
-  document.addEventListener('click', (e) => {
-    // Projetos
-    const loadBtn = e.target.closest('.project-load');
-    if (loadBtn) {
-      e.preventDefault();
-      const name = loadBtn.dataset.name;
-      loadProject(name, () => processarCoordenadas());
+      glebas.forEach(g => { g.tiIntersecoes = []; });
     }
 
-    const delBtn = e.target.closest('.project-delete');
-    if (delBtn) {
-      e.preventDefault();
-      const name = delBtn.dataset.name;
-      if (confirm(`Excluir projeto "${name}"?`)) {
-        deleteProject(name);
-      }
+    state.glebas = glebas;
+
+    // ── 3. Render ────────────────────────────────────────────────────────
+    renderPolygons(state.glebas);
+    if (state.showMarkers) renderMarkers(state.glebas);
+    if (state.showCentroids) renderCentroids(state.glebas);
+    renderResultsTable(state.glebas);
+
+    // ── 4. Feedback ──────────────────────────────────────────────────────
+    const cacheNote = result.fromCache ? ' <em>(cache)</em>' : '';
+
+    // Alerta de sobreposição TI (prioridade alta)
+    if (totalTiConflitos > 0) {
+      const nomes = [...new Set(
+        glebas.flatMap(g => g.tiIntersecoes.map(ti => ti.nome))
+      )].join(', ');
+      showMessage(
+        `<i class="bi bi-exclamation-triangle"></i> <strong>Atenção:</strong> ${totalTiConflitos} sobreposição(ões) com Terra(s) Indígena(s) detectada(s): ${nomes}.`,
+        'warning'
+      );
+      showToast(
+        `<i class="bi bi-heart-arrow"></i> Sobreposição com Terras Indigínes detectada em ${totalTiConflitos} gleba(s).`,
+        'warning', 8000
+      );
+    } else {
+      showMessage(
+        `✅ ${state.glebas.length} gleba(s) processada(s).${cacheNote}`,
+        'success', 3500
+      );
     }
 
-    // Popup edit/remove (from polygon popups)
-    const popupEditBtn = e.target.closest('.popup-edit-btn');
-    if (popupEditBtn) {
-      e.preventDefault();
-      handleGlebaEdit(popupEditBtn.dataset.glebaId);
+    if (opts.fecharModal) hideModal(opts.fecharModal);
+    if (opts.abrirResultados) showModal('resultadosModal');
+
+  } finally {
+    if (btn) setButtonNormal(btn);
+    state.isProcessing = false;
+  }
+}
+
+// ─── Validação inline (sem renderizar) ────────────────────────────────────
+
+async function validarInline() {
+  if (state.isProcessing) return;
+  state.isProcessing = true;
+
+  const btn = el.btnValidar;
+  if (btn) setButtonLoading(btn, 'Validando...');
+
+  try {
+    const result = validateCoordinates(getCoordText(), {
+      validarPontos: state.validatePoints,
+    });
+
+    if (!result.valid) {
+      showMessage(result.errors, 'danger');
+      return;
     }
 
-    const popupRemoveBtn = e.target.closest('.popup-remove-btn');
-    if (popupRemoveBtn) {
-      e.preventDefault();
-      handleGlebaRemove(popupRemoveBtn.dataset.glebaId);
+    // Verificação TI mesmo na validação inline
+    let tiAvisos = 0;
+    if (state.tiLoaded) {
+      result.data.forEach(g => {
+        const hits = checkGlebaTI(g);
+        tiAvisos += hits.length;
+      });
     }
 
-    // Panel edit/remove/zoom
-    const panelEditBtn = e.target.closest('.panel-edit-btn');
-    if (panelEditBtn) {
-      e.preventDefault();
-      handleGlebaEdit(panelEditBtn.dataset.glebaId);
+    const fmt = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 });
+    const area = fmt.format(result.data.reduce((s, g) => s + g.area, 0));
+
+    let msgExtras = '';
+    if (tiAvisos > 0) {
+      msgExtras = `<br><span class="text-warning">⚠️ ${tiAvisos} sobreposição(ões) com Terra(s) Indígena(s).</span>`;
     }
 
-    const panelRemoveBtn = e.target.closest('.panel-remove-btn');
-    if (panelRemoveBtn) {
-      e.preventDefault();
-      handleGlebaRemove(panelRemoveBtn.dataset.glebaId);
-    }
+    showMessage(
+      `✅ ${result.data.length} gleba(s) válida(s) — área total: <strong>${area} ha</strong>.${msgExtras}`,
+      tiAvisos > 0 ? 'warning' : 'success'
+    );
 
-    const panelZoomBtn = e.target.closest('.panel-zoom-btn');
-    if (panelZoomBtn) {
-      e.preventDefault();
-      handleGlebaZoom(panelZoomBtn.dataset.glebaId);
-    }
+  } finally {
+    if (btn) setButtonNormal(btn);
+    state.isProcessing = false;
+  }
+}
 
-    // Results table edit/remove
-    const resultEditBtn = e.target.closest('.result-edit-btn');
-    if (resultEditBtn) {
-      e.preventDefault();
-      handleGlebaEdit(resultEditBtn.dataset.glebaId);
-      const modalEl = $('resultadosModal');
-      if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
-    }
+// ─── Edição de gleba ──────────────────────────────────────────────────────
 
-    const resultRemoveBtn = e.target.closest('.result-remove-btn');
-    if (resultRemoveBtn) {
-      e.preventDefault();
-      handleGlebaRemove(resultRemoveBtn.dataset.glebaId);
-      updateResultsTable(getGlebas());
-    }
+function editarGleba(glebaId) {
+  const gleba = state.glebas.find(g => g.glebaId === glebaId);
+  if (!gleba) return;
 
-    // Coord table remove row
-    const coordRemoveBtn = e.target.closest('.coord-remove-row');
-    if (coordRemoveBtn) {
-      e.preventDefault();
-      const row = coordRemoveBtn.closest('tr');
-      if (row) row.remove();
-    }
-  });
-
-  // 7. Atualizar lista de projetos
-  updateProjectList();
-
-  // 8. Carregar camada SUDENE
-  await loadSudeneLayer(
-    () => toggleGlobalLoader(true),
-    () => toggleGlobalLoader(false),
+  const lines = gleba.coords.map(([lat, lon], i) =>
+    `${glebaId} ${i + 1} ${lat.toFixed(6)} ${lon.toFixed(6)}`
   );
 
-  log('main: aplicação inicializada');
-});
+  if (el.glebaEditArea) el.glebaEditArea.value = lines.join('\n');
+  if (el.editGlebaId) el.editGlebaId.value = String(glebaId);
+
+  const label = document.getElementById('editarGlebaModalLabel');
+  if (label) label.textContent = `Editar Gleba ${glebaId}`;
+
+  hideModal('resultadosModal');
+  showModal('editarGlebaModal');
+}
