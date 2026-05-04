@@ -28,9 +28,8 @@
 ## 📥 Como usar
 1. **Clone o repositório**:
    ```bash
-   git clone 
-   [https://github.com/manuseiro/cgrn.git](https://github.com/manuseiro/cgrn.git)
-   cd glebasnord
+   git clone [https://github.com/manuseiro/cgrn.git](https://github.com/manuseiro/cgrn.git)
+   cd cgrn
    ```
 2. Execução:
 Abra o arquivo 'index.html' no seu navegador (recomendado Chrome ou Edge).
