@@ -4,11 +4,10 @@
  * Usa showToast() (global) e showProjectMessage() (modal) — sem duplicar IDs.
  */
 
-import { state } from '../utils/state.js';
 import { CONFIG } from '../utils/config.js';
 import {
   getCoordText, setCoordText,
-  showMessage, showProjectMessage, log, warn,
+  showToast, showProjectMessage, log, warn,
   el
 } from '../components/ui.js';
 

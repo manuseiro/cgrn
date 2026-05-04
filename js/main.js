@@ -17,13 +17,13 @@ import {
   initMap, renderPolygons, renderMarkers, renderCentroids,
   clearMapLayers, zoomToGleba,
   setGlebasVisible, setMarkersVisible, setCentroidsVisible
-} from './components/map.js';
+} from './map.js';
 import { validateCoordinates } from './services/validation.js';
 import {
   showMessage, showToast, clearMessage,
   setButtonLoading, setButtonNormal,
   renderResultsTable, applyDarkMode, setSudeneStatus,
-  getCoordText, setCoordText,
+  getCoordText, setCoordText, hideModal, showModal,
   updateStatusBar, el, log
 } from './components/ui.js';
 import {
@@ -31,7 +31,7 @@ import {
   exportToKML, exportMapImage, exportProject
 } from './utils/export.js';
 import { loadSudeneLayer } from './services/sudene.js';
-import { initFileUpload } from './services/upload.js';
+import { initFileUpload } from './upload.js';
 import {
   saveProject, loadProject,
   clearSavedProject, checkSavedProject
@@ -42,18 +42,15 @@ import {
 } from './services/terras_indigenas.js';
 import {
   createUCLayer, createIBAMALayer, createBiomaLayer,
-  invalidarCacheCAR, findCARByCode
+  invalidarCacheCAR,
 } from './services/camadas_externas.js';
 import { verificarConformidade, CHECKS } from './services/conformidade.js';
 import { modals } from './components/modal.js';
-
-let searchTimeout;
 
 // ─── Boot ─────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
   log('CGRN v3.4 inicializando...');
-  modals.init();
   initMap();
   bindEvents();
   initFileUpload(el.fileUpload);
@@ -93,19 +90,12 @@ function bindEvents() {
     showToast('Mapa limpo.', 'info', 2000);
   });
 
-  // Busca por código CAR com Debounce
-  el.carSearchCode?.addEventListener('input', () => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(searchCARByCode, 600);
-  });
-  el.btnSearchCAR?.addEventListener('click', searchCARByCode);
-
   // Navbar
   el.btnCalcular?.addEventListener('click', e => { e.preventDefault(); processAndRender({ abrirResultados: true }); });
-  el.btnValidarNav?.addEventListener('click', e => { e.preventDefault(); modals.open('adicionarGleba'); setTimeout(validarInline, 350); });
+  el.btnValidarNav?.addEventListener('click', e => { e.preventDefault(); modals.show('adicionarGleba'); setTimeout(validarInline, 350); });
   el.btnDesenhar?.addEventListener('click', e => {
     e.preventDefault();
-    modals.close('adicionarGleba');
+    modals.hide('adicionarGleba');
     new L.Draw.Polygon(state.map, state.drawControl.options.draw.polygon).enable();
     showToast('Clique no mapa para iniciar. Clique no 1º ponto para fechar.', 'info', 6000);
   });
@@ -160,11 +150,7 @@ function bindEvents() {
   el.mostrarUC?.addEventListener('change', e => toggleExternalLayer('uc', e.target.checked));
   el.mostrarIbama?.addEventListener('change', e => toggleExternalLayer('ibama', e.target.checked));
   el.mostrarBioma?.addEventListener('change', e => toggleExternalLayer('bioma', e.target.checked));
-  el.validarPontos?.addEventListener('change', e => { 
-    state.validatePoints = e.target.checked; 
-    state.cache.clear(); 
-    invalidarCacheCAR(); // Também invalida o cache CAR se as regras mudarem
-  });
+  el.validarPontos?.addEventListener('change', e => { state.validatePoints = e.target.checked; state.cache.clear(); });
 
   // Legenda toggle
   document.getElementById('btnToggleLegenda')?.addEventListener('click', () => {
@@ -182,7 +168,7 @@ function bindEvents() {
     lines.push(`1 ${lines.length + 1} ${pts[0].lat.toFixed(6)} ${pts[0].lng.toFixed(6)}`);
     setCoordText(lines.join('\n'));
     clearMessage();
-    modals.open('adicionarGleba');
+    modals.show('adicionarGleba');
   });
   state.map.on('draw:edited', e => {
     const lines = []; let gi = 1;
@@ -204,7 +190,7 @@ function bindEvents() {
     const zm = e.target.closest('.btn-zoom-gleba');
     const cf = e.target.closest('.btn-conf-gleba');
     if (ed) editarGleba(+ed.dataset.glebaId);
-    if (zm) { modals.close('resultadosModal'); zoomToGleba(+zm.dataset.glebaId); }
+    if (zm) { modals.hide('resultadosModal'); zoomToGleba(+zm.dataset.glebaId); }
     if (cf) showConformidadeDetalhe(+cf.dataset.glebaId);
   });
 
@@ -216,9 +202,9 @@ function bindEvents() {
     const conf = state.conformidade.get(gid);
     const carItem = conf?.itens.find(i => i.id === 'car');
     if (carItem?.dados?.length) {
-      modals.close('conformidadeModal');
-      modals.close('resultadosModal');
-      import('./components/map.js').then(m => m.renderCARLayer(carItem.dados));
+      modals.hide('conformidadeModal');
+      modals.hide('resultadosModal');
+      import('./map.js').then(m => m.renderCARLayer(carItem.dados));
     }
   });
 
@@ -232,7 +218,7 @@ function bindEvents() {
     setCoordText([...outras, ...novas.split('\n').filter(l => l.trim())].join('\n'));
     state.cache.clear();
     invalidarCacheCAR(gid); // invalida apenas o cache da gleba editada
-    modals.close('editarGlebaModal');
+    modals.hide('editarGlebaModal');
     processAndRender({ abrirResultados: true });
   });
 
@@ -240,12 +226,6 @@ function bindEvents() {
   el.btnSalvarProjeto?.addEventListener('click', () => saveProject(el.projectName?.value?.trim() || 'Projeto CGRN', state.glebas.length));
   el.btnCarregarProjeto?.addEventListener('click', () => { const p = loadProject(); if (p && el.projectName) el.projectName.value = p.name; });
   document.getElementById('btnLimparProjeto')?.addEventListener('click', () => { if (confirm('Apagar projeto salvo?')) clearSavedProject(); });
-  
-  // Limpar Cache CAR
-  document.getElementById('btnLimparCacheCAR')?.addEventListener('click', () => {
-    invalidarCacheCAR();
-    showToast('Cache do SICAR limpo.', 'success');
-  });
 
   log('Eventos vinculados ✅');
 }
@@ -281,12 +261,8 @@ async function processAndRender(opts = {}) {
     const result = validateCoordinates(getCoordText(), { validarPontos: state.validatePoints });
     if (!result.valid) {
       const modalAberto = document.querySelector('.modal.show');
-      const errList = result.errors.length > 8 
-        ? [...result.errors.slice(0, 7), `... e mais ${result.errors.length - 7} erros.`]
-        : result.errors;
-        
-      if (modalAberto?.id === 'adicionarGleba') showMessage(errList, 'danger');
-      else showToast(['Verifique os dados:', ...errList], 'danger', 8000);
+      if (modalAberto?.id === 'adicionarGleba') showMessage(result.errors, 'danger');
+      else showToast(result.errors, 'danger', 8000);
       return;
     }
 
@@ -311,12 +287,8 @@ async function processAndRender(opts = {}) {
       showMessage(`<i class="bi bi-patch-check-fill me-1"></i> ${glebas.length} gleba(s) processada(s).${note}`, 'success', 3500);
     }
 
-    if (opts.fecharModal) modals.close(opts.fecharModal);
-    if (opts.abrirResultados) {
-      modals.open('resultadosModal');
-      // Automatização: Verificar conformidade ao abrir resultados
-      setTimeout(() => runConformidade(state.glebas), 500);
-    }
+    if (opts.fecharModal) modals.hide(opts.fecharModal);
+    if (opts.abrirResultados) modals.show('resultadosModal');
 
   } finally {
     if (btn) setButtonNormal(btn);
@@ -355,9 +327,9 @@ async function runConformidade(glebas) {
   const btn = document.getElementById('btnConformidade');
   if (btn) setButtonLoading(btn, 'Verificando...');
 
-  const loadingToast = showToast('Verificando conformidade BACEN/SICOR. Isso consulta bases nacionais (ICMBio, IBAMA, SICAR) e pode levar alguns segundos...', 'info', 0);
-
   try {
+    showToast('Verificando conformidade BACEN/SICOR. Pode levar alguns segundos...', 'info', 4000);
+
     const resultados = await Promise.allSettled(
       glebas.map(g => verificarConformidade(g, { skipApi: false }))
     );
@@ -367,7 +339,7 @@ async function runConformidade(glebas) {
     const pendentes = resultados.filter(r => r.status === 'rejected').length;
 
     renderResultsTable(state.glebas);
-    modals.open('resultadosModal');
+    modals.show('resultadosModal');
 
     const msg = reprovadas > 0
       ? `<i class="bi bi-x-octagon-fill"></i> ${reprovadas} gleba(s) REPROVADA(s). ${aprovadas} aprovada(s). Veja detalhes na tabela.`
@@ -376,7 +348,6 @@ async function runConformidade(glebas) {
     showToast(msg, reprovadas > 0 ? 'danger' : 'success', 8000);
 
   } finally {
-    if (loadingToast?.hide) loadingToast.hide(); // Fecha o toast de loading
     if (btn) setButtonNormal(btn);
     state.isProcessing = false;
   }
@@ -407,7 +378,7 @@ function showConformidadeDetalhe(glebaId) {
     body.innerHTML = `<div class="alert alert-info">
       Execute "Verificar Conformidade BACEN/SICOR" para analisar esta gleba.
     </div>`;
-    modals.open('conformidadeModal');
+    modals.show('conformidadeModal');
     return;
   }
 
@@ -463,7 +434,7 @@ function showConformidadeDetalhe(glebaId) {
       Verificado em: ${new Date(conf.timestamp).toLocaleString('pt-BR')}
     </small>`;
 
-  modals.open('conformidadeModal');
+  modals.show('conformidadeModal');
 }
 
 /**
@@ -599,75 +570,6 @@ function buildCARPanel(item, glebaId) {
     </div>`;
 }
 
-// ─── Busca por Código CAR ──────────────────────────────────────────────────
-
-async function searchCARByCode() {
-  const input = document.getElementById('carSearchCode');
-  const code = input?.value?.trim();
-  const btn = document.getElementById('btnSearchCAR');
-  const resultDiv = document.getElementById('carSearchResult');
-
-  if (!code) { showToast('Informe o código do CAR.', 'warning'); return; }
-  if (state.isProcessing) return;
-
-  state.isProcessing = true;
-  setButtonLoading(btn, 'Buscando...');
-  resultDiv.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
-
-  try {
-    const car = await findCARByCode(code);
-    if (!car) {
-      resultDiv.innerHTML = `<div class="alert alert-danger py-2 small">Imóvel ${code} não encontrado na base do SICAR.</div>`;
-      return;
-    }
-
-    resultDiv.innerHTML = `
-      <div class="card card-body border-primary bg-primary bg-opacity-10 p-2 small">
-        <div class="fw-bold text-primary mb-1">${car.codigo}</div>
-        <div>${car.municipio} · ${car.areaHa.toFixed(2)} ha</div>
-        <div class="mt-2 d-flex gap-2">
-          <button class="btn btn-sm btn-primary flex-grow-1" id="btnImportarCAR">
-            <i class="bi bi-download me-1"></i>Importar para Glebas
-          </button>
-          <button class="btn btn-sm btn-outline-primary" id="btnVerNoMapaCAR">
-            <i class="bi bi-map me-1"></i>Ver
-          </button>
-        </div>
-      </div>`;
-
-    document.getElementById('btnImportarCAR')?.addEventListener('click', () => {
-      if (!car.geometry) { showToast('Geometria indisponível para este imóvel.', 'warning'); return; }
-      
-      // Converte geometria para o formato de coordenadas do sistema
-      const feat = car.geometry.type === 'MultiPolygon' ? car.geometry.coordinates[0][0] : car.geometry.coordinates[0];
-      const nextGid = state.glebas.length > 0 ? Math.max(...state.glebas.map(g => g.glebaId)) + 1 : 1;
-      const lines = feat.map((ll, i) => `${nextGid} ${i + 1} ${ll[1].toFixed(6)} ${ll[0].toFixed(6)}`);
-      
-      const current = getCoordText();
-      setCoordText(current ? current + '\n' + lines.join('\n') : lines.join('\n'));
-      
-      // Muda para a aba manual
-      const manualTab = document.getElementById('tab-manual-btn');
-      if (manualTab) bootstrap.Tab.getOrCreateInstance(manualTab).show();
-      
-      showToast(`Imóvel ${car.codigo} importado com sucesso.`, 'success');
-    });
-
-    document.getElementById('btnVerNoMapaCAR')?.addEventListener('click', () => {
-      if (!car.geometry) { showToast('Geometria indisponível.', 'warning'); return; }
-      import('./components/map.js').then(m => m.renderCARLayer([car]));
-      modals.close('adicionarGleba');
-      showToast(`Visualizando CAR ${car.codigo} no mapa.`, 'info');
-    });
-
-  } catch (e) {
-    resultDiv.innerHTML = `<div class="alert alert-danger py-2 small">Erro na consulta: ${e.message}</div>`;
-  } finally {
-    setButtonNormal(btn);
-    state.isProcessing = false;
-  }
-}
-
 // ─── Editar gleba ─────────────────────────────────────────────────────────
 
 function editarGleba(glebaId) {
@@ -678,6 +580,6 @@ function editarGleba(glebaId) {
   if (el.editGlebaId) el.editGlebaId.value = String(glebaId);
   const lbl = document.getElementById('editarGlebaModalLabel');
   if (lbl) lbl.textContent = `Editar Gleba ${glebaId}`;
-  modals.close('resultadosModal');
-  modals.open('editarGlebaModal');
+  modals.hide('resultadosModal');
+  modals.show('editarGlebaModal');
 }

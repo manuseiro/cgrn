@@ -32,10 +32,10 @@ import {
   getBiomaGleba,
   checkDesmatamento,
   checkCAR,
+  analyzeGlebaInCAR,
   BIOMA_REGULACAO,
   UC_PROTECAO_INTEGRAL,
 } from './camadas_externas.js';
-import { analyzeGlebaInCAR } from './spatial_analysis.js';
 
 // ─── Tipos de verificação (rótulos UI) ────────────────────────────────────
 

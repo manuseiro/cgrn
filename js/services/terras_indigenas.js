@@ -125,7 +125,7 @@ function parseWKT(wkt) {
   const w = wkt.trim();
   const parseRing = s => s.trim().split(',').map(p => {
     const [lon, lat] = p.trim().split(/\s+/);
-    return [round8(parseFloat(lon)), round8(parseFloat(lat))];
+    return [round5(parseFloat(lon)), round5(parseFloat(lat))];
   });
   const rings = s => [...s.matchAll(/\(([^()]+)\)/g)].map(m => parseRing(m[1]));
 
@@ -138,7 +138,7 @@ function parseWKT(wkt) {
   }
   return null;
 }
-const round8 = n => Math.round(n * 1e8) / 1e8;
+const round5 = n => Math.round(n * 1e5) / 1e5;
 
 // ─── Camada visual ─────────────────────────────────────────────────────────
 
