@@ -1,101 +1,67 @@
 /**
- * @file state.js
- * @description Gerenciamento de estado centralizado da aplicação.
- * Substitui variáveis globais espalhadas pelo código.
- * Importe e mute diretamente (sem setter/getter para simplicidade sem framework).
+ * @file state.js — v3.0
+ * @description Estado centralizado da aplicação CGRN.
  */
 
-/** @type {AppState} */
 export const state = {
-  /** Instância do mapa Leaflet */
-  map: null,
-
-  /** Controle de desenho do Leaflet.Draw */
-  drawControl: null,
-
-  /** L.FeatureGroup que contém os itens desenhados */
-  drawnItems: null,
-
-  /** Dados validados das glebas atuais */
-  glebas: [],
-
-  /** Camadas de polígonos Leaflet atualmente no mapa */
-  polygonLayers: [],
-
-  /** Camadas de marcadores de vértices Leaflet */
+  map:          null,
+  drawControl:  null,
+  drawnItems:   null,
+  glebas:       [],
+  polygonLayers:[],
   markerLayers: [],
+  centroidLayers:[],
 
-  /** Marcadores de centroid Leaflet */
-  centroidLayers: [],
-
-  /** Camada GeoJSON da SUDENE */
-  sudeneLayer: null,
-
-  /**
-   * Índice espacial pré-computado das features da SUDENE.
-   * Cada item: { id: string, bbox: number[], feature: GeoJSONFeature }
-   * Permite filtro por bounding box antes de booleanPointInPolygon.
-   */
+  // SUDENE
+  sudeneLayer:    null,
   sudeneFeatures: [],
+  sudeneLoaded:   false,
 
-  /** Indica se a camada SUDENE foi carregada com sucesso */
-  sudeneLoaded: false,
-
-  /**
-   * Cache de validação: Map<hash, GlebaData[]>
-   * Usa hash djb2 do texto bruto como chave (ao invés do texto inteiro).
-   */
+  // Cache djb2
   cache: new Map(),
 
-  /** Flag para bloquear ações paralelas durante processamento */
-  isProcessing: false,
-
-  /** Modo escuro ativo */
-  darkMode: false,
-
-  /** Configuração de visibilidade de marcadores */
-  showMarkers: false,
-
-  /** Configuração de visibilidade de centroids */
-  showCentroids: false,
-
-  /** Polígonos visíveis no mapa (toggle "Mostrar Glebas") */
-  showGlebas: true,
-
-  /**
-   * Quando true, valida cada vértice individualmente contra a SUDENE.
-   * Operação mais pesada; controlada pelo checkbox "Validar pontos".
-   */
+  // Flags de UI
+  isProcessing:   false,
+  darkMode:       false,
+  showMarkers:    false,
+  showCentroids:  false,
+  showGlebas:     true,
   validatePoints: true,
 
-  // ── Terras Indígenas ────────────────────────────────────────────────────
-
-  /**
-   * FeatureGroup Leaflet com os polígonos das Terras Indígenas do Nordeste.
-   * null até que loadTerrasIndigenas() seja concluído.
-   */
-  tiLayer: null,
-
-  /**
-   * Índice espacial das features de TI.
-   * Cada item: { bbox: number[], feature: GeoJSONFeature, props: object }
-   */
+  // Terras Indígenas (FUNAI)
+  tiLayer:    null,
   tiFeatures: [],
+  tiLoaded:   false,
+  showTI:     false,
 
-  /** Indica se a camada de TI foi carregada com sucesso */
-  tiLoaded: false,
+  // Camadas externas — conformidade ambiental
+  ucLayer:     null,   // Unidades de Conservação (ICMBio)
+  ucFeatures:  [],
+  ucLoaded:    false,
+  showUC:      false,
 
-  /** Se a camada de TI está visível no mapa */
-  showTI: false,
+  ibamaLayer:    null, // Embargos IBAMA
+  ibamaFeatures: [],
+  ibamaLoaded:   false,
+  showIbama:     false,
+
+  biomeLayer:  null,   // Biomas (IBGE)
+  biomeFeatures:[],
+  biomeLoaded: false,
+  showBioma:   false,
+
+  carLayer:    null,   // Layer para visualização de geometrias do CAR
+  carFeatures: [],
+  showCAR:     false,
+
+  /** Resultados de conformidade BACEN/SICOR por glebaId */
+  conformidade: new Map(),  // glebaId → ConformidadeResult
 };
 
-/**
- * Limpa apenas os dados de glebas e camadas do mapa.
- * Não afeta cache, configurações de SUDENE ou estado de UI.
- */
 export function clearGlebas() {
-  state.glebas = [];
+  state.glebas        = [];
   state.polygonLayers = [];
-  state.markerLayers = [];
-  state.centroidLayers = [];
+  state.markerLayers  = [];
+  state.centroidLayers= [];
+  state.conformidade  = new Map();
 }

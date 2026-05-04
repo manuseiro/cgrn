@@ -1,103 +1,82 @@
 /**
- * @file main.js
- * @description Ponto de entrada da aplicação CGRN.
- * Coordena módulos — sem lógica de negócio própria.
+ * @file main.js — v3.0
+ * @description Orquestrador principal da aplicação CGRN.
  *
- * Fluxo replicado do site de referência (glebas.com.br):
- *  1. Adicionar Gleba  → valida + desenha no mapa + fecha modal
- *  2. Validar Glebas   → valida inline SEM fechar modal
- *  3. Calcular Áreas   → processa + abre modal de resultados
- *
- * Adições v2.1:
- *  - Verificação automática de sobreposição com Terras Indígenas
- *  - Camada TI com toggle de visibilidade e legenda interativa
- *  - Alerta visual e detalhes na tabela de resultados
+ * Novidades v3.0:
+ *   - KML import/export
+ *   - Módulo de conformidade BACEN/SICOR com verificações ambientais
+ *   - Camadas externas: UC (ICMBio), IBAMA embargos, biomas
+ *   - Terras Indígenas com URL primária leosil21 + fallback local
  */
 
 import { CONFIG } from './config.js';
 import { state } from './state.js';
 import {
-  initMap,
-  renderPolygons, renderMarkers, renderCentroids,
+  initMap, renderPolygons, renderMarkers, renderCentroids,
   clearMapLayers, zoomToGleba,
-  setGlebasVisible, setMarkersVisible,
-  setCentroidsVisible
+  setGlebasVisible, setMarkersVisible, setCentroidsVisible
 } from './map.js';
 import { validateCoordinates } from './validation.js';
 import {
   showMessage, showToast, clearMessage,
   setButtonLoading, setButtonNormal,
-  renderResultsTable, applyDarkMode,
-  setSudeneStatus, getCoordText,
-  setCoordText, hideModal, showModal,
+  renderResultsTable, applyDarkMode, setSudeneStatus,
+  getCoordText, setCoordText, hideModal, showModal,
   updateStatusBar, el, log
 } from './ui.js';
 import {
   exportToCSV, exportToGeoJSON,
-  exportMapImage
+  exportToKML, exportMapImage
 } from './export.js';
 import { loadSudeneLayer } from './sudene.js';
 import { initFileUpload } from './upload.js';
 import {
   saveProject, loadProject,
-  clearSavedProject,
-  checkSavedProject
+  clearSavedProject, checkSavedProject
 } from './persistence.js';
 import {
-  loadTerrasIndigenas,
-  setTerrasIndigenasVisible,
-  checkGlebaTI,
-  buildTILegend
+  loadTerrasIndigenas, setTerrasIndigenasVisible,
+  checkGlebaTI, buildTILegend
 } from './terras_indigenas.js';
+import {
+  createUCLayer, createIBAMALayer,
+  createBiomaLayer
+} from './camadas_externas.js';
+import { verificarConformidade, CHECKS } from './conformidade.js';
 
 // ─── Boot ─────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
-  log('CGRN v2.1 inicializando...');
+  log('CGRN v3.0 inicializando...');
+  initMap();
+  bindEvents();
+  initFileUpload(el.fileUpload);
+  checkSavedProject();
+  initLegend();
 
-  initMap();                          // 1. Mapa Leaflet + controles
-  bindEvents();                       // 2. Todos os listeners
-  initFileUpload(el.fileUpload);      // 3. Upload CSV/TXT
-  checkSavedProject();                // 4. Info projeto salvo na UI
-  initLegend();                       // 5. Painel de legenda TI no mapa
-
-  // Carregamentos em paralelo (não bloqueiam a UI)
+  // Carregamentos em paralelo
   setSudeneStatus('loading');
-
-  const [,] = await Promise.allSettled([
+  await Promise.allSettled([
     loadSudeneLayer(),
     loadTerrasIndigenas(),
   ]);
 
-  log('CGRN pronto.');
+  log('CGRN pronto ✅');
 });
 
-// ─── Legenda TI ───────────────────────────────────────────────────────────
-
 function initLegend() {
-  const el = document.getElementById('tiLegendContent');
-  if (el) el.innerHTML = buildTILegend();
+  const node = document.getElementById('tiLegendContent');
+  if (node) node.innerHTML = buildTILegend();
 }
 
-// ─── Event Bindings ───────────────────────────────────────────────────────
+// ─── Eventos ──────────────────────────────────────────────────────────────
 
 function bindEvents() {
 
-  // ━━ Modal: Adicionar / Validar Gleba ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  el.btnAdicionar?.addEventListener('click', async () => {
-    await processAndRender({ fecharModal: 'adicionarGleba' });
-  });
-
-  el.btnValidar?.addEventListener('click', async () => {
-    await validarInline();
-  });
-
-  el.btnInserirExemplo?.addEventListener('click', () => {
-    setCoordText(CONFIG.EXAMPLE_COORDS);
-    clearMessage();
-  });
-
+  // Modal: Adicionar Gleba
+  el.btnAdicionar?.addEventListener('click', () => processAndRender({ fecharModal: 'adicionarGleba' }));
+  el.btnValidar?.addEventListener('click', validarInline);
+  el.btnInserirExemplo?.addEventListener('click', () => { setCoordText(CONFIG.EXAMPLE_COORDS); clearMessage(); });
   el.btnLimparMapa?.addEventListener('click', () => {
     clearMapLayers();
     setCoordText('');
@@ -105,192 +84,155 @@ function bindEvents() {
     state.cache.clear();
     updateStatusBar([]);
     renderResultsTable([]);
-    showToast('Mapa limpo com sucesso.', 'info', 2000);
+    showToast('Mapa limpo.', 'info', 2000);
   });
 
-  // ━━ Navbar / Menu ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  el.btnCalcular?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    await processAndRender({ abrirResultados: true });
-  });
-
-  el.btnValidarNav?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    showModal('adicionarGleba');
-    setTimeout(validarInline, 350);
-  });
-
-  el.btnDesenhar?.addEventListener('click', (e) => {
+  // Navbar
+  el.btnCalcular?.addEventListener('click', e => { e.preventDefault(); processAndRender({ abrirResultados: true }); });
+  el.btnValidarNav?.addEventListener('click', e => { e.preventDefault(); showModal('adicionarGleba'); setTimeout(validarInline, 350); });
+  el.btnDesenhar?.addEventListener('click', e => {
     e.preventDefault();
     hideModal('adicionarGleba');
     new L.Draw.Polygon(state.map, state.drawControl.options.draw.polygon).enable();
-    showToast('Clique no mapa para iniciar. Clique no 1º ponto para fechar o polígono.', 'info', 6000);
+    showToast('Clique no mapa para iniciar. Clique no 1º ponto para fechar.', 'info', 6000);
+  });
+  el.btnDarkMode?.addEventListener('click', () => { state.darkMode = !state.darkMode; applyDarkMode(state.darkMode); });
+
+  // Botão de conformidade BACEN
+  document.getElementById('btnConformidade')?.addEventListener('click', () => {
+    runConformidade(state.glebas);
   });
 
-  el.btnDarkMode?.addEventListener('click', () => {
-    state.darkMode = !state.darkMode;
-    applyDarkMode(state.darkMode);
-  });
+  // Exportações (navbar + modal footer via data-export)
+  document.querySelectorAll('[data-export="csv"]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); exportToCSV(state.glebas); }));
+  document.querySelectorAll('[data-export="geojson"]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); exportToGeoJSON(state.glebas); }));
+  document.querySelectorAll('[data-export="kml"]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); exportToKML(state.glebas); }));
+  document.querySelectorAll('[data-export="image"]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); exportMapImage(); }));
 
-  // ━━ Exportação — data-export em navbar E modal footer ━━━━━━━━━━━━━━━━━━
-
-  document.querySelectorAll('[data-export="csv"]').forEach(btn => {
-    btn.addEventListener('click', (e) => { e.preventDefault(); exportToCSV(state.glebas); });
-  });
-  document.querySelectorAll('[data-export="geojson"]').forEach(btn => {
-    btn.addEventListener('click', (e) => { e.preventDefault(); exportToGeoJSON(state.glebas); });
-  });
-  document.querySelectorAll('[data-export="image"]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      exportMapImage(); // Bug corrigido: antes era `() => exportMapImage` sem chamar
-    });
-  });
-
-  // ━━ Checkboxes de visualização ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  el.mostrarGlebas?.addEventListener('change', (e) => {
-    setGlebasVisible(e.target.checked);
-  });
-
-  el.mostrarMarcadores?.addEventListener('change', (e) => {
+  // Checkboxes de visualização
+  el.mostrarGlebas?.addEventListener('change', e => setGlebasVisible(e.target.checked));
+  el.mostrarMarcadores?.addEventListener('change', e => {
     if (e.target.checked && !state.markerLayers.length) renderMarkers(state.glebas);
     else setMarkersVisible(e.target.checked);
   });
-
-  el.mostrarCentroids?.addEventListener('change', (e) => {
+  el.mostrarCentroids?.addEventListener('change', e => {
     if (e.target.checked && !state.centroidLayers.length) renderCentroids(state.glebas);
     else setCentroidsVisible(e.target.checked);
   });
-
-  // Toggle Terras Indígenas
-  el.mostrarTI?.addEventListener('change', (e) => {
+  el.mostrarTI?.addEventListener('change', e => {
     setTerrasIndigenasVisible(e.target.checked);
-    // Mostra/oculta painel de legenda
-    const legend = document.getElementById('tiLegendPanel');
-    if (legend) legend.classList.toggle('d-none', !e.target.checked);
+    document.getElementById('tiLegendPanel')?.classList.toggle('d-none', !e.target.checked);
   });
+  el.mostrarUC?.addEventListener('change', e => toggleExternalLayer('uc', e.target.checked));
+  el.mostrarIbama?.addEventListener('change', e => toggleExternalLayer('ibama', e.target.checked));
+  el.mostrarBioma?.addEventListener('change', e => toggleExternalLayer('bioma', e.target.checked));
+  el.validarPontos?.addEventListener('change', e => { state.validatePoints = e.target.checked; state.cache.clear(); });
 
-  el.validarPontos?.addEventListener('change', (e) => {
-    state.validatePoints = e.target.checked;
-    state.cache.clear(); // Invalida cache ao mudar modo
-    log('validarPontos:', state.validatePoints);
-  });
-
-  // Toggle do painel de legenda TI no mapa
+  // Legenda toggle
   document.getElementById('btnToggleLegenda')?.addEventListener('click', () => {
     const body = document.getElementById('tiLegendBody');
     const icon = document.getElementById('legendToggleIcon');
     if (!body) return;
-    const collapsed = body.classList.toggle('d-none');
-    if (icon) icon.className = collapsed ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
+    body.classList.toggle('d-none');
+    if (icon) icon.className = body.classList.contains('d-none') ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
   });
 
-  // ━━ Leaflet.Draw ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  state.map.on('draw:created', (e) => {
-    const latlngs = e.layer.getLatLngs()[0];
-    const lines = latlngs.map((ll, i) =>
-      `1 ${i + 1} ${ll.lat.toFixed(6)} ${ll.lng.toFixed(6)}`
-    );
-    // Fecha o polígono (repete o 1º ponto)
-    const first = latlngs[0];
-    lines.push(`1 ${lines.length + 1} ${first.lat.toFixed(6)} ${first.lng.toFixed(6)}`);
+  // Leaflet.Draw
+  state.map.on('draw:created', e => {
+    const pts = e.layer.getLatLngs()[0];
+    const lines = pts.map((ll, i) => `1 ${i + 1} ${ll.lat.toFixed(6)} ${ll.lng.toFixed(6)}`);
+    lines.push(`1 ${lines.length + 1} ${pts[0].lat.toFixed(6)} ${pts[0].lng.toFixed(6)}`);
     setCoordText(lines.join('\n'));
     clearMessage();
     showModal('adicionarGleba');
-    log(`Polígono desenhado: ${lines.length} pontos`);
   });
-
-  state.map.on('draw:edited', (e) => {
-    const lines = [];
-    let glebaIdx = 1;
-    e.layers.eachLayer(layer => {
-      const pts = layer.getLatLngs()[0];
-      pts.forEach((ll, i) => {
-        lines.push(`${glebaIdx} ${i + 1} ${ll.lat.toFixed(6)} ${ll.lng.toFixed(6)}`);
-      });
-      // Fecha
-      const f = pts[0];
-      lines.push(`${glebaIdx} ${pts.length + 1} ${f.lat.toFixed(6)} ${f.lng.toFixed(6)}`);
-      glebaIdx++;
+  state.map.on('draw:edited', e => {
+    const lines = []; let gi = 1;
+    e.layers.eachLayer(l => {
+      const pts = l.getLatLngs()[0];
+      pts.forEach((ll, i) => lines.push(`${gi} ${i + 1} ${ll.lat.toFixed(6)} ${ll.lng.toFixed(6)}`));
+      lines.push(`${gi} ${pts.length + 1} ${pts[0].lat.toFixed(6)} ${pts[0].lng.toFixed(6)}`);
+      gi++;
     });
     setCoordText(lines.join('\n'));
     state.cache.clear();
     processAndRender();
   });
 
-  // ━━ Tabela de resultados (delegação de eventos) ━━━━━━━━━━━━━━━━━━━━━━━━
+  // Tabela de resultados
+  el.resultadosTableBody?.addEventListener('click', e => {
+    const ed = e.target.closest('.btn-editar-gleba');
+    const zm = e.target.closest('.btn-zoom-gleba');
+    const cf = e.target.closest('.btn-conf-gleba');
+    if (ed) editarGleba(+ed.dataset.glebaId);
+    if (zm) { hideModal('resultadosModal'); zoomToGleba(+zm.dataset.glebaId); }
+    if (cf) showConformidadeDetalhe(+cf.dataset.glebaId);
+  });
 
-  el.resultadosTableBody?.addEventListener('click', (e) => {
-    const btnEditar = e.target.closest('.btn-editar-gleba');
-    const btnZoom = e.target.closest('.btn-zoom-gleba');
-    if (btnEditar) editarGleba(parseInt(btnEditar.dataset.glebaId, 10));
-    if (btnZoom) {
+  // Visualizar CAR no mapa (evento delegado para o body do modal de conformidade)
+  document.getElementById('conformidadeBody')?.addEventListener('click', e => {
+    const btn = e.target.closest('.btn-view-car-map');
+    if (!btn) return;
+    const gid = +btn.dataset.glebaId;
+    const conf = state.conformidade.get(gid);
+    const carItem = conf?.itens.find(i => i.id === 'car');
+    if (carItem && carItem.dados) {
+      hideModal('conformidadeModal');
       hideModal('resultadosModal');
-      zoomToGleba(parseInt(btnZoom.dataset.glebaId, 10));
+      import('./map.js').then(m => m.renderCARLayer(carItem.dados));
     }
   });
 
-  // ━━ Modal: Editar Gleba ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
+  // Modal Editar
   document.getElementById('confirmarEdicao')?.addEventListener('click', async () => {
     const novas = el.glebaEditArea?.value?.trim() ?? '';
     if (!novas) return;
-    const glebaId = parseInt(el.editGlebaId?.value ?? '0', 10);
-    const outras = getCoordText()
-      .split('\n')
-      .filter(l => parseInt(l.trim().split(/\s+/)[0]) !== glebaId);
+    const gid = +(el.editGlebaId?.value ?? '0');
+    const outras = getCoordText().split('\n')
+      .filter(l => +l.trim().split(/\s+/)[0] !== gid);
     setCoordText([...outras, ...novas.split('\n').filter(l => l.trim())].join('\n'));
     state.cache.clear();
     hideModal('editarGlebaModal');
-    await processAndRender({ abrirResultados: true });
+    processAndRender({ abrirResultados: true });
   });
 
-  // ━━ Modal: Projeto ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Projeto
+  el.btnSalvarProjeto?.addEventListener('click', () => saveProject(el.projectName?.value?.trim() || 'Projeto CGRN', state.glebas.length));
+  el.btnCarregarProjeto?.addEventListener('click', () => { const p = loadProject(); if (p && el.projectName) el.projectName.value = p.name; });
+  document.getElementById('btnLimparProjeto')?.addEventListener('click', () => { if (confirm('Apagar projeto salvo?')) clearSavedProject(); });
 
-  el.btnSalvarProjeto?.addEventListener('click', () => {
-    saveProject(el.projectName?.value?.trim() || 'Projeto CGRN', state.glebas.length);
-  });
-
-  el.btnCarregarProjeto?.addEventListener('click', () => {
-    const project = loadProject();
-    if (project && el.projectName) el.projectName.value = project.name;
-  });
-
-  document.getElementById('btnLimparProjeto')?.addEventListener('click', () => {
-    if (confirm('Apagar o projeto salvo do armazenamento local?')) clearSavedProject();
-  });
-
-  log('Todos os eventos vinculados');
+  log('Eventos vinculados ✅');
 }
 
-// ─── Fluxo principal ──────────────────────────────────────────────────────
+// ─── Camadas externas on/off ───────────────────────────────────────────────
 
-/**
- * Valida, processa glebas, verifica Terras Indígenas e renderiza.
- *
- * @param {object}  [opts]
- * @param {string}  [opts.fecharModal]     ID do modal a fechar após sucesso
- * @param {boolean} [opts.abrirResultados] Abre o modal de resultados
- */
+function toggleExternalLayer(key, visible) {
+  const map = { uc: 'ucLayer', ibama: 'ibamaLayer', bioma: 'biomeLayer' };
+  const createMap = { uc: createUCLayer, ibama: createIBAMALayer, bioma: createBiomaLayer };
+  const stateKey = map[key];
+
+  if (visible) {
+    if (!state[stateKey]) {
+      state[stateKey] = createMap[key]();
+      log(`Camada ${key} criada`);
+    }
+    state[stateKey].addTo(state.map);
+    if (key !== 'bioma') state[stateKey].bringToBack();
+  } else {
+    if (state[stateKey]) state.map.removeLayer(state[stateKey]);
+  }
+}
+
+// ─── Processamento principal ──────────────────────────────────────────────
+
 async function processAndRender(opts = {}) {
   if (state.isProcessing) return;
   state.isProcessing = true;
-
-  const btn = opts.fecharModal ? el.btnAdicionar
-    : opts.abrirResultados ? el.btnCalcular
-      : null;
-
+  const btn = opts.fecharModal ? el.btnAdicionar : opts.abrirResultados ? el.btnCalcular : null;
   if (btn) setButtonLoading(btn, 'Processando...');
 
   try {
-    // ── 1. Validação geoespacial ─────────────────────────────────────────
-    const result = validateCoordinates(getCoordText(), {
-      validarPontos: state.validatePoints,
-    });
-
+    const result = validateCoordinates(getCoordText(), { validarPontos: state.validatePoints });
     if (!result.valid) {
       const modalAberto = document.querySelector('.modal.show');
       if (modalAberto?.id === 'adicionarGleba') showMessage(result.errors, 'danger');
@@ -298,50 +240,28 @@ async function processAndRender(opts = {}) {
       return;
     }
 
-    // ── 2. Verificação de sobreposição com Terras Indígenas ─────────────
-    //   Executado após validação bem-sucedida; enriquece cada GlebaData
-    //   com campo `tiIntersecoes` (array) para uso na tabela e alertas.
     const glebas = result.data;
-    let totalTiConflitos = 0;
 
-    if (state.tiLoaded) {
-      glebas.forEach(g => {
-        g.tiIntersecoes = checkGlebaTI(g);    // [] ou [{ nome, fase, areaHa, ... }]
-        totalTiConflitos += g.tiIntersecoes.length;
-      });
-    } else {
-      glebas.forEach(g => { g.tiIntersecoes = []; });
-    }
+    // Verifica TI (local, rápido)
+    glebas.forEach(g => {
+      g.tiIntersecoes = state.tiLoaded ? checkGlebaTI(g) : [];
+    });
 
     state.glebas = glebas;
-
-    // ── 3. Render ────────────────────────────────────────────────────────
     renderPolygons(state.glebas);
     if (state.showMarkers) renderMarkers(state.glebas);
     if (state.showCentroids) renderCentroids(state.glebas);
     renderResultsTable(state.glebas);
 
-    // ── 4. Feedback ──────────────────────────────────────────────────────
-    const cacheNote = result.fromCache ? ' <em>(cache)</em>' : '';
-
-    // Alerta de sobreposição TI (prioridade alta)
-    if (totalTiConflitos > 0) {
-      const nomes = [...new Set(
-        glebas.flatMap(g => g.tiIntersecoes.map(ti => ti.nome))
-      )].join(', ');
-      showMessage(
-        `<i class="bi bi-exclamation-triangle"></i> <strong>Atenção:</strong> ${totalTiConflitos} sobreposição(ões) com Terra(s) Indígena(s) detectada(s): ${nomes}.`,
-        'warning'
-      );
-      showToast(
-        `<i class="bi bi-heart-arrow"></i> Sobreposição com Terras Indigínes detectada em ${totalTiConflitos} gleba(s).`,
-        'warning', 8000
-      );
+    // Feedback TI imediato
+    const tiConflitos = glebas.flatMap(g => g.tiIntersecoes);
+    if (tiConflitos.length) {
+      const nomes = [...new Set(tiConflitos.map(t => t.nome))].join(', ');
+      showMessage(`<i class="bi bi-exclamation-triangle-fill"></i> <strong>Atenção BACEN/SICOR:</strong> ${tiConflitos.length} sobreposição(ões) com Terra(s) Indígenas: ${nomes}.`, 'warning');
+      showToast(`<i class="bi bi-feather me-1"></i> ${tiConflitos.length} sobreposição(ões) com TI detectada(s).`, 'warning', 8000);
     } else {
-      showMessage(
-        `✅ ${state.glebas.length} gleba(s) processada(s).${cacheNote}`,
-        'success', 3500
-      );
+      const note = result.fromCache ? ' <em>(cache)</em>' : '';
+      showMessage(`<i class="bi bi-patch-check-fill me-1"></i> ${glebas.length} gleba(s) processada(s).${note}`, 'success', 3500);
     }
 
     if (opts.fecharModal) hideModal(opts.fecharModal);
@@ -353,46 +273,58 @@ async function processAndRender(opts = {}) {
   }
 }
 
-// ─── Validação inline (sem renderizar) ────────────────────────────────────
+// ─── Validação inline ─────────────────────────────────────────────────────
 
 async function validarInline() {
   if (state.isProcessing) return;
   state.isProcessing = true;
-
   const btn = el.btnValidar;
   if (btn) setButtonLoading(btn, 'Validando...');
+  try {
+    const result = validateCoordinates(getCoordText(), { validarPontos: state.validatePoints });
+    if (!result.valid) { showMessage(result.errors, 'danger'); return; }
+    let tiAvisos = 0;
+    if (state.tiLoaded) result.data.forEach(g => { tiAvisos += checkGlebaTI(g).length; });
+    const area = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(result.data.reduce((s, g) => s + g.area, 0));
+    const tiMsg = tiAvisos ? `<br><i class="bi bi-exclamation-triangle-fill"></i> ${tiAvisos} sobreposição(ões) TI.` : '';
+    showMessage(`<i class="bi bi-patch-check-fill me-1"></i> ${result.data.length} gleba(s) válida(s) — ${area} ha.${tiMsg}`, tiAvisos ? 'warning' : 'success');
+  } finally {
+    if (btn) setButtonNormal(btn);
+    state.isProcessing = false;
+  }
+}
+
+// ─── Conformidade BACEN/SICOR ─────────────────────────────────────────────
+
+async function runConformidade(glebas) {
+  if (!glebas.length) { showToast('Adicione glebas antes de verificar.', 'warning'); return; }
+  if (state.isProcessing) return;
+  state.isProcessing = true;
+
+  const btn = document.getElementById('btnConformidade');
+  if (btn) setButtonLoading(btn, 'Verificando...');
 
   try {
-    const result = validateCoordinates(getCoordText(), {
-      validarPontos: state.validatePoints,
-    });
+    showToast('Verificando conformidade BACEN/SICOR. Pode levar alguns segundos...', 'info', 4000);
 
-    if (!result.valid) {
-      showMessage(result.errors, 'danger');
-      return;
-    }
-
-    // Verificação TI mesmo na validação inline
-    let tiAvisos = 0;
-    if (state.tiLoaded) {
-      result.data.forEach(g => {
-        const hits = checkGlebaTI(g);
-        tiAvisos += hits.length;
-      });
-    }
-
-    const fmt = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 });
-    const area = fmt.format(result.data.reduce((s, g) => s + g.area, 0));
-
-    let msgExtras = '';
-    if (tiAvisos > 0) {
-      msgExtras = `<br><span class="text-warning">⚠️ ${tiAvisos} sobreposição(ões) com Terra(s) Indígena(s).</span>`;
-    }
-
-    showMessage(
-      `✅ ${result.data.length} gleba(s) válida(s) — área total: <strong>${area} ha</strong>.${msgExtras}`,
-      tiAvisos > 0 ? 'warning' : 'success'
+    // Executa em paralelo por gleba, com timeout por API
+    const resultados = await Promise.allSettled(
+      glebas.map(g => verificarConformidade(g, { skipApi: false }))
     );
+
+    const aprovadas = resultados.filter(r => r.status === 'fulfilled' && !r.value.reprovada).length;
+    const reprovadas = resultados.filter(r => r.status === 'fulfilled' && r.value.reprovada).length;
+    const pendentes = resultados.filter(r => r.status === 'rejected').length;
+
+    // Re-renderiza tabela com dados de conformidade
+    renderResultsTable(state.glebas);
+    showModal('resultadosModal');
+
+    const msg = reprovadas > 0
+      ? `<i class="bi bi-x-octagon-fill"></i> ${reprovadas} gleba(s) REPROVADA(s). ${aprovadas} aprovada(s). Veja detalhes na tabela.`
+      : `<i class="bi bi-patch-check-fill"></i> ${aprovadas} gleba(s) sem bloqueios BACEN/SICOR.${pendentes ? ` <i class="bi bi-hourglass-split"></i> ${pendentes} verificação(ões) pendente(s) (API timeout).` : ''}`;
+
+    showToast(msg, reprovadas > 0 ? 'danger' : 'success', 8000);
 
   } finally {
     if (btn) setButtonNormal(btn);
@@ -400,22 +332,105 @@ async function validarInline() {
   }
 }
 
-// ─── Edição de gleba ──────────────────────────────────────────────────────
+/** Exibe detalhe de conformidade de uma gleba no modal dedicado */
+function showConformidadeDetalhe(glebaId) {
+  const conf = state.conformidade.get(glebaId);
+  const modal = document.getElementById('conformidadeModal');
+  const body = document.getElementById('conformidadeBody');
+  const title = document.getElementById('conformidadeModalLabel');
+  if (!modal || !body) return;
+
+  if (title) title.textContent = `Conformidade BACEN/SICOR — Gleba ${glebaId}`;
+
+  if (!conf) {
+    body.innerHTML = `<div class="alert alert-info">
+      Execute "Verificar Conformidade BACEN/SICOR" para analisar esta gleba.
+    </div>`;
+  } else {
+    const rows = conf.itens.map(item => {
+      const ico = {
+        ok: '<i class="bi bi-patch-check-fill"></i>',
+        info: '<i class="bi bi-info-circle-fill"></i>',
+        alerta: '<i class="bi bi-exclamation-triangle-fill"></i>',
+        bloqueio: '<i class="bi bi-x-octagon-fill"></i>',
+        pendente: '<i class="bi bi-hourglass-split"></i>'
+      }[item.status] ?? '—';
+      const cls = { ok: 'success', info: 'info', alerta: 'warning', bloqueio: 'danger', pendente: 'secondary' }[item.status] ?? 'secondary';
+
+      // Adição de detalhes específicos para o CAR
+      let extraInfo = '';
+      if (item.id === 'car' && item.status !== 'pendente') {
+        const hasGeo = item.dados?.some(d => d.geometry);
+        const carCount = item.dados?.length ?? 0;
+
+        if (item.coverage !== undefined) {
+          extraInfo = `
+            <div class="mt-2">
+              <div class="mb-2">
+                <span class="badge bg-light text-dark border">Cobertura: ${item.coverage}%</span>
+                ${item.carAreaHa ? `<span class="badge bg-light text-dark border ms-1">Área Total CAR: ${item.carAreaHa.toFixed(2)} ha</span>` : ''}
+              </div>
+              
+              ${carCount > 0 ? `
+                <div class="card card-body p-2 bg-light-subtle border-0 small mb-2 shadow-sm">
+                  <div class="fw-bold mb-1 text-muted text-uppercase" style="font-size:0.65rem">Imóvel(is) Detectado(s):</div>
+                  <ul class="list-unstyled mb-0">
+                    ${item.dados.map(d => `
+                      <li class="mb-1 pb-1 border-bottom border-light-subtle">
+                        <code class="text-primary fw-bold" style="font-size:0.75rem">${d.codigo}</code><br>
+                        <span class="text-muted" style="font-size:0.7rem">${d.municipio} — ${d.areaHa.toFixed(2)} ha</span>
+                      </li>
+                    `).join('')}
+                  </ul>
+                </div>
+              ` : ''}
+
+              ${hasGeo ? `
+                <button class="btn btn-sm btn-success w-100 btn-view-car-map mt-1 shadow-sm" data-gleba-id="${conf.glebaId}">
+                  <i class="bi bi-map-fill me-1"></i> Ver Polígonos do CAR no Mapa
+                </button>
+              ` : '<div class="small text-muted border p-1 rounded bg-light"><i class="bi bi-info-circle me-1"></i> Geometria indisponível para visualização direta.</div>'}
+            </div>`;
+        }
+      }
+
+      return `<tr>
+        <td class="text-${cls} fw-semibold">${ico}</td>
+        <td><strong>${item.label}</strong><br>
+            <small class="text-muted font-monospace">${item.ref}</small></td>
+        <td>${item.mensagem}${extraInfo}</td>
+      </tr>`;
+    }).join('');
+
+    const sintCls = conf.reprovada ? 'danger' : conf.temAlerta ? 'warning' : 'success';
+    body.innerHTML = `
+      <div class="alert alert-${sintCls} mb-3"><strong>${conf.sintese}</strong></div>
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle mb-0">
+          <thead class="table-secondary">
+            <tr><th style="width:2.5rem"></th><th>Verificação</th><th>Resultado</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <small class="text-muted d-block mt-2">
+        Verificado em: ${new Date(conf.timestamp).toLocaleString('pt-BR')}
+      </small>`;
+  }
+
+  showModal('conformidadeModal');
+}
+
+// ─── Editar gleba ─────────────────────────────────────────────────────────
 
 function editarGleba(glebaId) {
-  const gleba = state.glebas.find(g => g.glebaId === glebaId);
-  if (!gleba) return;
-
-  const lines = gleba.coords.map(([lat, lon], i) =>
-    `${glebaId} ${i + 1} ${lat.toFixed(6)} ${lon.toFixed(6)}`
-  );
-
+  const g = state.glebas.find(g => g.glebaId === glebaId);
+  if (!g) return;
+  const lines = g.coords.map(([lat, lon], i) => `${glebaId} ${i + 1} ${lat.toFixed(6)} ${lon.toFixed(6)}`);
   if (el.glebaEditArea) el.glebaEditArea.value = lines.join('\n');
   if (el.editGlebaId) el.editGlebaId.value = String(glebaId);
-
-  const label = document.getElementById('editarGlebaModalLabel');
-  if (label) label.textContent = `Editar Gleba ${glebaId}`;
-
+  const lbl = document.getElementById('editarGlebaModalLabel');
+  if (lbl) lbl.textContent = `Editar Gleba ${glebaId}`;
   hideModal('resultadosModal');
   showModal('editarGlebaModal');
 }

@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GlebasNord — Cálculo e análise de glebas da Região Nordeste</title>
   <meta name="description"
-    content="Ferramenta profissional para cálculo e visualização de glebas no Nordeste brasileiro, com verificação de Terras Indígenas (FUNAI) e critérios BACEN/INCRA." />
+    content="Cálculo e validação de glebas no Nordeste brasileiro com conformidade BACEN/SICOR, Terras Indígenas (FUNAI), UCs (ICMBio) e embargos IBAMA." />
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
@@ -24,11 +24,12 @@
     <div class="container-fluid px-3">
 
       <a class="navbar-brand d-flex align-items-center gap-2" href="#">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
           <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5" />
           <circle cx="12" cy="12" r="3" />
         </svg>
         <span class="fw-bold">GlebasNord</span>
+        <!-- <span class="text-secondary fw-normal fs-6 d-none d-lg-inline ms-1">Glebas Nord</span> -->
       </a>
 
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
@@ -41,130 +42,108 @@
           <!-- Glebas -->
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle px-2" href="#" data-bs-toggle="dropdown">
-              <i class="bi bi-pentagon me-1"></i>Glebas
+              <i class="bi bi-geometry me-1"></i>Glebas
             </a>
             <ul class="dropdown-menu shadow-sm">
+              <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#adicionarGleba">
+                  <i class="bi bi-plus-circle-fill me-2"></i>Adicionar Gleba</a></li>
+              <li><a class="dropdown-item" href="#" id="validarGlebas">
+                  <i class="bi bi-patch-check-fill me-2"></i>Validar Glebas</a></li>
+              <li><a class="dropdown-item" href="#" id="calcularArea">
+                  <i class="bi bi-rulers me-2"></i>Calcular Áreas</a></li>
+              <li><a class="dropdown-item" href="#" id="desenharGleba">
+                  <i class="bi bi-vector-pen me-2"></i>Desenhar no Mapa</a></li>
               <li>
-                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#adicionarGleba">
-                  <i class="bi bi-plus-circle me-2 text-primary"></i>Adicionar Gleba
-                </a>
+                <hr class="dropdown-divider">
               </li>
-              <li>
-                <a class="dropdown-item" href="#" id="validarGlebas">
-                  <i class="bi bi-check-circle me-2 text-info"></i>Validar Glebas
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" id="calcularArea">
-                  <i class="bi bi-calculator me-2 text-success"></i>Calcular Áreas
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" id="desenharGleba">
-                  <i class="bi bi-pencil-square me-2 text-warning"></i>Desenhar no Mapa
-                </a>
-              </li>
+              <li><a class="dropdown-item" href="#" id="btnConformidade">
+                  <i class="bi bi-shield-lock-fill me-2"></i>Verificar Conformidade BACEN/SICOR</a></li>
             </ul>
           </li>
 
           <!-- Exportar -->
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle px-2" href="#" data-bs-toggle="dropdown">
-              <i class="bi bi-download me-1"></i>Exportar
+              Exportar
             </a>
             <ul class="dropdown-menu shadow-sm">
-              <li>
-                <a class="dropdown-item" href="#" data-export="csv">
-                  <i class="bi bi-filetype-csv me-2 text-success"></i>Exportar CSV
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" data-export="geojson">
-                  <i class="bi bi-globe me-2 text-info"></i>Exportar GeoJSON
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" data-export="image">
-                  <i class="bi bi-image me-2 text-primary"></i>Exportar PNG
-                </a>
-              </li>
+              <li><a class="dropdown-item" href="#" data-export="csv">
+                  <i class="bi bi-file-earmark-spreadsheet me-2"></i>Exportar CSV</a></li>
+              <li><a class="dropdown-item" href="#" data-export="geojson">
+                  <i class="bi bi-globe-americas me-2"></i>Exportar GeoJSON</a></li>
+              <li><a class="dropdown-item" href="#" data-export="kml">
+                  <i class="bi bi-geo-alt-fill me-2"></i>Exportar KML</a></li>
+              <!-- <li><a class="dropdown-item" href="#" data-export="image">
+                  <i class="bi bi-file-earmark-image me-2 text-primary"></i>Exportar PNG</a></li> -->
             </ul>
           </li>
 
           <!-- Projeto -->
           <li class="nav-item">
             <a class="nav-link px-2" href="#" data-bs-toggle="modal" data-bs-target="#projetoModal">
-              <i class="bi bi-folder2 me-1"></i>Projeto
+              Projeto
             </a>
           </li>
 
         </ul>
 
-        <!-- Direita: status badges + dark mode + sobre -->
-        <ul class="navbar-nav align-items-center gap-2 ps-2 border-start border-secondary border-opacity-25">
-
-          <li class="nav-item">
-            <span id="sudeneStatus" class="navbar-text small text-warning">
-              <i class="bi bi-hourglass-split"></i> SUDENE...
-            </span>
-          </li>
-
-          <li class="nav-item">
-            <span id="tiStatus" class="navbar-text small text-warning">
-              <i class="bi bi-hourglass-split"></i> Terras Indigínes...
-            </span>
-          </li>
-
-          <li class="nav-item">
-            <button id="toggleDarkMode" class="btn btn-sm btn-outline-light border-opacity-25">
-              <i class="bi bi-moon-stars-fill me-1"></i>
-            </button>
-          </li>
-
+        <!-- Direita -->
+        <ul class="navbar-nav align-items-center gap-2 ps-2">
           <li class="nav-item">
             <a class="nav-link px-1 opacity-75" href="#" data-bs-toggle="modal" data-bs-target="#sobreModal">
-              <i class="bi bi-info-circle"></i> Sobre
+              <i class="bi bi-info-circle-fill"></i>
             </a>
           </li>
-
+          <li class="nav-item py-2 py-lg-1 col-12 col-lg-auto">
+            <div class="vr d-none d-lg-flex h-100 mx-lg-2 text-white"></div>
+            <hr class="d-lg-none my-2 text-white-50">
+          </li>
+          <li class="nav-item">
+            <button id="toggleDarkMode" class="btn btn-link nav-link border-opacity-25"><i
+                class="bi bi-moon-stars-fill me-1"></i>
+            </button>
+          </li>
         </ul>
       </div>
     </div>
   </nav>
 
-  <!-- ══════════════════════════════════════════════════════════════
-     MAPA
-══════════════════════════════════════════════════════════════ -->
+  <!-- Mapa -->
   <div id="map" role="main" aria-label="Mapa interativo de glebas"></div>
 
-  <!-- Painel de legenda TI (sobre o mapa, canto inferior esquerdo) -->
-  <div id="tiLegendPanel" class="ti-legend-panel d-none">
+  <!-- Painel legenda TI -->
+  <div id="tiLegendPanel" class="d-none">
     <div class="ti-legend-header" id="btnToggleLegenda">
-      <span><i class="bi bi-heart-arrow"></i> Legenda — Terras Indígenas</span>
+      <span><i class="bi bi-feather"></i> — Terras Indígenas</span>
       <i class="bi bi-chevron-down ms-auto" id="legendToggleIcon"></i>
     </div>
     <div id="tiLegendBody">
-      <div id="tiLegendContent"></div><!-- preenchido por js/main.js via buildTILegend() -->
+      <div id="tiLegendContent"></div>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════════════
-     BARRA DE STATUS INFERIOR
-══════════════════════════════════════════════════════════════ -->
-  <footer id="statusBar" role="status" aria-live="polite">
-    <span id="statusCoords" class="status-item">
-      <i class="bi bi-crosshair me-1 opacity-40"></i>Mova o cursor
-    </span>
-    <span class="status-divider"></span>
-    <span id="statusArea" class="status-item">—</span>
-    <span class="status-divider d-none d-md-inline-block"></span>
-    <span class="status-item d-none d-md-inline text-muted">GlebasNord v2.1 • SIRGAS 2000</span>
+  <!-- Status bar -->
+  <footer id="statusBar" role="status" aria-live="polite" class="d-flex align-items-center px-3">
+    <div class="d-flex align-items-center gap-3">
+      <span id="statusCoords" class="status-item">
+        <i class="bi bi-crosshair me-1 opacity-40"></i>Mova o cursor
+      </span>
+      <span class="status-divider"></span>
+      <span id="statusArea" class="status-item">—</span>
+      <span class="status-divider d-none d-md-inline-block"></span>
+      <span class="status-item d-none d-md-inline text-muted opacity-50">CGRN v3.0 • SIRGAS 2000</span>
+    </div>
+
+    <div class="ms-auto d-flex align-items-center gap-3">
+      <span id="sudeneStatus" class="status-item small text-warning"><i class="bi bi-hourglass-split"></i> SUDENE</span>
+      <span class="status-divider opacity-25"></span>
+      <span id="tiStatus" class="status-item small text-warning"><i class="bi bi-hourglass-split"></i> TERRAS
+        INDÍGENAS</span>
+    </div>
   </footer>
 
-  <!-- ══════════════════════════════════════════════════════════════
-     TOAST CONTAINER
-══════════════════════════════════════════════════════════════ -->
-  <div id="toastContainer" class="toast-container position-fixed end-0 p-3" style="z-index:1100; bottom:38px"></div>
+  <!-- Toast container -->
+  <div id="toastContainer" class="toast-container position-fixed end-0 p-3" style="z-index:1100;bottom:38px"></div>
 
 
   <!-- ══════════════════════════════════════════════════════════════
@@ -173,184 +152,172 @@
   <div class="modal fade" id="adicionarGleba" tabindex="-1" aria-labelledby="adicionarGlebaLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
       <div class="modal-content">
-
         <div class="modal-header">
           <h5 class="modal-title d-flex align-items-center gap-2" id="adicionarGlebaLabel">
-            <i class="bi bi-pentagon-fill text-primary"></i>
-            Adicionar / Validar Gleba
+            <i class="bi bi-geometry text-primary"></i>Adicionar / Validar Gleba
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-
         <div class="modal-body">
 
-          <!-- Mensagens inline — ID único para este modal -->
           <div id="msgGleba" class="mb-3"></div>
 
-          <!-- Tabs: Manual / Upload -->
           <ul class="nav nav-tabs mb-3" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button class="nav-link active" id="tab-manual-btn" data-bs-toggle="tab" data-bs-target="#tabManual"
-                type="button">
-                <i class="bi bi-keyboard me-1"></i>Entrada Manual
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="tab-upload-btn" data-bs-toggle="tab" data-bs-target="#tabUpload"
-                type="button">
-                <i class="bi bi-upload me-1"></i>Importar Arquivo
-              </button>
-            </li>
+            <li class="nav-item"><button class="nav-link active" id="tab-manual-btn" data-bs-toggle="tab"
+                data-bs-target="#tabManual" type="button">
+                <i class="bi bi-keyboard-fill me-1"></i>Entrada Manual</button></li>
+            <li class="nav-item"><button class="nav-link" id="tab-upload-btn" data-bs-toggle="tab"
+                data-bs-target="#tabUpload" type="button">
+                <i class="bi bi-cloud-arrow-up-fill me-1"></i>Importar Arquivo</button></li>
           </ul>
 
           <div class="tab-content">
-
             <!-- Tab Manual -->
             <div class="tab-pane fade show active" id="tabManual" role="tabpanel">
               <label for="coordenadas" class="form-label small fw-semibold">
-                Coordenadas
-                <span class="text-muted fw-normal ms-1">— formato: #Gleba #Ponto Latitude Longitude</span>
+                Coordenadas <span class="text-muted fw-normal">— glebaId pontoId lat lon</span>
               </label>
               <textarea id="coordenadas" class="form-control font-monospace coord-area" rows="10"
-                placeholder="Exemplo:&#10;1 1 -8.05000 -34.95000&#10;1 2 -8.10000 -34.95000&#10;1 3 -8.10000 -34.90000&#10;1 4 -8.05000 -34.95000&#10;&#10;(Gleba 1 com 4 pontos — Recife/PE)"
+                placeholder="Exemplo:&#10;1 1 -6.2410 -38.9140&#10;1 2 -6.2410 -38.8980&#10;1 3 -6.2270 -38.8980&#10;1 4 -6.2270 -38.9140&#10;1 5 -6.2410 -38.9140"
                 spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
               <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
                 <button id="inserirExemplo" class="btn btn-outline-secondary btn-sm">
-                  <i class="bi bi-lightbulb me-1"></i>Exemplo
+                  <i class="bi bi-lightbulb me-1"></i>Exemplo (Orós/CE)
                 </button>
-                <small class="text-muted">
-                  Nordeste: lat [−18, −1] | lon [−48, −34] | ≥ 4 pts | ≤ 4 municípios
-                </small>
+                <small class="text-muted">lat [−18,−1] | lon [−48,−34] | ≥4 pts | ≤4 mun.</small>
               </div>
             </div>
 
             <!-- Tab Upload -->
             <div class="tab-pane fade" id="tabUpload" role="tabpanel">
               <div class="upload-zone" id="uploadZone" role="button" tabindex="0">
-                <i class="bi bi-file-earmark-text fs-1 text-muted opacity-50"></i>
+                <i class="bi bi-file-earmark-arrow-up-fill fs-1 text-muted opacity-50"></i>
                 <p class="fw-semibold mt-2 mb-1">Arraste ou clique para selecionar</p>
-                <p class="small text-muted mb-0">.CSV ou .TXT • Mesmo formato da entrada manual</p>
-                <input type="file" id="fileUpload" accept=".csv,.txt" class="d-none" />
+                <p class="small text-muted mb-0">.CSV, .TXT ou .KML</p>
+                <input type="file" id="fileUpload" accept=".csv,.txt,.kml" class="d-none" />
               </div>
               <div class="mt-3 p-3 bg-body-tertiary rounded small text-muted">
-                <strong class="text-body">Formatos aceitos:</strong>
-                <ul class="mb-0 ps-3 mt-1">
+                <strong class="text-body d-block mb-1">Formatos aceitos:</strong>
+                <ul class="mb-0 ps-3">
                   <li>TXT: <code class="text-body">glebaId pontoId lat lon</code> (espaço/tab)</li>
-                  <li>CSV: <code class="text-body">glebaId,pontoId,lat,lon</code> (vírgula)</li>
-                  <li>CSV Excel: <code class="text-body">glebaId;pontoId;lat;lon</code> (ponto-e-vírgula)</li>
+                  <li>CSV: <code class="text-body">glebaId,pontoId,lat,lon</code> (vírgula ou ponto-e-vírgula)</li>
+                  <li>KML: polígonos do Google Earth/GPS — múltiplos Placemarks viram múltiplas glebas</li>
                 </ul>
               </div>
             </div>
-
-          </div><!-- /.tab-content -->
+          </div>
 
           <!-- Opções -->
           <fieldset class="mt-3 pt-3 border-top">
             <legend class="col-form-label small text-muted text-uppercase fw-semibold pt-0 pb-2"
-              style="letter-spacing:.05em">Opções de visualização</legend>
+              style="letter-spacing:.05em">Visualização e Validação</legend>
             <div class="row g-2">
-
               <div class="col-6 col-md-4">
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="mostrarGlebas" role="switch" checked>
                   <label class="form-check-label small" for="mostrarGlebas">
-                    <i class="bi bi-pentagon me-1 text-primary"></i>Mostrar Glebas
-                  </label>
+                    <i class="bi bi-geometry me-1 text-primary"></i>Mostrar Glebas</label>
                 </div>
               </div>
-
               <div class="col-6 col-md-4">
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="mostrarMarcadores" role="switch">
                   <label class="form-check-label small" for="mostrarMarcadores">
-                    <i class="bi bi-geo-alt me-1 text-secondary"></i>Marcadores
-                  </label>
+                    <i class="bi bi-pin-map-fill me-1 text-secondary"></i>Marcadores</label>
                 </div>
               </div>
-
               <div class="col-6 col-md-4">
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="mostrarCentroids" role="switch">
                   <label class="form-check-label small" for="mostrarCentroids">
-                    <i class="bi bi-record-circle me-1 text-info"></i>Centro Geométrico
-                  </label>
+                    <i class="bi bi-dot me-1 text-info"></i>Centroids</label>
                 </div>
               </div>
-
               <div class="col-6 col-md-4">
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="mostrarTI" role="switch">
                   <label class="form-check-label small" for="mostrarTI">
-                    <span class="me-1"><i class="bi bi-heart-arrow"></i></span>Terras Indígenas
-                  </label>
+                    <i class="bi bi-feather text-danger"></i> Terras Indígenas</label>
                 </div>
               </div>
-
+              <div class="col-6 col-md-4">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="mostrarUC" role="switch">
+                  <label class="form-check-label small" for="mostrarUC">
+                    <i class="bi bi-tree-fill me-1 text-success"></i>UCs (ICMBio)</label>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="mostrarIbama" role="switch">
+                  <label class="form-check-label small" for="mostrarIbama">
+                    <i class="bi bi-exclamation-octagon-fill me-1 text-danger"></i>Embargos IBAMA</label>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="mostrarBioma" role="switch">
+                  <label class="form-check-label small" for="mostrarBioma">
+                    <i class="bi bi-layers-half me-1 text-warning"></i>Biomas (IBGE)</label>
+                </div>
+              </div>
               <div class="col-6 col-md-4">
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="validarPontos" role="switch" checked>
                   <label class="form-check-label small" for="validarPontos">
-                    <i class="bi bi-pin-map me-1 text-success"></i>Validar pontos
-                  </label>
+                    <i class="bi bi-geo-fill me-1 text-success"></i>Validar pontos</label>
                 </div>
               </div>
-
             </div>
           </fieldset>
 
-        </div><!-- /.modal-body -->
-
+        </div>
         <div class="modal-footer gap-2">
           <button type="button" id="limparMapa" class="btn btn-outline-secondary me-auto">
-            <i class="bi bi-eraser me-1"></i>Limpar
-          </button>
+            <i class="bi bi-eraser-fill me-1"></i>Limpar</button>
           <button type="button" id="validar-gleba-btn" class="btn btn-outline-info">
-            <i class="bi bi-check-circle me-1"></i>Validar
-          </button>
+            <i class="bi bi-patch-check me-1"></i>Validar</button>
           <button type="button" id="adicionar-gleba-btn" class="btn btn-primary">
-            <i class="bi bi-plus-circle me-1"></i>Adicionar
-          </button>
+            <i class="bi bi-plus-circle-fill me-1"></i>Adicionar</button>
         </div>
-
       </div>
     </div>
   </div>
 
 
   <!-- ══════════════════════════════════════════════════════════════
-     MODAL: RESULTADOS / ÁREAS DAS GLEBAS
+     MODAL: RESULTADOS / ÁREA DAS GLEBAS
 ══════════════════════════════════════════════════════════════ -->
   <div class="modal fade" id="resultadosModal" tabindex="-1" aria-labelledby="resultadosLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
       <div class="modal-content">
-
         <div class="modal-header">
           <h5 class="modal-title d-flex align-items-center gap-2" id="resultadosLabel">
             <i class="bi bi-table text-success"></i>Área das Glebas
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-
         <div class="modal-body p-0">
           <div class="table-responsive">
             <table class="table table-hover table-striped align-middle results-table mb-0">
               <thead class="sticky-top">
                 <tr>
-                  <th>Gleba</th>
+                  <th>Gleba / Bioma</th>
                   <th class="text-end">Área</th>
                   <th class="text-end">Perímetro</th>
-                  <th class="text-center" title="Municípios abrangidos">Mun.</th>
-                  <th>Semiárido</th>
-                  <th title="Sobreposição com Terras Indígenas (FUNAI)">Terras Indígenas</th>
-                  <th>Centro Geométrico</th>
+                  <th class="text-center" title="Municípios">Mun.</th>
+                  <th title="Semiárido SUDENE">Semiárido</th>
+                  <th title="Terras Indígenas FUNAI">Terras Indígenas</th>
+                  <th title="Conformidade BACEN/SICOR">BACEN</th>
+                  <th>Centroid</th>
                   <th>Ações</th>
                 </tr>
               </thead>
               <tbody id="resultadosTableBody">
                 <tr>
-                  <td colspan="8" class="text-center text-muted py-5">
+                  <td colspan="9" class="text-center text-muted py-5">
                     <i class="bi bi-inbox fs-2 d-block mb-2 opacity-40"></i>
-                    Nenhuma gleba carregada. Use "Adicionar Glebas" para começar.
+                    Nenhuma gleba carregada.
                   </td>
                 </tr>
               </tbody>
@@ -358,35 +325,78 @@
           </div>
         </div>
 
-        <!-- Legenda de status TI no rodapé do modal -->
-        <div class="ti-modal-legend px-3 py-2 border-top">
+        <!-- Legenda resumida -->
+        <div class="ti-modal-legend px-3 py-2 border-top d-flex flex-wrap gap-3 align-items-center">
+          <small class="fw-semibold text-muted text-uppercase"
+            style="font-size:.68rem;letter-spacing:.05em">Legenda:</small>
           <small class="text-muted">
-            <strong class="text-body"><i class="bi bi-heart-arrow"></i> Terras Indígenas:</strong>
-            <span class="badge bg-success-subtle text-success-emphasis me-1">✓ Livre</span> sem sobreposição
-            <span class="badge bg-danger ms-2 me-1">⚠️ N TI</span> sobreposição detectada (passe o mouse para detalhes)
-            <span class="badge bg-secondary ms-2 me-1">—</span> Terras Indígenas não carregada
+            <span class="badge bg-success-subtle text-success-emphasis me-1"><i class="bi bi-check-lg"></i>
+              Livre</span>sem conflito
+            <span class="badge bg-danger ms-2 me-1"><i class="bi bi-feather"></i></span>sobreposição Terras Indígenas
+            <span class="badge bg-danger ms-2 me-1"><i class="bi bi-shield-lock-fill"></i></span>bloqueio BACEN
+            <span class="badge bg-warning text-dark ms-2 me-1"><i class="bi bi-shield-exclamation"></i></span>ressalvas
+            <i class="bi bi-shield-lock-fill ms-2 me-1"></i>detalhar conformidade
           </small>
         </div>
 
         <div class="modal-footer flex-wrap gap-2">
           <small class="text-muted me-auto d-none d-md-block">
-            <i class="bi bi-pencil me-1"></i>Editar &nbsp;
-            <i class="bi bi-zoom-in me-1 ms-2"></i>Zoom
+            <i class="bi bi-pencil-fill me-1"></i>Editar &nbsp;
+            <i class="bi bi-search me-1 ms-2"></i>Zoom &nbsp;
+            <i class="bi bi-shield-lock-fill me-1 ms-2"></i>Conformidade
           </small>
+          <button type="button" class="btn btn-outline-dark btn-sm" id="btnConformidade">
+            <i class="bi bi-shield-lock-fill me-1"></i>Verificar BACEN/SICOR
+          </button>
           <button type="button" class="btn btn-outline-success btn-sm" data-export="csv">
-            <i class="bi bi-filetype-csv me-1"></i>CSV
-          </button>
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i>CSV</button>
           <button type="button" class="btn btn-outline-info btn-sm" data-export="geojson">
-            <i class="bi bi-globe me-1"></i>GeoJSON
-          </button>
-          <button type="button" class="btn btn-outline-primary btn-sm" data-export="image">
-            <i class="bi bi-image me-1"></i>PNG
-          </button>
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
-            Fechar
-          </button>
+            <i class="bi bi-globe-americas me-1"></i>GeoJSON</button>
+          <button type="button" class="btn btn-outline-warning btn-sm" data-export="kml">
+            <i class="bi bi-geo-alt-fill me-1"></i>KML</button>
+          <!-- <button type="button" class="btn btn-outline-primary btn-sm" data-export="image">
+            <i class="bi bi-file-earmark-image me-1"></i>PNG</button> -->
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════
+     MODAL: CONFORMIDADE BACEN/SICOR (detalhe por gleba)
+══════════════════════════════════════════════════════════════ -->
+  <div class="modal fade" id="conformidadeModal" tabindex="-1" aria-labelledby="conformidadeModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header bg-dark text-white">
+          <h5 class="modal-title d-flex align-items-center gap-2" id="conformidadeModalLabel">
+            <i class="bi bi-shield-lock-fill"></i>Conformidade BACEN/SICOR
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="conformidadeBody">
+          <div class="alert alert-info">
+            Execute "Verificar Conformidade BACEN/SICOR" para analisar as glebas.
+          </div>
         </div>
 
+        <!-- Referências legais -->
+        <div class="px-3 py-2 bg-body-tertiary border-top">
+          <small class="text-muted" style="font-size:.72rem">
+            <strong>Base legal:</strong>
+            Res. CMN 5.081/2023 (SICOR) •
+            Res. CMN 4.945/2021 (vedações ambientais) •
+            Lei 12.651/2012 (Código Florestal) •
+            Lei 9.985/2000 (SNUC) •
+            Decreto 6.040/2007 (Terras Indígenas)
+          </small>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+        </div>
       </div>
     </div>
   </div>
@@ -399,19 +409,17 @@
     aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
-
         <div class="modal-header">
           <h5 class="modal-title" id="editarGlebaModalLabel">
             <i class="bi bi-pencil-square text-warning me-2"></i>Editar Gleba
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-
         <div class="modal-body">
           <input type="hidden" id="editGlebaId" />
           <p class="text-muted small">
             Formato: <code>glebaId pontoId lat lon</code> — uma coordenada por linha.
-            O mapa e a verificação de TI serão atualizados ao confirmar.
+            O mapa e a verificação de conformidade serão atualizados ao confirmar.
           </p>
           <textarea id="glebaEditArea" class="form-control font-monospace coord-area" rows="12" spellcheck="false"
             autocorrect="off"></textarea>
@@ -420,14 +428,11 @@
             Primeiro e último ponto devem ser iguais (polígono fechado).
           </p>
         </div>
-
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
           <button type="button" id="confirmarEdicao" class="btn btn-warning">
-            <i class="bi bi-check2 me-1"></i>Confirmar
-          </button>
+            <i class="bi bi-check2 me-1"></i>Confirmar</button>
         </div>
-
       </div>
     </div>
   </div>
@@ -439,52 +444,38 @@
   <div class="modal fade" id="projetoModal" tabindex="-1" aria-labelledby="projetoModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
-
         <div class="modal-header">
           <h5 class="modal-title" id="projetoModalLabel">
-            <i class="bi bi-folder2-open me-2"></i>Gerenciar Projeto
+            <i class="bi bi-database-fill me-2"></i>Gerenciar Projeto
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-
         <div class="modal-body">
-          <!-- ID único: msgProjeto (diferente de msgGleba) -->
           <div id="msgProjeto" class="mb-3"></div>
-
           <div class="mb-3">
             <label for="projectName" class="form-label small fw-semibold">Nome do projeto</label>
             <input type="text" id="projectName" class="form-control" placeholder="Ex: Fazenda São João — Caruaru/PE"
               maxlength="100" />
           </div>
-
           <div id="savedProjectInfo" class="mb-3 p-3 bg-body-tertiary rounded">
             <small class="text-muted">Nenhum projeto salvo.</small>
           </div>
-
           <div class="d-grid gap-2">
             <button id="salvarProjeto" class="btn btn-primary">
-              <i class="bi bi-floppy me-2"></i>Salvar projeto atual
-            </button>
+              <i class="bi bi-floppy-fill me-2"></i>Salvar projeto atual</button>
             <button id="carregarProjeto" class="btn btn-outline-secondary">
-              <i class="bi bi-folder-symlink me-2"></i>Carregar projeto salvo
-            </button>
+              <i class="bi bi-folder-symlink-fill me-2"></i>Carregar projeto salvo</button>
             <hr class="my-1" />
             <button id="btnLimparProjeto" class="btn btn-outline-danger btn-sm">
-              <i class="bi bi-trash me-2"></i>Apagar projeto salvo
-            </button>
+              <i class="bi bi-trash3-fill me-2"></i>Apagar projeto salvo</button>
           </div>
-
           <p class="text-muted small mt-3 mb-0">
-            <i class="bi bi-info-circle me-1"></i>
-            Projetos salvos no localStorage do navegador.
-            Limpar dados do navegador apaga o projeto.
+            <i class="bi bi-info-circle me-1"></i>Projetos salvos localmente no navegador (localStorage).
           </p>
         </div>
-
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
         </div>
-
       </div>
     </div>
   </div>
@@ -496,14 +487,12 @@
   <div class="modal fade" id="sobreModal" tabindex="-1" aria-labelledby="sobreModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
-
         <div class="modal-header">
           <h5 class="modal-title" id="sobreModalLabel">
-            <i class="bi bi-info-circle-fill text-primary me-2"></i>Sobre o GlebasNord
+            <i class="bi bi-info-square-fill text-primary me-2"></i>Sobre o CGRN v3.0
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-
         <div class="modal-body">
           <div class="d-flex align-items-center gap-3 mb-3">
             <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#448aff" stroke-width="1.6">
@@ -511,46 +500,41 @@
               <circle cx="12" cy="12" r="3" />
             </svg>
             <div>
-              <h6 class="fw-bold mb-0">Cálculo e análise de glebas da Região Nordeste</h6>
-              <small class="text-muted">Versão 2.1 — ES6 Modules + Terras Indígenas</small>
+              <h6 class="fw-bold mb-0">Cálculo de Glebas do Nordeste</h6>
+              <small class="text-muted">Versão 3.0 — Conformidade BACEN/SICOR completa</small>
             </div>
           </div>
-
           <hr />
 
-          <h6 class="small fw-bold text-uppercase text-muted mb-2">Critérios de Validação (BACEN/INCRA)</h6>
+          <h6 class="small fw-bold text-uppercase text-muted mb-2">Critérios de Validação</h6>
           <ul class="small mb-3">
             <li>Polígono fechado — primeiro e último ponto iguais</li>
-            <li>Sem pontos consecutivos duplicados</li>
-            <li>Mínimo de 4 pontos por gleba</li>
-            <li>No máximo 4 municípios abrangidos</li>
-            <li>Sem autointerseção de arestas (Turf.js kinks)</li>
+            <li>Sem pontos consecutivos duplicados e sem autointerseção</li>
+            <li>Mínimo 4 pontos / máximo 4 municípios (Manual SICOR §3.4)</li>
+            <li>Área mínima 0,1 ha / verificação de área máxima</li>
             <li>Dentro dos limites geográficos do Nordeste</li>
           </ul>
 
-          <h6 class="small fw-bold text-uppercase text-muted mb-2">Terras Indígenas
-          </h6>
-          <p class="small text-muted mb-3">
-            Verificação automática de sobreposição com Terras Indígenas do Nordeste
-            (FUNAI/IBGE, atualização set/2023). Alertas visuais e detalhes na tabela de resultados.
-          </p>
-          <p class="small text-muted mb-3"><strong>Fases (status jurídico)</strong></p>
-
+          <h6 class="small fw-bold text-uppercase text-muted mb-2">Conformidade BACEN/SICOR</h6>
           <ul class="small mb-3">
-            <li>Regularizada (processo completo)</li>
-            <li>Regularizada (processo completo)</li>
-            <li>Homologada (decreto presidencial)</li>
-            <li>Declarada (portaria declaratória)</li>
-            <li>Encaminhada RI (relatório enviado à PRES/FUNAI)</li>
-            <li>Delimitada (relatório aprovado)</li>
+            <li>🚫 Terras Indígenas (FUNAI — Decreto 6.040/2007)</li>
+            <li>🚫 UC de Proteção Integral (ICMBio — Lei 9.985/2000)</li>
+            <li>🚫 Embargo IBAMA ativo (Res. CMN 4.945/2021)</li>
+            <li>🚫 Desmatamento ilegal pós-marco legal (PRODES/DETER)</li>
+            <li>⚠️ UC de Uso Sustentável (análise caso a caso)</li>
+            <li>⚠️ Bioma com marco legal (Cerrado, Mata Atlântica)</li>
+            <li>✅ CAR orientativo (Cód. Florestal Art. 29)</li>
+            <li>ℹ️ Semiárido SUDENE (elegibilidade FNE/PRONAF)</li>
           </ul>
 
-          <h6 class="small fw-bold text-uppercase text-muted mb-2">Formato de Entrada</h6>
-          <pre class="bg-body-tertiary p-2 rounded small"><code>glebaId pontoId latitude longitude
-1 1 -8.0500 -34.9500
-1 2 -8.1000 -34.9500
-1 3 -8.1000 -34.9000
-1 4 -8.0500 -34.9500  ← igual ao ponto 1 (fechamento)</code></pre>
+          <h6 class="small fw-bold text-uppercase text-muted mb-2">Importação / Exportação</h6>
+          <div class="d-flex flex-wrap gap-1 mb-3">
+            <span class="badge bg-primary">CSV</span>
+            <span class="badge bg-info text-dark">GeoJSON</span>
+            <span class="badge bg-warning text-dark">KML (novo)</span>
+            <span class="badge bg-secondary">PNG</span>
+            <span class="badge bg-success">TXT</span>
+          </div>
 
           <h6 class="small fw-bold text-uppercase text-muted mb-2">Stack Tecnológico</h6>
           <div class="d-flex flex-wrap gap-1">
@@ -560,77 +544,62 @@
             <span class="badge bg-secondary">ES6 Modules</span>
             <span class="badge bg-info text-dark">SUDENE 2021</span>
             <span class="badge bg-warning text-dark">FUNAI 2023</span>
-            <span class="badge text-bg-light border">Spatial Index</span>
+            <span class="badge text-bg-light border">ICMBio WMS</span>
+            <span class="badge text-bg-light border">IBAMA API</span>
+            <span class="badge text-bg-light border">INPE PRODES</span>
           </div>
-
           <p class="text-muted small mt-3 mb-0">
-            Dados municipais: IBGE/SUDENE 2021.
-            Terras Indígenas: FUNAI 2023.
-            Sistema de referência: SIRGAS 2000 (EPSG:4674).
+            SUDENE/IBGE 2021 • FUNAI 2023 • ICMBio • IBAMA/SISCOM •
+            INPE TerraBrasilis. SIRGAS 2000 (EPSG:4674).
           </p>
         </div>
-
         <div class="modal-footer">
           <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">Fechar</button>
         </div>
-
       </div>
     </div>
   </div>
 
 
   <!-- ══════════════════════════════════════════════════════════════
-     SCRIPTS — Ordem obrigatória: CDN globals → ES6 modules
+     SCRIPTS
 ══════════════════════════════════════════════════════════════ -->
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
   <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
   <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://unpkg.com/leaflet-image@0.4.0/leaflet-image.js"></script>
-
   <script type="module" src="js/main.js"></script>
 
-  <!-- Drag & Drop na upload zone (sem dependências de módulo) -->
   <script>
-    (function () {
-      document.addEventListener('DOMContentLoaded', function () {
-        const zone = document.getElementById('uploadZone');
-        const input = document.getElementById('fileUpload');
-        if (!zone || !input) return;
+    /* Drag-and-drop na upload zone (sem dep. de módulo) */
+    document.addEventListener('DOMContentLoaded', function () {
+      const zone = document.getElementById('uploadZone');
+      const input = document.getElementById('fileUpload');
+      if (!zone || !input) return;
 
-        zone.addEventListener('click', () => input.click());
-        zone.addEventListener('keydown', e => {
-          if (e.key === 'Enter' || e.key === ' ') input.click();
-        });
-        zone.addEventListener('dragover', e => {
-          e.preventDefault();
-          zone.classList.add('drag-over');
-        });
-        zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-        zone.addEventListener('drop', e => {
-          e.preventDefault();
-          zone.classList.remove('drag-over');
-          const file = e.dataTransfer?.files?.[0];
-          if (!file) return;
-          try {
-            const dt = new DataTransfer();
-            dt.items.add(file);
-            input.files = dt.files;
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-          } catch (_) {
-            alert('Arraste não suportado. Use o botão de seleção.');
-          }
-        });
-
-        // Após upload, volta para aba Manual (onde aparecem as coordenadas)
-        input.addEventListener('change', () => {
-          setTimeout(() => {
-            const btn = document.getElementById('tab-manual-btn');
-            if (btn) bootstrap.Tab.getOrCreateInstance(btn).show();
-          }, 500);
-        });
+      zone.addEventListener('click', () => input.click());
+      zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') input.click(); });
+      zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+      zone.addEventListener('drop', e => {
+        e.preventDefault(); zone.classList.remove('drag-over');
+        const file = e.dataTransfer?.files?.[0];
+        if (!file) return;
+        try {
+          const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        } catch (_) { alert('Arraste não suportado. Use o botão de seleção.'); }
       });
-    })();
+
+      /* Após upload de arquivo, volta para aba Manual */
+      input.addEventListener('change', () => {
+        setTimeout(() => {
+          const btn = document.getElementById('tab-manual-btn');
+          if (btn) bootstrap.Tab.getOrCreateInstance(btn).show();
+        }, 600);
+      });
+    });
   </script>
 
 </body>
