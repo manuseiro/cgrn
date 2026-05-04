@@ -1,12 +1,14 @@
 /**
- * @file main.js — v3.0
+ * @file main.js — v3.4
  * @description Orquestrador principal da aplicação CGRN.
  *
- * Novidades v3.0:
- *   - KML import/export
- *   - Módulo de conformidade BACEN/SICOR com verificações ambientais
- *   - Camadas externas: UC (ICMBio), IBAMA embargos, biomas
- *   - Terras Indígenas com URL primária leosil21 + fallback local
+ * Novidades v3.4:
+ *   - Painel CAR no modal de conformidade completamente redesenhado:
+ *       · Barra de cobertura visual (total e por imóvel individual)
+ *       · Campo "Área descoberta" (uncoveredHa) quando aplicável
+ *       · Botão "Acessar CAR no site oficial" por imóvel
+ *       · Distinção visual entre imóvel principal e adjacentes
+ *   - Cache CAR invalidado automaticamente ao editar gleba
  */
 
 import { CONFIG } from './config.js';
@@ -39,22 +41,21 @@ import {
   checkGlebaTI, buildTILegend
 } from './terras_indigenas.js';
 import {
-  createUCLayer, createIBAMALayer,
-  createBiomaLayer
+  createUCLayer, createIBAMALayer, createBiomaLayer,
+  invalidarCacheCAR,
 } from './camadas_externas.js';
 import { verificarConformidade, CHECKS } from './conformidade.js';
 
 // ─── Boot ─────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
-  log('CGRN v3.0 inicializando...');
+  log('CGRN v3.4 inicializando...');
   initMap();
   bindEvents();
   initFileUpload(el.fileUpload);
   checkSavedProject();
   initLegend();
 
-  // Carregamentos em paralelo
   setSudeneStatus('loading');
   await Promise.allSettled([
     loadSudeneLayer(),
@@ -82,6 +83,7 @@ function bindEvents() {
     setCoordText('');
     clearMessage();
     state.cache.clear();
+    invalidarCacheCAR(); // limpa todo o cache CAR
     updateStatusBar([]);
     renderResultsTable([]);
     showToast('Mapa limpo.', 'info', 2000);
@@ -103,7 +105,7 @@ function bindEvents() {
     runConformidade(state.glebas);
   });
 
-  // Exportações (navbar + modal footer via data-export)
+  // Exportações
   document.querySelectorAll('[data-export="csv"]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); exportToCSV(state.glebas); }));
   document.querySelectorAll('[data-export="geojson"]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); exportToGeoJSON(state.glebas); }));
   document.querySelectorAll('[data-export="kml"]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); exportToKML(state.glebas); }));
@@ -112,22 +114,16 @@ function bindEvents() {
   // Checkboxes de visualização
   el.mostrarGlebas?.addEventListener('change', e => setGlebasVisible(e.target.checked));
   el.mostrarMarcadores?.addEventListener('change', e => {
-    // Bug corrigido: state.showMarkers deve ser atualizado SEMPRE
-    // e a lógica precisa cobrir 3 casos:
-    //   1) ativar sem glebas ainda → não faz nada (renderiza quando glebas chegarem)
-    //   2) ativar com glebas mas sem layers criados → renderiza pela primeira vez
-    //   3) ativar com layers já criados (foram ocultados) → apenas reexibe
     state.showMarkers = e.target.checked;
     if (e.target.checked) {
-      if (!state.glebas.length) return; // sem glebas: processAndRender fará isso depois
-      if (!state.markerLayers.length) renderMarkers(state.glebas); // caso 2
-      else setMarkersVisible(true);                                 // caso 3
+      if (!state.glebas.length) return;
+      if (!state.markerLayers.length) renderMarkers(state.glebas);
+      else setMarkersVisible(true);
     } else {
       setMarkersVisible(false);
     }
   });
   el.mostrarCentroids?.addEventListener('change', e => {
-    // Mesma lógica corrigida para centroids
     state.showCentroids = e.target.checked;
     if (e.target.checked) {
       if (!state.glebas.length) return;
@@ -174,6 +170,7 @@ function bindEvents() {
     });
     setCoordText(lines.join('\n'));
     state.cache.clear();
+    invalidarCacheCAR();
     processAndRender();
   });
 
@@ -187,14 +184,14 @@ function bindEvents() {
     if (cf) showConformidadeDetalhe(+cf.dataset.glebaId);
   });
 
-  // Visualizar CAR no mapa (evento delegado para o body do modal de conformidade)
+  // Visualizar CAR no mapa (evento delegado no body do modal)
   document.getElementById('conformidadeBody')?.addEventListener('click', e => {
     const btn = e.target.closest('.btn-view-car-map');
     if (!btn) return;
     const gid = +btn.dataset.glebaId;
     const conf = state.conformidade.get(gid);
     const carItem = conf?.itens.find(i => i.id === 'car');
-    if (carItem && carItem.dados) {
+    if (carItem?.dados?.length) {
       hideModal('conformidadeModal');
       hideModal('resultadosModal');
       import('./map.js').then(m => m.renderCARLayer(carItem.dados));
@@ -210,6 +207,7 @@ function bindEvents() {
       .filter(l => +l.trim().split(/\s+/)[0] !== gid);
     setCoordText([...outras, ...novas.split('\n').filter(l => l.trim())].join('\n'));
     state.cache.clear();
+    invalidarCacheCAR(gid); // invalida apenas o cache da gleba editada
     hideModal('editarGlebaModal');
     processAndRender({ abrirResultados: true });
   });
@@ -225,13 +223,13 @@ function bindEvents() {
 // ─── Camadas externas on/off ───────────────────────────────────────────────
 
 function toggleExternalLayer(key, visible) {
-  const map = { uc: 'ucLayer', ibama: 'ibamaLayer', bioma: 'biomeLayer' };
-  const createMap = { uc: createUCLayer, ibama: createIBAMALayer, bioma: createBiomaLayer };
-  const stateKey = map[key];
+  const stateKeyMap = { uc: 'ucLayer', ibama: 'ibamaLayer', bioma: 'biomeLayer' };
+  const createFnMap = { uc: createUCLayer, ibama: createIBAMALayer, bioma: createBiomaLayer };
+  const stateKey = stateKeyMap[key];
 
   if (visible) {
     if (!state[stateKey]) {
-      state[stateKey] = createMap[key]();
+      state[stateKey] = createFnMap[key]();
       log(`Camada ${key} criada`);
     }
     state[stateKey].addTo(state.map);
@@ -259,8 +257,6 @@ async function processAndRender(opts = {}) {
     }
 
     const glebas = result.data;
-
-    // Verifica TI (local, rápido)
     glebas.forEach(g => {
       g.tiIntersecoes = state.tiLoaded ? checkGlebaTI(g) : [];
     });
@@ -271,7 +267,6 @@ async function processAndRender(opts = {}) {
     if (state.showCentroids) renderCentroids(state.glebas);
     renderResultsTable(state.glebas);
 
-    // Feedback TI imediato
     const tiConflitos = glebas.flatMap(g => g.tiIntersecoes);
     if (tiConflitos.length) {
       const nomes = [...new Set(tiConflitos.map(t => t.nome))].join(', ');
@@ -325,7 +320,6 @@ async function runConformidade(glebas) {
   try {
     showToast('Verificando conformidade BACEN/SICOR. Pode levar alguns segundos...', 'info', 4000);
 
-    // Executa em paralelo por gleba, com timeout por API
     const resultados = await Promise.allSettled(
       glebas.map(g => verificarConformidade(g, { skipApi: false }))
     );
@@ -334,7 +328,6 @@ async function runConformidade(glebas) {
     const reprovadas = resultados.filter(r => r.status === 'fulfilled' && r.value.reprovada).length;
     const pendentes = resultados.filter(r => r.status === 'rejected').length;
 
-    // Re-renderiza tabela com dados de conformidade
     renderResultsTable(state.glebas);
     showModal('resultadosModal');
 
@@ -350,7 +343,18 @@ async function runConformidade(glebas) {
   }
 }
 
-/** Exibe detalhe de conformidade de uma gleba no modal dedicado */
+// ─── Modal de Conformidade ─────────────────────────────────────────────────
+
+/**
+ * Exibe o detalhe de conformidade de uma gleba no modal dedicado.
+ * O painel CAR inclui:
+ *   - Barra de cobertura visual (total + melhor imóvel individual)
+ *   - Área descoberta em hectares (uncoveredHa)
+ *   - Lista de imóveis com cobertura individual e link para o SICAR
+ *   - Botão "Ver polígonos no mapa" (quando geometria disponível)
+ *
+ * @param {number} glebaId
+ */
 function showConformidadeDetalhe(glebaId) {
   const conf = state.conformidade.get(glebaId);
   const modal = document.getElementById('conformidadeModal');
@@ -364,79 +368,196 @@ function showConformidadeDetalhe(glebaId) {
     body.innerHTML = `<div class="alert alert-info">
       Execute "Verificar Conformidade BACEN/SICOR" para analisar esta gleba.
     </div>`;
-  } else {
-    const rows = conf.itens.map(item => {
-      const ico = {
-        ok: '<i class="bi bi-patch-check-fill"></i>',
-        info: '<i class="bi bi-info-circle-fill"></i>',
-        alerta: '<i class="bi bi-exclamation-triangle-fill"></i>',
-        bloqueio: '<i class="bi bi-x-octagon-fill"></i>',
-        pendente: '<i class="bi bi-hourglass-split"></i>'
-      }[item.status] ?? '—';
-      const cls = { ok: 'success', info: 'info', alerta: 'warning', bloqueio: 'danger', pendente: 'secondary' }[item.status] ?? 'secondary';
-
-      // Adição de detalhes específicos para o CAR
-      let extraInfo = '';
-      if (item.id === 'car' && item.status !== 'pendente') {
-        const hasGeo = item.dados?.some(d => d.geometry);
-        const carCount = item.dados?.length ?? 0;
-
-        if (item.coverage !== undefined) {
-          extraInfo = `
-            <div class="mt-2">
-              <div class="mb-2">
-                <span class="badge bg-light text-dark border">Cobertura: ${item.coverage}%</span>
-                ${item.carAreaHa ? `<span class="badge bg-light text-dark border ms-1">Área Total CAR: ${item.carAreaHa.toFixed(2)} ha</span>` : ''}
-              </div>
-              
-              ${carCount > 0 ? `
-                <div class="card card-body p-2 bg-light-subtle border-0 small mb-2 shadow-sm">
-                  <div class="fw-bold mb-1 text-muted text-uppercase" style="font-size:0.65rem">Imóvel(is) Detectado(s):</div>
-                  <ul class="list-unstyled mb-0">
-                    ${item.dados.map(d => `
-                      <li class="mb-1 pb-1 border-bottom border-light-subtle">
-                        <code class="text-primary fw-bold" style="font-size:0.75rem">${d.codigo}</code><br>
-                        <span class="text-muted" style="font-size:0.7rem">${d.municipio} — ${d.areaHa.toFixed(2)} ha</span>
-                      </li>
-                    `).join('')}
-                  </ul>
-                </div>
-              ` : ''}
-
-              ${hasGeo ? `
-                <button class="btn btn-sm btn-success w-100 btn-view-car-map mt-1 shadow-sm" data-gleba-id="${conf.glebaId}">
-                  <i class="bi bi-map-fill me-1"></i> Ver Polígonos do CAR no Mapa
-                </button>
-              ` : '<div class="small text-muted border p-1 rounded bg-light"><i class="bi bi-info-circle me-1"></i> Geometria indisponível para visualização direta.</div>'}
-            </div>`;
-        }
-      }
-
-      return `<tr>
-        <td class="text-${cls} fw-semibold">${ico}</td>
-        <td><strong>${item.label}</strong><br>
-            <small class="text-muted font-monospace">${item.ref}</small></td>
-        <td>${item.mensagem}${extraInfo}</td>
-      </tr>`;
-    }).join('');
-
-    const sintCls = conf.reprovada ? 'danger' : conf.temAlerta ? 'warning' : 'success';
-    body.innerHTML = `
-      <div class="alert alert-${sintCls} mb-3"><strong>${conf.sintese}</strong></div>
-      <div class="table-responsive">
-        <table class="table table-sm table-bordered align-middle mb-0">
-          <thead class="table-secondary">
-            <tr><th style="width:2.5rem"></th><th>Verificação</th><th>Resultado</th></tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-      <small class="text-muted d-block mt-2">
-        Verificado em: ${new Date(conf.timestamp).toLocaleString('pt-BR')}
-      </small>`;
+    showModal('conformidadeModal');
+    return;
   }
 
+  const rows = conf.itens.map(item => {
+    const ico = {
+      ok: '<i class="bi bi-patch-check-fill"></i>',
+      info: '<i class="bi bi-info-circle-fill"></i>',
+      alerta: '<i class="bi bi-exclamation-triangle-fill"></i>',
+      bloqueio: '<i class="bi bi-x-octagon-fill"></i>',
+      pendente: '<i class="bi bi-hourglass-split"></i>',
+    }[item.status] ?? '—';
+    const cls = {
+      ok: 'success', info: 'info', alerta: 'warning',
+      bloqueio: 'danger', pendente: 'secondary',
+    }[item.status] ?? 'secondary';
+
+    // Painel expandido apenas para o item CAR
+    const extraInfo = item.id === 'car' && item.status !== 'pendente'
+      ? buildCARPanel(item, conf.glebaId)
+      : '';
+
+    return `<tr>
+      <td class="text-${cls} fw-semibold text-center" style="width:2.5rem">${ico}</td>
+      <td>
+        <strong>${item.label}</strong><br>
+        <small class="text-muted font-monospace">${item.ref}</small>
+      </td>
+      <td>${item.mensagem}${extraInfo}</td>
+    </tr>`;
+  }).join('');
+
+  const sintCls = conf.reprovada ? 'danger' : conf.temAlerta ? 'warning' : 'success';
+
+  body.innerHTML = `
+    <div class="alert alert-${sintCls} mb-3 d-flex align-items-center gap-2">
+      <span class="fs-5">${conf.reprovada ? '🚫' : conf.temAlerta ? '⚠️' : '✅'}</span>
+      <strong>${conf.sintese}</strong>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered align-middle mb-0">
+        <thead class="table-secondary">
+          <tr>
+            <th style="width:2.5rem"></th>
+            <th>Verificação</th>
+            <th>Resultado</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <small class="text-muted d-block mt-2">
+      <i class="bi bi-clock me-1"></i>
+      Verificado em: ${new Date(conf.timestamp).toLocaleString('pt-BR')}
+    </small>`;
+
   showModal('conformidadeModal');
+}
+
+/**
+ * Constrói o painel HTML expandido do item CAR no modal de conformidade.
+ *
+ * Inclui:
+ *   - Badges de cobertura total e por melhor imóvel individual
+ *   - Barra de progresso visual da cobertura
+ *   - Alerta de área descoberta (quando uncoveredHa > 0.01)
+ *   - Lista de imóveis detectados com:
+ *       · Cobertura individual em badge colorido
+ *       · Link "Acessar no SICAR" (car.gov.br)
+ *   - Botão "Ver polígonos no mapa" (quando há geometria)
+ *
+ * @param {CheckItem} item   - Item CAR do resultado de conformidade
+ * @param {number}    glebaId
+ * @returns {string}  HTML do painel
+ */
+function buildCARPanel(item, glebaId) {
+  const {
+    coverage = 0,
+    coverageMelhorCAR = 0,
+    uncoveredHa = 0,
+    carAreaHa = 0,
+    nCARs = 0,
+    dados = [],
+  } = item;
+
+  if (!dados.length) return ''; // sem dados — nada a exibir além da mensagem
+
+  const hasGeo = dados.some(d => d.geometry);
+
+  // Cor da barra de cobertura baseada no percentual
+  const barColor = coverage >= 98 ? 'success'
+    : coverage >= 50 ? 'warning'
+      : 'danger';
+
+  // Cor do badge de cobertura individual
+  const badgeCovColor = (cov) => cov >= 98 ? 'success' : cov >= 50 ? 'warning' : 'danger';
+
+  // ── Barra de cobertura ──────────────────────────────────────────────
+  const coverageBar = `
+    <div class="mb-2">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <small class="text-muted fw-semibold">Cobertura da gleba pelos CARs</small>
+        <span class="badge bg-${barColor}">${coverage}%</span>
+      </div>
+      <div class="progress" style="height:8px" title="Cobertura total: ${coverage}%">
+        <div class="progress-bar bg-${barColor}"
+             role="progressbar"
+             style="width:${coverage}%"
+             aria-valuenow="${coverage}"
+             aria-valuemin="0" aria-valuemax="100">
+        </div>
+      </div>
+      ${nCARs > 1 && coverageMelhorCAR !== coverage ? `
+        <div class="d-flex justify-content-between align-items-center mt-1">
+          <small class="text-muted">Melhor imóvel individual</small>
+          <span class="badge bg-secondary">${coverageMelhorCAR}%</span>
+        </div>` : ''}
+    </div>`;
+
+  // ── Alerta de área descoberta ───────────────────────────────────────
+  const alertDescoberta = uncoveredHa > 0.01 ? `
+    <div class="alert alert-warning py-1 px-2 mb-2 d-flex align-items-center gap-2" style="font-size:0.8rem">
+      <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+      <span>
+        <strong>${uncoveredHa.toFixed(2)} ha</strong> da gleba estão fora de qualquer CAR registrado
+        (${(100 - coverage).toFixed(1)}% descobertos).
+      </span>
+    </div>` : '';
+
+  // ── Lista de imóveis ────────────────────────────────────────────────
+  const listaImoveis = dados.map((d, idx) => {
+    const cov = d.coverageIndividual ?? 0;
+    const isPrincipal = idx === 0 && nCARs > 1; // melhor match quando há múltiplos
+    const linkSICAR = d.codigo && d.codigo !== '—'
+      ? `<a href="https://www.car.gov.br/publico/imoveis/index?cod_imovel=${encodeURIComponent(d.codigo)}"
+            target="_blank" rel="noopener noreferrer"
+            class="btn btn-outline-primary btn-sm py-0 px-1 ms-1"
+            title="Acessar imóvel no SICAR (site oficial)">
+           <i class="bi bi-box-arrow-up-right" style="font-size:0.7rem"></i> SICAR
+         </a>`
+      : '';
+
+    return `
+      <li class="mb-2 pb-2 ${idx < dados.length - 1 ? 'border-bottom border-light-subtle' : ''}">
+        <div class="d-flex align-items-start gap-1 flex-wrap">
+          <code class="text-primary fw-bold" style="font-size:0.78rem">${d.codigo}</code>
+          ${isPrincipal ? '<span class="badge bg-primary" style="font-size:0.6rem">principal</span>' : ''}
+          ${linkSICAR}
+        </div>
+        <div class="text-muted" style="font-size:0.72rem">
+          ${d.municipio}
+          ${d.areaHa ? ` · ${Number(d.areaHa).toFixed(2)} ha` : ''}
+          ${d.status ? ` · <em>${d.status}</em>` : ''}
+        </div>
+        ${nCARs > 1 && cov > 0 ? `
+          <div class="d-flex align-items-center gap-1 mt-1">
+            <div class="progress flex-grow-1" style="height:5px">
+              <div class="progress-bar bg-${badgeCovColor(cov)}"
+                   style="width:${cov}%"></div>
+            </div>
+            <span class="badge bg-${badgeCovColor(cov)}" style="font-size:0.65rem">${cov}%</span>
+          </div>` : ''}
+      </li>`;
+  }).join('');
+
+  // ── Botão "Ver no mapa" ─────────────────────────────────────────────
+  const btnMapa = hasGeo
+    ? `<button class="btn btn-sm btn-success w-100 btn-view-car-map mt-2 shadow-sm"
+               data-gleba-id="${glebaId}">
+         <i class="bi bi-map-fill me-1"></i> Ver Polígonos do CAR no Mapa
+       </button>`
+    : `<div class="small text-muted border p-1 rounded bg-light mt-2">
+         <i class="bi bi-info-circle me-1"></i>
+         Geometria indisponível — visualização no mapa não disponível.
+       </div>`;
+
+  return `
+    <div class="mt-2 border rounded p-2 bg-light-subtle shadow-sm" style="font-size:0.82rem">
+
+      ${coverageBar}
+      ${alertDescoberta}
+
+      <div class="fw-bold text-muted text-uppercase mb-1" style="font-size:0.65rem">
+        ${nCARs} Imóvel(is) Detectado(s)
+        ${carAreaHa ? `· Área total: ${carAreaHa.toFixed(2)} ha` : ''}
+      </div>
+      <ul class="list-unstyled mb-0">${listaImoveis}</ul>
+
+      ${btnMapa}
+    </div>`;
 }
 
 // ─── Editar gleba ─────────────────────────────────────────────────────────

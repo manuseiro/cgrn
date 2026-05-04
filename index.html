@@ -216,56 +216,56 @@
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="mostrarGlebas" role="switch" checked>
                   <label class="form-check-label small" for="mostrarGlebas">
-                    <i class="bi bi-geometry me-1 text-primary"></i>Mostrar Glebas</label>
+                    Mostrar Glebas</label>
                 </div>
               </div>
               <div class="col-6 col-md-4">
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="mostrarMarcadores" role="switch">
                   <label class="form-check-label small" for="mostrarMarcadores">
-                    <i class="bi bi-pin-map-fill me-1 text-secondary"></i>Marcadores</label>
+                    Marcadores</label>
                 </div>
               </div>
               <div class="col-6 col-md-4">
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="mostrarCentroids" role="switch">
                   <label class="form-check-label small" for="mostrarCentroids">
-                    <i class="bi bi-dot me-1 text-info"></i>Centroids</label>
+                    Centroids</label>
                 </div>
               </div>
               <div class="col-6 col-md-4">
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="mostrarTI" role="switch">
                   <label class="form-check-label small" for="mostrarTI">
-                    <i class="bi bi-feather text-danger"></i> Terras Indígenas</label>
+                    Terras Indígenas</label>
                 </div>
               </div>
               <div class="col-6 col-md-4">
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="mostrarUC" role="switch">
                   <label class="form-check-label small" for="mostrarUC">
-                    <i class="bi bi-tree-fill me-1 text-success"></i>UCs (ICMBio)</label>
+                    UCs (ICMBio)</label>
                 </div>
               </div>
               <div class="col-6 col-md-4">
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="mostrarIbama" role="switch">
                   <label class="form-check-label small" for="mostrarIbama">
-                    <i class="bi bi-exclamation-octagon-fill me-1 text-danger"></i>Embargos IBAMA</label>
+                    Embargos IBAMA</label>
                 </div>
               </div>
               <div class="col-6 col-md-4">
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="mostrarBioma" role="switch">
                   <label class="form-check-label small" for="mostrarBioma">
-                    <i class="bi bi-layers-half me-1 text-warning"></i>Biomas (IBGE)</label>
+                    Biomas (IBGE)</label>
                 </div>
               </div>
               <div class="col-6 col-md-4">
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="validarPontos" role="switch" checked>
                   <label class="form-check-label small" for="validarPontos">
-                    <i class="bi bi-geo-fill me-1 text-success"></i>Validar pontos</label>
+                    Validar pontos</label>
                 </div>
               </div>
             </div>
@@ -276,9 +276,9 @@
           <button type="button" id="limparMapa" class="btn btn-outline-secondary me-auto">
             <i class="bi bi-eraser-fill me-1"></i>Limpar</button>
           <button type="button" id="validar-gleba-btn" class="btn btn-outline-info">
-            <i class="bi bi-patch-check me-1"></i>Validar</button>
+            <i class="bi bi-check-lg me-1"></i>Validar Gleba</button>
           <button type="button" id="adicionar-gleba-btn" class="btn btn-primary">
-            <i class="bi bi-plus-circle-fill me-1"></i>Adicionar</button>
+            <i class="bi bi-plus-lg me-1"></i>Adicionar Gleba</button>
         </div>
       </div>
     </div>
@@ -293,7 +293,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title d-flex align-items-center gap-2" id="resultadosLabel">
-            <i class="bi bi-table text-success"></i>Área das Glebas
+            Área das Glebas
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
@@ -348,13 +348,15 @@
           <button type="button" class="btn btn-outline-dark btn-sm" id="btnConformidade">
             <i class="bi bi-shield-lock-fill me-1"></i>Verificar BACEN/SICOR
           </button>
+          <button type="button" class="btn btn-outline-success btn-sm" data-export="csv,kml,geojson">
+            <i class="bi bi-box-arrow-in-down me-1"></i>Exportar</button>
           <button type="button" class="btn btn-outline-success btn-sm" data-export="csv">
             <i class="bi bi-file-earmark-spreadsheet me-1"></i>CSV</button>
-          <button type="button" class="btn btn-outline-info btn-sm" data-export="geojson">
-            <i class="bi bi-globe-americas me-1"></i>GeoJSON</button>
           <button type="button" class="btn btn-outline-warning btn-sm" data-export="kml">
             <i class="bi bi-geo-alt-fill me-1"></i>KML</button>
-          <!-- <button type="button" class="btn btn-outline-primary btn-sm" data-export="image">
+          <!-- <button type="button" class="btn btn-outline-info btn-sm" data-export="geojson">
+            <i class="bi bi-globe-americas me-1"></i>GeoJSON</button>
+          <button type="button" class="btn btn-outline-primary btn-sm" data-export="image">
             <i class="bi bi-file-earmark-image me-1"></i>PNG</button> -->
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
         </div>
