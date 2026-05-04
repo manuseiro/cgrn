@@ -1,66 +1,69 @@
 # 🌎 GlebasNord (CGRN v2.0)
 
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Status: Em Desenvolvimento](https://img.shields.io/badge/Status-Em%20Desenvolvimento-green)
+
 Ferramenta web para **cálculo, visualização e análise de glebas rurais** na região Nordeste do Brasil, com suporte a validações geoespaciais e integração com bases públicas.
 
 ---
 
 ## 📌 Sobre o Projeto
 
-O **GlebasNord** é uma aplicação front-end que permite:
+O **GlebasNord** é uma aplicação front-end que permite a projetistas e analistas realizarem o mapeamento rápido de áreas rurais. O foco principal é a conformidade técnica e ambiental para processos de crédito e regularização.
 
-- 📍 Desenhar glebas diretamente no mapa
-- 📐 Calcular áreas automaticamente
-- 📊 Validar geometrias (polígonos)
-- 🗺️ Visualizar dados geoespaciais relevantes
-- ⚠️ Verificar sobreposição com:
+### Principais recursos:
+- 📍 Desenhar glebas diretamente no mapa.
+- 📐 Calcular áreas automaticamente com conversão para hectares.
+- 📊 Validar geometrias (detecção de polígonos inválidos).
+- 🗺️ Visualizar dados geoespaciais e verificar sobreposição com:
   - Terras Indígenas (FUNAI)
   - Unidades de Conservação (ICMBio)
   - Áreas embargadas (IBAMA)
-
-O sistema foi pensado para apoiar análises voltadas a critérios de conformidade (ex: BACEN/INCRA).
 
 ---
 
 ## 🚀 Tecnologias Utilizadas
 
-- HTML5
-- CSS3
-- JavaScript (Vanilla)
-- Bootstrap 5
-- Leaflet.js
-- Leaflet Draw
+- **Interface:** HTML5, CSS3, Bootstrap 5
+- **Mapas:** [Leaflet.js](https://leafletjs.com/)
+- **Desenho Geoespacial:** Leaflet Draw
+- **Lógica:** JavaScript (Vanilla)
+
+---
+
+## 📸 Interface
+
+> [!TIP]
+> *Adicione aqui um screenshot ou GIF da sua aplicação para valorizar o projeto!*
+> Exemplo: `![Snapshot da Interface](img/screenshot.png)`
 
 ---
 
 ## 📂 Estrutura do Projeto
-
+```text
 CGRN_v2.0/
 │
-├── index.html
+├── index.html            # Página principal
 ├── css/
-│   └── style.css
-│
+│   └── style.css         # Estilização personalizada
 ├── js/
-│   ├── main.js
-│   ├── map.js
-│   ├── ui.js
-│   ├── validation.js
-│   ├── export.js
-│   ├── persistence.js
-│   ├── state.js
-│   ├── upload.js
-│   ├── sudene.js
+│   ├── main.js           # Inicialização da App
+│   ├── map.js            # Configurações do Leaflet
+│   ├── ui.js             # Manipulação de DOM/Bootstrap
+│   ├── validation.js     # Lógica de validação de glebas
+│   ├── export.js         # Exportação de dados
+│   ├── persistence.js    # LocalStorage
+│   ├── state.js          # Gerenciamento de estado da aplicação
+│   ├── upload.js         # Manipulação de arquivos externos
+│   ├── sudene.js         # Regras específicas da região
 │   ├── terras_indigenas.js
-│   └── config.js
-│
-├── api/
+│   └── config.js         # Variáveis globais e chaves
+├── data/                 # Camadas geoespaciais locais (JSON/GeoJSON)
 │   ├── areas_embargo_ibama.json
-│   └── limite_ucs_federais_a_ICMBIO.json
-│
-└── terras_indigenas_nordeste.geojson
-
----
-
+│   ├── limite_ucs_federais_a_ICMBIO.json
+│   └── terras_indigenas_nordeste.geojson
+└── README.md
+```
 ## ⚙️ Como Executar
 
 1. Baixe ou clone o repositório:
@@ -69,7 +72,7 @@ git clone https://github.com/manuseiro/cgrn.git
 
 2. Acesse a pasta:
 
-cd CGRN_v2.0
+cd cgrn
 
 3. Abra o arquivo `index.html` no navegador:
 
