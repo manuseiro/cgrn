@@ -1,5 +1,5 @@
 /**
- * @file conformidade.js — v3.0
+ * @file conformidade.js — v3.4
  * @description Verificação de conformidade BACEN/SICOR para crédito rural.
  *
  * Base legal:
@@ -16,6 +16,11 @@
  *   ⚠️ 'alerta'   — irregularidade que requer análise, mas não bloqueia automaticamente
  *   🚫 'bloqueio' — impede o crédito rural (BACEN)
  *   ⏳ 'pendente' — não foi possível verificar (API indisponível)
+ *
+ * Melhorias v3.4:
+ *   - buildCARItem repassa todos os novos campos de analyzeGlebaInCAR:
+ *     uncoveredHa, coverageMelhorCAR, nCARs, coverageIndividual por imóvel
+ *   - Compatível com o novo painel do modal em main.js
  */
 
 import { state } from './state.js';
@@ -52,14 +57,17 @@ export const CHECKS = Object.freeze({
 
 /**
  * @typedef {Object} CheckItem
- * @property {string}  id          - Identificador do check
- * @property {string}  label       - Rótulo para exibição
- * @property {string}  ref         - Base legal
+ * @property {string}   id                - Identificador do check
+ * @property {string}   label             - Rótulo para exibição
+ * @property {string}   ref               - Base legal
  * @property {'ok'|'info'|'alerta'|'bloqueio'|'pendente'} status
- * @property {string}  mensagem    - Detalhes do resultado
- * @property {any[]}   [dados]     - Dados brutos (TIs, UCs, etc.)
- * @property {number}  [coverage]  - Porcentagem de cobertura (específico CAR)
- * @property {number}  [carAreaHa] - Área total do CAR (específico CAR)
+ * @property {string}   mensagem          - Detalhes do resultado
+ * @property {any[]}    [dados]           - Dados brutos (TIs, UCs, CARs, etc.)
+ * @property {number}   [coverage]        - % gleba coberta pela união dos CARs (0–100)
+ * @property {number}   [coverageMelhorCAR] - % coberta pelo melhor CAR individual (0–100)
+ * @property {number}   [uncoveredHa]     - Hectares da gleba fora de qualquer CAR
+ * @property {number}   [carAreaHa]       - Soma das áreas dos CARs detectados (ha)
+ * @property {number}   [nCARs]           - Número de imóveis CAR detectados
  */
 
 // ─── Orquestrador principal ────────────────────────────────────────────────
@@ -78,19 +86,10 @@ export async function verificarConformidade(gleba, { skipApi = false } = {}) {
 
   // ── Verificações LOCAIS (síncronas) ─────────────────────────────────────
 
-  // 1. Área mínima e máxima
   itens.push(checkArea(gleba));
-
-  // 2. Municípios (já validado, mas reproduzido para o relatório)
   itens.push(checkMunicipios(gleba));
-
-  // 3. Terras Indígenas (já calculado no processAndRender)
   itens.push(checkTI(gleba));
-
-  // 4. Semiárido — relevante para FNE e outros fundos regionais
   itens.push(checkSemiArido(gleba));
-
-  // 5. CAR — verificado via API no bloco assíncrono abaixo
 
   // ── Verificações via API (assíncronas e paralelas) ─────────────────────
   if (!skipApi) {
@@ -106,14 +105,21 @@ export async function verificarConformidade(gleba, { skipApi = false } = {}) {
     itens.push(buildEmbargoItem(gleba, embargoRes));
     itens.push(buildBiomaItem(gleba, biomaRes));
     itens.push(buildDesmatItem(gleba, desmatRes));
+
+    // Interpõe analyzeGlebaInCAR: transforma CARResult[] no objeto de análise
     const carAnalisado = carRes.status === 'fulfilled'
       ? { status: 'fulfilled', value: analyzeGlebaInCAR(gleba, carRes.value) }
-      : carRes; // se rejeitado, passa como está (buildCARItem já trata rejected)
+      : carRes;
 
     itens.push(buildCARItem(gleba, carAnalisado));
+
   } else {
-    [CHECKS.UC_INTEGRAL, CHECKS.UC_SUSTENTAVEL, CHECKS.EMBARGO, CHECKS.BIOMA, CHECKS.DESMATAMENTO, CHECKS.CAR]
-      .forEach(c => itens.push({ ...c, status: 'pendente', mensagem: 'Verificação via API desativada.', dados: [] }));
+    [CHECKS.UC_INTEGRAL, CHECKS.UC_SUSTENTAVEL, CHECKS.EMBARGO,
+    CHECKS.BIOMA, CHECKS.DESMATAMENTO, CHECKS.CAR]
+      .forEach(c => itens.push({
+        ...c, status: 'pendente',
+        mensagem: 'Verificação via API desativada.', dados: [],
+      }));
   }
 
   // ── Resultado consolidado ────────────────────────────────────────────────
@@ -130,11 +136,10 @@ export async function verificarConformidade(gleba, { skipApi = false } = {}) {
     temPendente,
     itens,
     timestamp: new Date().toISOString(),
-    /** Síntese textual para exportação */
     sintese: reprovada
       ? `🚫 REPROVADA — ${itens.filter(i => i.status === 'bloqueio').map(i => i.label).join(', ')}`
       : temAlerta
-        ? `⚠️ APROVADA COM RESSALVAS — verificar manualmente`
+        ? '⚠️ APROVADA COM RESSALVAS — verificar manualmente'
         : '✅ SEM RESTRIÇÕES DETECTADAS',
   };
 
@@ -186,7 +191,7 @@ function checkTI(g) {
   return {
     ...CHECKS.TI, status: 'bloqueio',
     mensagem: `Sobreposição com ${hits.length} Terra(s) Indígena(s): ${hits.map(t => t.nome).join(', ')}.`,
-    dados: hits,
+    dados: hits
   };
 }
 
@@ -222,36 +227,24 @@ function buildUCItem(gleba, ucRes) {
   const integral = ucs.filter(u => u.protecaoIntegral);
   const sustent = ucs.filter(u => !u.protecaoIntegral);
 
-  const items = [];
-
   if (integral.length) {
-    items.push({
+    return {
       ...CHECKS.UC_INTEGRAL, status: 'bloqueio',
       mensagem: `Sobreposição com UC de Proteção Integral: ${integral.map(u => u.nome).join(', ')}.`,
       dados: integral
-    });
-  } else {
-    items.push({
-      ...CHECKS.UC_INTEGRAL, status: 'ok',
-      mensagem: 'Sem sobreposição com UCs de Proteção Integral.', dados: []
-    });
+    };
   }
-
   if (sustent.length) {
-    items.push({
+    return {
       ...CHECKS.UC_SUSTENTAVEL, status: 'alerta',
       mensagem: `Sobreposição com UC de Uso Sustentável (pode ser permitido): ${sustent.map(u => u.nome).join(', ')}.`,
       dados: sustent
-    });
-  } else {
-    items.push({
-      ...CHECKS.UC_SUSTENTAVEL, status: 'ok',
-      mensagem: 'Sem sobreposição com UCs de Uso Sustentável.', dados: []
-    });
+    };
   }
-
-  // Retorna apenas o mais grave para a posição única no array
-  return integral.length ? items[0] : (sustent.length ? items[1] : items[0]);
+  return {
+    ...CHECKS.UC_INTEGRAL, status: 'ok',
+    mensagem: 'Sem sobreposição com Unidades de Conservação.', dados: []
+  };
 }
 
 function buildEmbargoItem(gleba, res) {
@@ -286,11 +279,10 @@ function buildBiomaItem(gleba, res) {
     };
   }
 
-  gleba.bioma = bioma; // Enriquece o objeto gleba
+  gleba.bioma = bioma;
 
   let status = 'ok';
   let msg = `Bioma: ${bioma}. Reserva Legal mínima: ${reg?.reservaLegalPct ?? 20}%.`;
-
   if (reg?.bacenCritico) {
     status = 'alerta';
     msg += reg.marcoCorteLegal
@@ -323,26 +315,50 @@ function buildDesmatItem(gleba, res) {
   };
 }
 
+/**
+ * Constrói o CheckItem do CAR a partir do resultado de analyzeGlebaInCAR.
+ * Repassa todos os campos novos para uso no modal (main.js).
+ *
+ * Campos adicionais ao CheckItem padrão:
+ *   coverage          — % da gleba coberta pela união dos CARs
+ *   coverageMelhorCAR — % coberta pelo melhor CAR individual
+ *   uncoveredHa       — ha da gleba fora de qualquer CAR
+ *   carAreaHa         — soma das áreas dos CARs (ha)
+ *   nCARs             — número de imóveis detectados
+ *
+ * @param {GlebaData} gleba
+ * @param {{status:'fulfilled'|'rejected', value?: object, reason?: any}} res
+ * @returns {CheckItem}
+ */
 function buildCARItem(gleba, res) {
   if (res.status === 'rejected') {
     return {
       ...CHECKS.CAR,
       status: 'info',
-      mensagem: 'API SICAR indisponível. Verifique manualmente em car.gov.br.',
-      dados: []
+      mensagem: 'API SICAR indisponível no momento. Verifique manualmente em car.gov.br.',
+      dados: [],
+      coverage: 0,
+      coverageMelhorCAR: 0,
+      uncoveredHa: gleba.area ?? 0,
+      carAreaHa: 0,
+      nCARs: 0,
     };
   }
 
-  const analise = res.value || {};
+  const a = res.value ?? {};
 
   return {
     ...CHECKS.CAR,
-    status: analise.status || 'pendente',
-    mensagem: analise.mensagem || 'Erro na análise do CAR.',
-    dados: analise.dados || [],
-    coverage: analise.coverage || 0,
-    carAreaHa: analise.carAreaHa || 0,
-    carFeatures: analise.carFeatures || []   // ← Necessário para mostrar no mapa
+    // Campos de status/mensagem vindos de analyzeGlebaInCAR
+    status: a.status ?? 'pendente',
+    mensagem: a.mensagem ?? 'Erro na análise do CAR.',
+    dados: a.dados ?? [],
+    // Métricas de cobertura — todas expostas para uso no modal
+    coverage: a.coverage ?? 0,
+    coverageMelhorCAR: a.coverageMelhorCAR ?? 0,
+    uncoveredHa: a.uncoveredHa ?? 0,
+    carAreaHa: a.carAreaHa ?? 0,
+    nCARs: a.nCARs ?? 0,
   };
 }
 

@@ -1,20 +1,29 @@
 /**
- * @file camadas_externas.js — v3.0
+ * @file camadas_externas.js — v3.4
  * @description Carregamento e gerenciamento de camadas ambientais externas:
  *   - Unidades de Conservação (ICMBio)
  *   - Áreas Embargadas IBAMA
  *   - Biomas IBGE (para referência de marco legal)
+ *   - CAR — Cadastro Ambiental Rural (SICAR)
  *
  * Estratégia:
  *   1. Camadas visuais via WMS (sem CORS — tiles de imagem)
  *   2. Verificação de interseção via API REST (WFS/GeoJSON)
  *   3. Cache local de resultados para evitar requisições repetidas
  *
+ * Melhorias v3.4:
+ *   - Cache por gleba com TTL de 30 min para checkCAR
+ *   - Suporte a MultiPolygon no analyzeGlebaInCAR (via normalizarGeometriaCAR)
+ *   - Campo uncoveredHa: hectares da gleba fora de qualquer CAR
+ *   - Cobertura individual por imóvel (coverageIndividual)
+ *   - Lógica multi-UF paralela corrigida e com logs detalhados
+ *
  * Fontes:
  *   - ICMBio GEOSERVER: https://geoservices.icmbio.gov.br
- *   - IBAMA SIT:  https://siscom.ibama.gov.br
- *   - IBGE Biomas: https://servicodados.ibge.gov.br
- *   - TerraBrasilis (INPE): https://terrabrasilis.dpi.inpe.br
+ *   - IBAMA SIT:        https://siscom.ibama.gov.br
+ *   - IBGE Biomas:      https://servicodados.ibge.gov.br
+ *   - TerraBrasilis:    https://terrabrasilis.dpi.inpe.br
+ *   - SICAR:            https://geoserver.car.gov.br
  */
 
 import { state } from './state.js';
@@ -24,6 +33,16 @@ import { log, warn } from './ui.js';
 // ─── Constantes ────────────────────────────────────────────────────────────
 
 const TIMEOUT = CONFIG.CONFORMIDADE.TIMEOUT_MS;
+
+/** TTL do cache de CAR por gleba: 30 minutos em ms */
+const CAR_CACHE_TTL_MS = 30 * 60 * 1000;
+
+/**
+ * Cache de resultados do SICAR, por glebaId.
+ * Estrutura: Map<glebaId, { ts: number, result: CARResult[] }>
+ * Módulo-level: persiste entre verificações sem precisar tocar no state global.
+ */
+const _carCache = new Map();
 
 /**
  * Categorias de UC: Proteção Integral (bloqueia crédito BACEN)
@@ -51,6 +70,20 @@ const BIOMA_REGULACAO = Object.freeze({
   'Amazônia': { reservaLegalPct: 80, marcoCorteLegal: '2008-07-22', bacenCritico: true },
 });
 
+/**
+ * Mapa completo: primeiros 2 dígitos do código IBGE → sigla UF (minúsculas).
+ * Os códigos IBGE de 7 dígitos seguem o padrão nacional — os 2 primeiros
+ * identificam o estado de forma inequívoca (ex: "23" → Ceará).
+ */
+const IBGE_PREFIX_TO_UF = Object.freeze({
+  '11': 'ro', '12': 'ac', '13': 'am', '14': 'rr', '15': 'pa', '16': 'ap', '17': 'to',
+  '21': 'ma', '22': 'pi', '23': 'ce', '24': 'rn', '25': 'pb', '26': 'pe', '27': 'al',
+  '28': 'se', '29': 'ba',
+  '31': 'mg', '32': 'es', '33': 'rj', '35': 'sp',
+  '41': 'pr', '42': 'sc', '43': 'rs',
+  '50': 'ms', '51': 'mt', '52': 'go', '53': 'df',
+});
+
 // ─── WMS — Camadas Visuais ─────────────────────────────────────────────────
 
 /**
@@ -67,17 +100,13 @@ export function createUCLayer() {
       opacity: 0.55,
       attribution: 'ICMBio — Unidades de Conservação',
       updateWhenIdle: true,
-      updateWhenZooming: false
+      updateWhenZooming: false,
     }
   );
 }
 
-/**
- * Camada WMS IBAMA — Áreas Embargadas.
- * Fonte: SISCOM/IBAMA via GeoServer público.
- */
+/** Camada WMS IBAMA — Áreas Embargadas. */
 export function createIBAMALayer() {
-  // GeoServer público do IBAMA via SISCOM
   return L.tileLayer.wms(
     'https://siscom.ibama.gov.br/geoserver/ows',
     {
@@ -87,14 +116,12 @@ export function createIBAMALayer() {
       opacity: 0.65,
       attribution: 'IBAMA — Áreas Embargadas',
       updateWhenIdle: true,
-      updateWhenZooming: false
+      updateWhenZooming: false,
     }
   );
 }
 
-/**
- * Camada WMS Biomas IBGE.
- */
+/** Camada WMS Biomas IBGE. */
 export function createBiomaLayer() {
   return L.tileLayer.wms(
     'https://apisidra.ibge.gov.br/wms/biomas',
@@ -104,10 +131,9 @@ export function createBiomaLayer() {
       transparent: true,
       opacity: 0.30,
       attribution: 'IBGE — Biomas',
-      // Melhora performance e reduz NS_BINDING_ABORTED
       updateWhenIdle: true,
       updateWhenZooming: false,
-      keepBuffer: 2
+      keepBuffer: 2,
     }
   );
 }
@@ -116,15 +142,10 @@ export function createBiomaLayer() {
 
 /**
  * Verifica se uma gleba intercepta Unidades de Conservação via API ICMBio.
- * Usa WFS GetFeature com filtro espacial INTERSECTS.
- *
  * @param {GlebaData} gleba
  * @returns {Promise<UCResult[]>}
  */
 export async function checkUCIntersection(gleba) {
-  const bbox = turf.bbox(gleba.turfPolygon);
-  const bboxStr = `${bbox[0]},${bbox[1]},${bbox[2]},${bbox[3]},EPSG:4326`;
-
   const url = new URL(
     'https://geoservices.icmbio.gov.br/arcgis/rest/services/portal/NGIT_UNIDADES_CONSERVACAO/MapServer/0/query'
   );
@@ -154,14 +175,11 @@ export async function checkUCIntersection(gleba) {
 }
 
 /**
- * Verifica embargos IBAMA ativos para os municípios da gleba.
- * Usa a API pública de consulta de autos de infração do IBAMA (SIPA).
- *
+ * Verifica embargos IBAMA ativos para a área da gleba.
  * @param {GlebaData} gleba
  * @returns {Promise<EmbargoResult[]>}
  */
 export async function checkEmbargoIBAMA(gleba) {
-  // Endpoint público de embargos por área (bbox)
   const bbox = turf.bbox(gleba.turfPolygon);
   const url = new URL('https://ibama.gov.br/api/embargo/geometria');
   url.searchParams.set('xmin', bbox[0]);
@@ -192,10 +210,8 @@ export async function checkEmbargoIBAMA(gleba) {
 
 /**
  * Identifica o bioma predominante da gleba via IBGE API.
- * Usa o centroid para determinação rápida.
- *
  * @param {GlebaData} gleba
- * @returns {Promise<string|null>} Nome do bioma ou null
+ * @returns {Promise<string|null>}
  */
 export async function getBiomaGleba(gleba) {
   const [lon, lat] = gleba.centroid;
@@ -207,22 +223,18 @@ export async function getBiomaGleba(gleba) {
     const data = await res.json();
     return data?.nome ?? data?.[0]?.nome ?? null;
   } catch (e) {
-    // Fallback: inferir bioma pela UF predominante dos municípios
     warn('IBGE bioma API erro:', e.message);
     return inferBiomaByUF(gleba);
   }
 }
 
 /**
- * Verifica alertas de desmatamento (PRODES/DETER) via TerraBrasilis/MapBiomas.
- * Detecta desmatamento ilegal pós-marco legal (Res. CMN 4.945/2021).
- *
+ * Verifica alertas de desmatamento (PRODES/DETER) via TerraBrasilis.
  * @param {GlebaData} gleba
  * @returns {Promise<DesmatamentoResult[]>}
  */
 export async function checkDesmatamento(gleba) {
   const bbox = turf.bbox(gleba.turfPolygon);
-  // TerraBrasilis API — alertas DETER
   const url = new URL('https://terrabrasilis.dpi.inpe.br/app/api/v1/deforestation/alerts');
   url.searchParams.set('bbox', bbox.join(','));
   url.searchParams.set('limit', '50');
@@ -232,7 +244,7 @@ export async function checkDesmatamento(gleba) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    const alerts = (data.results ?? data.features ?? []);
+    const alerts = data.results ?? data.features ?? [];
     const dentro = alerts.filter(a => {
       try {
         const pt = a.geometry ?? a.centroid;
@@ -253,85 +265,49 @@ export async function checkDesmatamento(gleba) {
   }
 }
 
-/**
- * Detecta a UF da gleba de forma robusta.
- * @param {object} gleba 
- * @returns {string} Sigla da UF em minúsculas (ex: 'ce', 'ba')
- */
-/**
- * Mapa completo: primeiros 2 dígitos do código IBGE → sigla UF (minúsculas).
- * Os códigos IBGE de 7 dígitos seguem o padrão nacional — os 2 primeiros
- * identificam o estado de forma inequívoca (ex: "23" → Ceará).
- * Este é o mesmo CD_GEOCMU recuperado da camada SUDENE e armazenado
- * em gleba.municipios pelo módulo validation.js.
- */
-const IBGE_PREFIX_TO_UF = Object.freeze({
-  '11': 'ro', '12': 'ac', '13': 'am', '14': 'rr', '15': 'pa', '16': 'ap', '17': 'to',
-  '21': 'ma', '22': 'pi', '23': 'ce', '24': 'rn', '25': 'pb', '26': 'pe', '27': 'al',
-  '28': 'se', '29': 'ba',
-  '31': 'mg', '32': 'es', '33': 'rj', '35': 'sp',
-  '41': 'pr', '42': 'sc', '43': 'rs',
-  '50': 'ms', '51': 'mt', '52': 'go', '53': 'df',
-});
+// ─── Detecção de UF ────────────────────────────────────────────────────────
 
 /**
- * Detecta a UF da gleba de forma robusta, em ordem de confiabilidade:
- *
- *  1. Código IBGE (CD_GEOCMU de 7 dígitos) em gleba.municipios
- *     — Fonte primária: é exatamente o que validation.js armazena a
- *       partir do campo CD_GEOCMU da SUDENE. Ex: "2300101" → "23" → "ce"
- *     — Era o bug: a versão anterior tentava regex de texto ("/CE")
- *       neste campo numérico, sempre falhando.
- *
- *  2. Nome do município com sigla ao final (ex: "Fortaleza/CE")
- *     — Para compatibilidade com dados importados externamente.
- *
- *  3. Bounding boxes do centroid
- *     — Fallback quando municipios está vazio (gleba desenhada no mapa).
+ * Detecta a UF primária da gleba em ordem de confiabilidade:
+ *  1. Código IBGE de 7 dígitos (CD_GEOCMU da SUDENE)
+ *  2. Nome de município com sigla UF ao final (ex: "Fortaleza/CE")
+ *  3. Bounding box do centroid (fallback geográfico)
  *
  * @param {GlebaData} gleba
- * @returns {string} Sigla UF em minúsculas (ex: 'ce', 'ba')
+ * @returns {string} Sigla UF em minúsculas (ex: 'ce')
  */
 export function detectarUF(gleba) {
 
-  // ── 1. Código IBGE de 7 dígitos (fonte primária — SUDENE/CD_GEOCMU) ──────
-  if (Array.isArray(gleba.municipios) && gleba.municipios.length > 0) {
+  // 1. Código IBGE puro (7 dígitos numéricos)
+  if (Array.isArray(gleba.municipios)) {
     for (const mun of gleba.municipios) {
       if (!mun) continue;
       const str = String(mun).trim();
-
-      // Código IBGE puro: exatamente 7 dígitos numéricos
       if (/^\d{7}$/.test(str)) {
-        const prefixo = str.substring(0, 2);
-        if (IBGE_PREFIX_TO_UF[prefixo]) {
-          log(`detectarUF: código IBGE "${str}" → prefixo "${prefixo}" → ${IBGE_PREFIX_TO_UF[prefixo].toUpperCase()}`);
-          return IBGE_PREFIX_TO_UF[prefixo];
+        const uf = IBGE_PREFIX_TO_UF[str.substring(0, 2)];
+        if (uf) {
+          log(`detectarUF: IBGE "${str}" → ${uf.toUpperCase()}`);
+          return uf;
         }
       }
     }
   }
 
-  // ── 2. Nome com sigla UF ao final (ex: "Fortaleza/CE" ou "Fortaleza - CE") ─
-  if (Array.isArray(gleba.municipios) && gleba.municipios.length > 0) {
+  // 2. Nome com sigla UF ao final (ex: "Fortaleza/CE" ou "Fortaleza - CE")
+  if (Array.isArray(gleba.municipios)) {
     for (const mun of gleba.municipios) {
       if (!mun || typeof mun !== 'string') continue;
       const match = mun.trim().match(/[/\-\s]([A-Z]{2})$/);
-      if (match && IBGE_PREFIX_TO_UF[Object.keys(IBGE_PREFIX_TO_UF).find(k => IBGE_PREFIX_TO_UF[k] === match[1].toLowerCase())]) {
-        return match[1].toLowerCase();
-      }
-      // Verifica se os 2 últimos caracteres maiúsculos são UF válida
-      const upper = mun.replace(/[^A-Z]/g, '');
-      if (upper.length >= 2) {
-        const uf = upper.slice(-2).toLowerCase();
+      if (match) {
+        const uf = match[1].toLowerCase();
         if (Object.values(IBGE_PREFIX_TO_UF).includes(uf)) return uf;
       }
     }
   }
 
-  // ── 3. Centroid — bounding boxes dos estados do Nordeste ──────────────────
+  // 3. Bounding box do centroid para estados do Nordeste + PA/MA
   if (Array.isArray(gleba.centroid) && gleba.centroid.length === 2) {
-    const [lng, lat] = gleba.centroid; // centroid é [lon, lat] no GeoJSON
-    // Bounding boxes precisas (fonte: IBGE limites estaduais)
+    const [lng, lat] = gleba.centroid;
     if (lat > -7.87 && lat < -2.78 && lng > -41.36 && lng < -37.25) return 'ce';
     if (lat > -18.35 && lat < -8.53 && lng > -46.62 && lng < -37.34) return 'ba';
     if (lat > -10.25 && lat < -1.04 && lng > -48.75 && lng < -41.82) return 'ma';
@@ -343,96 +319,146 @@ export function detectarUF(gleba) {
     if (lat > -11.57 && lat < -9.52 && lng > -38.23 && lng < -36.37) return 'se';
   }
 
-  warn('detectarUF: não foi possível determinar UF — usando fallback "ce"');
+  warn('detectarUF: UF indeterminada — fallback "ce"');
   return 'ce';
 }
 
 /**
- * Detecta TODAS as UFs abrangidas pela gleba (para glebas que cruzam fronteiras estaduais).
- * Uma gleba com até 4 municípios pode abranger até 2 estados diferentes.
- * Retorna array com UFs únicas, ex: ['ce'] ou ['ce', 'ba'] para gleba na divisa.
+ * Detecta TODAS as UFs abrangidas pela gleba.
+ * Essencial para glebas que cruzam fronteiras estaduais.
  *
  * @param {GlebaData} gleba
- * @returns {string[]} Array de siglas UF em minúsculas, ex: ['ce', 'ba']
+ * @returns {string[]} Array de siglas UF únicas em minúsculas, ex: ['ce', 'ba']
  */
 export function detectarTodasUFs(gleba) {
   const ufs = new Set();
+
   if (Array.isArray(gleba.municipios)) {
     for (const mun of gleba.municipios) {
-      const str = String(mun).trim();
+      const str = String(mun ?? '').trim();
       if (/^\d{7}$/.test(str)) {
         const uf = IBGE_PREFIX_TO_UF[str.substring(0, 2)];
         if (uf) ufs.add(uf);
       }
     }
   }
+
   // Fallback: usa detectarUF (que tem fallback por coordenadas)
   if (ufs.size === 0) ufs.add(detectarUF(gleba));
+
   return [...ufs];
+}
+
+// ─── CAR — Cadastro Ambiental Rural ────────────────────────────────────────
+
+/**
+ * Gera a chave de cache para uma gleba.
+ * Usa glebaId se disponível; senão usa centroid arredondado.
+ * @param {GlebaData} gleba
+ * @returns {string}
+ */
+function _carCacheKey(gleba) {
+  if (gleba.glebaId != null) return `car_g${gleba.glebaId}`;
+  const [lon, lat] = gleba.centroid ?? [0, 0];
+  return `car_${lon.toFixed(5)}_${lat.toFixed(5)}`;
 }
 
 /**
  * Verifica se a gleba possui CAR registrado via WFS do SICAR.
- * Agora com análise espacial detalhada de cobertura e detecção robusta de UF.
+ *
+ * Estratégia:
+ *   1. Verifica cache com TTL de 30 min → retorna imediatamente se válido
+ *   2. Detecta todas as UFs da gleba (suporte a glebas multi-estado)
+ *   3. Consulta o SICAR em paralelo para cada UF via Promise.allSettled
+ *   4. Consolida os resultados e armazena em cache
  *
  * @param {GlebaData} gleba
  * @returns {Promise<CARResult[]>}
  */
 export async function checkCAR(gleba) {
-  // Detecta TODAS as UFs da gleba (cobre glebas que cruzam fronteiras estaduais)
-  const ufs = detectarTodasUFs(gleba);
-  log(`Consultando SICAR para UF(s): ${ufs.map(u => u.toUpperCase()).join(', ')}...`);
+  // ── 1. Cache com TTL ───────────────────────────────────────────────────
+  const cacheKey = _carCacheKey(gleba);
+  const cached = _carCache.get(cacheKey);
 
-  // Consulta todas as UFs em paralelo e consolida os resultados
-  if (ufs.length > 1) {
-    const resultados = await Promise.allSettled(ufs.map(uf => checkCARporUF(gleba, uf)));
-    const todos = resultados
-      .filter(r => r.status === 'fulfilled')
-      .flatMap(r => r.value);
-    log(`SICAR multi-estado: ${todos.length} imóvel(is) no total`);
-    return todos;
+  if (cached && (Date.now() - cached.ts) < CAR_CACHE_TTL_MS) {
+    const idadeMin = Math.round((Date.now() - cached.ts) / 60000);
+    log(`CAR cache hit — Gleba ${gleba.glebaId ?? '?'} (${idadeMin} min atrás, `
+      + `${cached.result.length} imóvel(is))`);
+    return cached.result;
   }
 
-  return checkCARporUF(gleba, ufs[0]);
+  // ── 2. Detecta todas as UFs (suporte multi-estado) ────────────────────
+  const ufs = detectarTodasUFs(gleba);
+  log(`SICAR: consultando UF(s) ${ufs.map(u => u.toUpperCase()).join(', ')} `
+    + `para Gleba ${gleba.glebaId ?? '?'}...`);
+
+  // ── 3. Consultas paralelas por UF ─────────────────────────────────────
+  const resultados = await Promise.allSettled(
+    ufs.map(uf => checkCARporUF(gleba, uf))
+  );
+
+  const todos = resultados.flatMap(r => {
+    if (r.status === 'fulfilled') return r.value;
+    warn('SICAR: consulta falhou para uma UF:', r.reason?.message ?? r.reason);
+    return [];
+  });
+
+  log(`SICAR: ${todos.length} imóvel(is) consolidado(s) no total `
+    + `(${ufs.length} UF(s) consultada(s))`);
+
+  // ── 4. Armazena em cache ───────────────────────────────────────────────
+  _carCache.set(cacheKey, { ts: Date.now(), result: todos });
+
+  return todos;
 }
 
 /**
- * Consulta o SICAR para uma UF específica.
- * Separado de checkCAR para permitir chamadas paralelas em glebas multi-estado.
+ * Invalida o cache CAR de uma gleba específica ou de todas.
+ * Útil quando o usuário edita a gleba manualmente.
+ *
+ * @param {number|null} glebaId  - Se null, limpa todo o cache CAR
+ */
+export function invalidarCacheCAR(glebaId = null) {
+  if (glebaId == null) {
+    _carCache.clear();
+    log('Cache CAR invalidado (todas as glebas).');
+  } else {
+    _carCache.delete(`car_g${glebaId}`);
+    log(`Cache CAR invalidado — Gleba ${glebaId}.`);
+  }
+}
+
+/**
+ * Consulta o SICAR para uma UF específica via WFS.
+ * Usa CQL_FILTER com INTERSECTS para precisão espacial no servidor.
+ *
  * @param {GlebaData} gleba
- * @param {string} uf  - sigla em minúsculas, ex: 'ce'
+ * @param {string}    uf     - Sigla em minúsculas, ex: 'ce'
  * @returns {Promise<CARResult[]>}
  */
 async function checkCARporUF(gleba, uf) {
-  log(`Consultando SICAR: sicar:sicar_imoveis_${uf}...`);
+  log(`SICAR: consultando sicar:sicar_imoveis_${uf}...`);
 
-  // ─────────────────────────────────────────────
-  // 🔹 Extrair coordenadas para o filtro CQL
-  // ─────────────────────────────────────────────
+  // Extrai anel externo do polígono da gleba
   let coords = gleba.turfPolygon?.geometry?.coordinates;
   if (!coords) return [];
 
-  // Simplificação: pega o anel externo do primeiro polígono
   if (gleba.turfPolygon.geometry.type === 'MultiPolygon') {
     coords = coords[0][0];
   } else {
     coords = coords[0];
   }
 
-  // ─────────────────────────────────────────────
-  // 🔹 Garantir fechamento do polígono
-  // ─────────────────────────────────────────────
+  // Garante fechamento do anel
   const first = coords[0];
   const last = coords[coords.length - 1];
   if (first[0] !== last[0] || first[1] !== last[1]) {
     coords = [...coords, first];
   }
 
+  // WKT: "lon lat,lon lat,..."
   const polygonStr = coords.map(c => `${c[0]} ${c[1]}`).join(',');
 
-  // ─────────────────────────────────────────────
-  // 🔹 Montar URL WFS SICAR
-  // ─────────────────────────────────────────────
   const url = new URL('https://geoserver.car.gov.br/geoserver/sicar/ows');
   url.searchParams.set('service', 'WFS');
   url.searchParams.set('version', '1.0.0');
@@ -443,84 +469,134 @@ async function checkCARporUF(gleba, uf) {
   url.searchParams.set('srsName', 'EPSG:4674');
 
   try {
-    const res = await fetchWithTimeout(url.toString(), 20000); // Timeout aumentado para 20s
+    const res = await fetchWithTimeout(url.toString(), 20000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const contentType = res.headers.get('content-type') ?? '';
 
-    const contentType = res.headers.get('content-type') || '';
-
-    // ─── Processamento JSON ─────────────────────
+    // ── Resposta JSON ──────────────────────────────────────────────────
     if (contentType.includes('json')) {
       const data = await res.json();
       const features = data.features ?? [];
-      log(`UF ${uf.toUpperCase()}: ${features.length} imóvel(is) localizado(s).`);
+      log(`SICAR ${uf.toUpperCase()}: ${features.length} imóvel(is) localizado(s)`);
 
       return features.map(f => ({
         codigo: f.properties.cod_imovel ?? f.id,
         municipio: f.properties.nom_mun ?? f.properties.municipio ?? '—',
         status: f.properties.ind_status ?? f.properties.status_imovel ?? 'Ativo',
         areaHa: f.properties.num_area ?? f.properties.area ?? 0,
-        geometry: f.geometry
+        geometry: f.geometry,
       }));
     }
 
-    // ─── Processamento XML/GML (Fallback) ───────
+    // ── Resposta XML/GML (fallback) ───────────────────────────────────
     const text = await res.text();
     const parser = new DOMParser();
     const xml = parser.parseFromString(text, 'text/xml');
+
     let features = xml.getElementsByTagName('gml:featureMember');
     if (features.length === 0) features = xml.getElementsByTagName('wfs:member');
-
     if (features.length === 0) return [];
+
+    log(`SICAR ${uf.toUpperCase()}: ${features.length} imóvel(is) via XML/GML`);
 
     const results = [];
     for (let i = 0; i < features.length; i++) {
       const props = features[i].firstElementChild;
-      if (props) {
-        const getVal = (tags) => {
-          for (let t of tags) {
-            const el = props.getElementsByTagName(`sicar:${t}`)[0] || props.getElementsByTagName(t)[0];
-            if (el) return el.textContent.trim();
-          }
-          return null;
-        };
-        const rawStatus = getVal(['status_imovel', 'ind_status', 'status']);
-        const statusMap = { 'AT': 'Ativo', 'PE': 'Pendente', 'CA': 'Cancelado', 'SU': 'Suspenso' };
-        results.push({
-          codigo: getVal(['cod_imovel']) ?? '—',
-          municipio: getVal(['municipio', 'nom_mun']) ?? '—',
-          status: statusMap[rawStatus] ?? rawStatus ?? 'Ativo',
-          areaHa: parseFloat(getVal(['area', 'num_area']) || '0'),
-          condicao: getVal(['condicao']) ?? ''
-        });
-      }
+      if (!props) continue;
+
+      const getVal = (...tags) => {
+        for (const t of tags) {
+          const el = props.getElementsByTagNameNS('*', t)[0];
+          if (el?.textContent) return el.textContent.trim();
+        }
+        return null;
+      };
+
+      const rawStatus = getVal('status_imovel', 'ind_status', 'status');
+      const statusMap = { AT: 'Ativo', PE: 'Pendente', CA: 'Cancelado', SU: 'Suspenso' };
+
+      results.push({
+        codigo: getVal('cod_imovel') ?? '—',
+        municipio: getVal('municipio', 'nom_mun') ?? '—',
+        status: statusMap[rawStatus] ?? rawStatus ?? 'Ativo',
+        areaHa: parseFloat(getVal('area', 'num_area') ?? '0'),
+        geometry: null, // XML não retorna geometria parseável facilmente
+      });
     }
     return results;
+
   } catch (e) {
-    warn(`CAR API (${uf}) erro:`, e.message);
+    warn(`SICAR (${uf.toUpperCase()}) erro:`, e.message);
     return [];
   }
-} // checkCARporUF
+}
+
+// ─── Análise Espacial do CAR ───────────────────────────────────────────────
 
 /**
- * Analisa a relação espacial entre a gleba e os imóveis do CAR encontrados.
- * Agora utiliza união de geometrias para tratar glebas que abrangem múltiplos CARs.
- * 
- * @param {GlebaData} gleba 
- * @param {CARResult[]} carFeatures 
- * @returns {object} Resultado da análise detalhada
+ * Normaliza qualquer geometria GeoJSON (Polygon ou MultiPolygon) em um único
+ * Feature Turf compatível com todas as operações espaciais.
+ *
+ * Para MultiPolygon: une todos os polígonos internos em um único Feature.
+ * Isso evita falhas silenciosas em turf.intersect / turf.union com MultiPolygon.
+ *
+ * @param {object} geometry  - GeoJSON geometry object
+ * @returns {Feature|null}
  */
+function normalizarGeometriaCAR(geometry) {
+  if (!geometry) return null;
+  try {
+    if (geometry.type === 'Polygon') {
+      return turf.feature(geometry);
+    }
+
+    if (geometry.type === 'MultiPolygon') {
+      // Achata em Polygons individuais via turf.flatten
+      const colecao = turf.flatten(turf.feature(geometry));
+      if (colecao.features.length === 0) return null;
+      if (colecao.features.length === 1) return colecao.features[0];
+
+      // Une todos os polígonos do MultiPolygon em um único Feature
+      return colecao.features.reduce((acc, feat) => {
+        try {
+          return turf.union(acc, feat) ?? acc;
+        } catch (_) {
+          return acc; // polígono inválido — ignora
+        }
+      });
+    }
+
+    warn('normalizarGeometriaCAR: tipo de geometria não suportado:', geometry.type);
+    return null;
+  } catch (e) {
+    warn('normalizarGeometriaCAR erro:', e.message);
+    return null;
+  }
+}
+
 /**
  * Analisa a relação espacial entre a gleba e os imóveis do CAR encontrados.
  *
  * Regra de negócio (Res. CMN 5.081/2023):
  *   Uma gleba de crédito rural deve estar contida em UM único imóvel rural.
- *   A presença de múltiplos CARs — mesmo que a cobertura total seja 100% —
- *   indica que a gleba cruza fronteiras de propriedades, o que exige análise
- *   manual e gera alerta obrigatório.
+ *   Múltiplos CARs — mesmo com cobertura total de 100% — indicam que a gleba
+ *   cruza fronteiras de propriedades, gerando alerta obrigatório.
+ *
+ * Suporte a MultiPolygon via normalizarGeometriaCAR().
+ *
+ * Campos retornados:
+ *   status             — 'ok' | 'alerta' | 'bloqueio' | 'info'
+ *   mensagem           — texto descritivo
+ *   dados              — array de CARResult com campo coverageIndividual adicionado
+ *   coverage           — % da gleba coberta pela UNIÃO de todos os CARs (0–100)
+ *   coverageMelhorCAR  — % coberta pelo melhor CAR individual (0–100)
+ *   uncoveredHa        — hectares da gleba fora de qualquer CAR
+ *   carAreaHa          — soma das áreas dos CARs detectados (ha)
+ *   nCARs              — número de imóveis CAR detectados
  *
  * @param {GlebaData}   gleba
  * @param {CARResult[]} carFeatures  - Array retornado por checkCAR()
- * @returns {object}    Resultado com status, mensagem, dados e métricas
+ * @returns {object}
  */
 export function analyzeGlebaInCAR(gleba, carFeatures) {
 
@@ -529,82 +605,115 @@ export function analyzeGlebaInCAR(gleba, carFeatures) {
     return {
       status: 'bloqueio',
       mensagem: 'Nenhum Cadastro Ambiental Rural (CAR) localizado para esta geometria. '
-        + 'Obrigatório para crédito rural (Cód. Florestal Art. 29).',
+        + 'O CAR é obrigatório para concessão de crédito rural (Cód. Florestal Art. 29).',
       dados: [],
       coverage: 0,
       coverageMelhorCAR: 0,
+      uncoveredHa: turf.area(gleba.turfPolygon) / 10000,
       carAreaHa: 0,
-      nCARs: 0
+      nCARs: 0,
     };
   }
 
   const glebaPoly = gleba.turfPolygon;
   const glebaAreaM2 = turf.area(glebaPoly);
-  const featuresComGeo = carFeatures.filter(f => f.geometry);
+  const glebaAreaHa = glebaAreaM2 / 10000;
 
-  // ── 1. Sem geometria retornada (fallback XML sem coordenadas) ──────────
+  // Normaliza geometrias: converte cada CAR para Feature compatível com Turf
+  const featuresNormalizadas = carFeatures.map(car => ({
+    ...car,
+    _featNorm: car.geometry ? normalizarGeometriaCAR(car.geometry) : null,
+  }));
+
+  const featuresComGeo = featuresNormalizadas.filter(f => f._featNorm !== null);
+
+  // ── 1. Sem geometria (fallback XML sem coordenadas) ───────────────────
   if (featuresComGeo.length === 0) {
     const maisDeUm = carFeatures.length > 1;
+    log(`analyzeGlebaInCAR: sem geometria — análise simplificada (${carFeatures.length} CAR(s))`);
     return {
       status: maisDeUm ? 'alerta' : 'ok',
       mensagem: maisDeUm
         ? `Gleba abrange ${carFeatures.length} imóveis CAR: `
         + `${carFeatures.map(c => c.codigo).join(', ')}. `
-        + `Verificar limites entre propriedades. (análise espacial indisponível — sem geometria)`
+        + `Verificar limites entre propriedades. (geometria indisponível — análise aproximada)`
         : `Imóvel Rural localizado: ${carFeatures[0].codigo}. `
-        + `(Análise espacial simplificada — geometria não retornada pelo servidor)`,
+        + `(Geometria não retornada pelo servidor — análise simplificada)`,
       dados: carFeatures,
       coverage: 100,
       coverageMelhorCAR: 100,
+      uncoveredHa: 0,
       carAreaHa: carFeatures.reduce((s, c) => s + (c.areaHa || 0), 0),
-      nCARs: carFeatures.length
+      nCARs: carFeatures.length,
     };
   }
 
   try {
-    // ── 2. Cobertura INDIVIDUAL de cada CAR sobre a gleba ─────────────────
+    // ── 2. Cobertura INDIVIDUAL de cada CAR sobre a gleba ─────────────
     //
-    // Esta é a métrica-chave: quanto da gleba está dentro de CADA imóvel
-    // separadamente, não da sua união.
+    // Métrica central: quanto da gleba está dentro de CADA imóvel separadamente.
+    // Ordenamos do maior para menor para identificar o "melhor match".
     //
     const analiseIndividual = featuresComGeo.map(car => {
       try {
-        const carPoly = turf.feature(car.geometry);
-        const intersecao = turf.intersect(glebaPoly, carPoly);
+        const intersecao = turf.intersect(glebaPoly, car._featNorm);
         const areaIntersM2 = intersecao ? turf.area(intersecao) : 0;
         const covRaw = (areaIntersM2 / glebaAreaM2) * 100;
-        return {
-          ...car,
-          coverageIndividual: covRaw > 99.9 ? 100 : Math.round(covRaw * 10) / 10
-        };
+        const cov = covRaw > 99.9 ? 100 : Math.round(covRaw * 10) / 10;
+        return { ...car, _featNorm: undefined, coverageIndividual: cov };
       } catch (err) {
-        warn(`Erro ao analisar CAR ${car.codigo}:`, err.message);
-        return { ...car, coverageIndividual: 0 };
+        warn(`analyzeGlebaInCAR: erro ao analisar CAR ${car.codigo}:`, err.message);
+        return { ...car, _featNorm: undefined, coverageIndividual: 0 };
       }
     });
 
-    // Ordena: maior cobertura individual primeiro
-    analiseIndividual.sort((a, b) => b.coverageIndividual - a.coverageIndividual);
-    const melhorCAR = analiseIndividual[0];
-    const nCARs = analiseIndividual.length;
+    // Adiciona CARs sem geometria ao final (com coverageIndividual: 0)
+    const semGeo = featuresNormalizadas
+      .filter(f => f._featNorm === null)
+      .map(car => ({ ...car, _featNorm: undefined, coverageIndividual: 0 }));
 
-    // ── 3. Cobertura TOTAL (união) — apenas para detectar área descoberta ──
-    let carUnion = turf.feature(featuresComGeo[0].geometry);
+    const todosComAnalise = [...analiseIndividual, ...semGeo];
+    todosComAnalise.sort((a, b) => b.coverageIndividual - a.coverageIndividual);
+
+    const melhorCAR = todosComAnalise[0];
+    const nCARs = todosComAnalise.length;
+
+    // ── 3. Cobertura TOTAL (união) ─────────────────────────────────────
+    //
+    // Usada apenas para detectar se há área da gleba completamente descoberta.
+    // NÃO é usada como critério de conformidade (ver Regras de Negócio abaixo).
+    //
+    let carUnion = featuresComGeo[0]._featNorm;
     for (let i = 1; i < featuresComGeo.length; i++) {
       try {
-        const u = turf.union(carUnion, turf.feature(featuresComGeo[i].geometry));
+        const u = turf.union(carUnion, featuresComGeo[i]._featNorm);
         if (u) carUnion = u;
-      } catch (_) { /* geometria inválida — ignora este CAR na união */ }
+      } catch (_) { /* geometria inválida — ignora */ }
     }
+
     const intersTotal = turf.intersect(glebaPoly, carUnion);
     const covTotalRaw = intersTotal ? (turf.area(intersTotal) / glebaAreaM2) * 100 : 0;
     const coverageTotal = covTotalRaw > 99.9 ? 100 : Math.round(covTotalRaw * 10) / 10;
 
-    // ── 4. Regras de negócio ───────────────────────────────────────────────
+    // Hectares descobertos = área da gleba fora de QUALQUER CAR
+    const uncoveredHa = Math.max(0, glebaAreaHa * (1 - coverageTotal / 100));
+
+    log(`analyzeGlebaInCAR: ${nCARs} CAR(s) | cobertura total ${coverageTotal}% | `
+      + `melhor individual ${melhorCAR.coverageIndividual}% | `
+      + `descoberto ${uncoveredHa.toFixed(2)} ha`);
+
+    // ── 4. Regras de negócio ───────────────────────────────────────────
+    //
+    // Uma gleba de crédito rural deve estar contida em UM único imóvel rural.
+    // Cruzar fronteiras de propriedades é ressalva independente da cobertura.
+    //
     let status, mensagem;
+    const listaCAR = todosComAnalise
+      .map(c => `${c.codigo}${c.coverageIndividual > 0 ? ` (${c.coverageIndividual}%)` : ''}`)
+      .join(', ');
 
     if (nCARs === 1) {
-      // ── Caso simples: apenas um imóvel ──────────────────────────────────
+      // ── Caso simples: apenas um imóvel ──────────────────────────────
       const cov = melhorCAR.coverageIndividual;
       if (cov >= 98) {
         status = 'ok';
@@ -613,57 +722,58 @@ export function analyzeGlebaInCAR(gleba, carFeatures) {
       } else if (cov >= 10) {
         status = 'alerta';
         mensagem = `Gleba parcialmente fora do CAR ${melhorCAR.codigo}. `
-          + `Cobertura: ${cov}% — ${(100 - cov).toFixed(1)}% da gleba está fora do imóvel registrado.`;
+          + `Cobertura: ${cov}% — ${uncoveredHa.toFixed(2)} ha da gleba estão `
+          + `fora do imóvel registrado. Verificar delimitação.`;
       } else {
         status = 'bloqueio';
         mensagem = `Gleba com baixa cobertura no CAR ${melhorCAR.codigo} (${cov}%). `
-          + `O imóvel registrado não abrange a área da gleba pretendida.`;
+          + `${uncoveredHa.toFixed(2)} ha (${(100 - cov).toFixed(1)}%) fora do imóvel. `
+          + `O CAR localizado não abrange a área da gleba pretendida.`;
       }
 
     } else {
-      // ── Múltiplos imóveis — sempre requer atenção ───────────────────────
-      const listaResumida = analiseIndividual
-        .map(c => `${c.codigo} (${c.coverageIndividual}%)`)
-        .join(', ');
+      // ── Múltiplos imóveis ─────────────────────────────────────────
+      const adjacentes = todosComAnalise.slice(1).map(c => c.codigo).join(', ');
 
       if (melhorCAR.coverageIndividual >= 98) {
-        // Um único CAR já contém a gleba; os outros são apenas adjacentes/sobrepostos
-        const adjacentes = analiseIndividual.slice(1).map(c => c.codigo).join(', ');
+        // Um único CAR já contém a gleba; os demais são apenas adjacentes/sobrepostos
         status = 'alerta';
         mensagem = `Gleba contida no CAR ${melhorCAR.codigo} (${melhorCAR.coverageIndividual}%), `
-          + `porém ${nCARs - 1} imóvel(is) adjacente(s) também interceptam a consulta: ${adjacentes}. `
+          + `porém ${nCARs - 1} imóvel(is) adjacente(s) interceptam a área: ${adjacentes}. `
           + `Confirme que a operação de crédito se refere exclusivamente ao imóvel ${melhorCAR.codigo}.`;
 
       } else if (coverageTotal >= 98) {
-        // A gleba só é coberta quando somados 2+ imóveis — ela cruza fronteiras
+        // Gleba só é coberta quando somados 2+ imóveis — cruza fronteiras de propriedades
         status = 'alerta';
         mensagem = `Gleba dividida entre ${nCARs} imóveis distintos do CAR `
-          + `(cobertura total: ${coverageTotal}%, maior imóvel individual: ${melhorCAR.coverageIndividual}%). `
+          + `(cobertura total: ${coverageTotal}% · melhor imóvel individual: `
+          + `${melhorCAR.coverageIndividual}%). `
           + `Para crédito rural, a gleba deve estar contida em um único imóvel. `
-          + `CARs detectados: ${listaResumida}.`;
+          + `CARs: ${listaCAR}.`;
 
       } else {
-        // Nem a união cobre adequadamente — parte da gleba está descoberta
+        // Nem a união cobre adequadamente — área descoberta real
         status = 'bloqueio';
-        mensagem = `Gleba parcialmente fora dos ${nCARs} CARs detectados `
-          + `(cobertura total: ${coverageTotal}%, maior individual: ${melhorCAR.coverageIndividual}%). `
-          + `Área sem cobertura CAR: ~${(100 - coverageTotal).toFixed(1)}%. `
-          + `CARs: ${listaResumida}.`;
+        mensagem = `Gleba parcialmente fora dos ${nCARs} CARs detectados. `
+          + `Cobertura total: ${coverageTotal}% — `
+          + `${uncoveredHa.toFixed(2)} ha (${(100 - coverageTotal).toFixed(1)}%) descobertos. `
+          + `CARs: ${listaCAR}.`;
       }
     }
 
     return {
       status,
       mensagem,
-      dados: analiseIndividual,   // cada item agora tem coverageIndividual
+      dados: todosComAnalise,   // cada item tem coverageIndividual
       coverage: coverageTotal,
       coverageMelhorCAR: melhorCAR.coverageIndividual,
-      carAreaHa: featuresComGeo.reduce((s, f) => s + (f.areaHa || 0), 0),
-      nCARs
+      uncoveredHa: parseFloat(uncoveredHa.toFixed(4)),
+      carAreaHa: todosComAnalise.reduce((s, f) => s + (f.areaHa || 0), 0),
+      nCARs,
     };
 
   } catch (e) {
-    warn('Erro na análise espacial do CAR:', e.message);
+    warn('analyzeGlebaInCAR: erro inesperado na análise espacial:', e.message);
     return {
       status: 'info',
       mensagem: `CAR localizado: ${carFeatures[0].codigo}. `
@@ -671,8 +781,9 @@ export function analyzeGlebaInCAR(gleba, carFeatures) {
       dados: carFeatures,
       coverage: 0,
       coverageMelhorCAR: 0,
+      uncoveredHa: glebaAreaHa,
       carAreaHa: carFeatures.reduce((s, f) => s + (f.areaHa || 0), 0),
-      nCARs: carFeatures.length
+      nCARs: carFeatures.length,
     };
   }
 }
@@ -680,7 +791,7 @@ export function analyzeGlebaInCAR(gleba, carFeatures) {
 // ─── Utilitários internos ──────────────────────────────────────────────────
 
 /**
- * Fetch com timeout configurável.
+ * Fetch com timeout configurável e proxy CORS.
  * @param {string} url
  * @param {number} ms
  */
@@ -688,20 +799,18 @@ async function fetchWithTimeout(url, ms) {
   const ctrl = new AbortController();
   const id = setTimeout(() => ctrl.abort(), ms);
 
-  // Encapsula a URL original no nosso Proxy PHP para evitar CORS
   const proxiedUrl = CONFIG.PROXY_URL + encodeURIComponent(url);
 
   try {
-    const res = await fetch(proxiedUrl, {
+    return await fetch(proxiedUrl, {
       signal: ctrl.signal,
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/json, application/xml, text/xml' },
     });
-    return res;
   } catch (err) {
     if (err.name === 'AbortError') {
-      warn(`Requisição abortada (timeout ${ms}ms):`, url);
+      warn(`Timeout (${ms}ms):`, url);
     } else {
-      warn('Erro na requisição via proxy:', err.message);
+      warn('Erro via proxy:', err.message);
     }
     throw err;
   } finally {
@@ -710,19 +819,18 @@ async function fetchWithTimeout(url, ms) {
 }
 
 /**
- * Fallback: infere bioma predominante pela UF da gleba.
+ * Fallback: infere bioma predominante pela UF.
  * Usado quando a API IBGE não responde.
+ * @param {GlebaData} gleba
+ * @returns {string}
  */
 function inferBiomaByUF(gleba) {
-  // Mapeamento de UF para bioma predominante (Nordeste)
   const ufBioma = {
-    'ma': 'Cerrado', 'pi': 'Caatinga', 'ce': 'Caatinga', 'rn': 'Caatinga',
-    'pb': 'Caatinga', 'pe': 'Caatinga', 'al': 'Mata Atlântica',
-    'se': 'Mata Atlântica', 'ba': 'Caatinga',
+    ma: 'Cerrado', pi: 'Caatinga', ce: 'Caatinga', rn: 'Caatinga',
+    pb: 'Caatinga', pe: 'Caatinga', al: 'Mata Atlântica',
+    se: 'Mata Atlântica', ba: 'Caatinga',
   };
-
-  const uf = detectarUF(gleba);
-  return ufBioma[uf] ?? 'Caatinga';
+  return ufBioma[detectarUF(gleba)] ?? 'Caatinga';
 }
 
 export { UC_PROTECAO_INTEGRAL, UC_USO_SUSTENTAVEL, BIOMA_REGULACAO };
