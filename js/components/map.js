@@ -10,6 +10,8 @@ import {
   formatArea, formatPerimeter, log
 } from './ui.js';
 
+const { COORD_PRECISION } = CONFIG.VALIDATION;
+
 export function initMap() {
   const map = L.map('map', { center: CONFIG.MAP.CENTER, zoom: CONFIG.MAP.ZOOM });
 
@@ -70,13 +72,13 @@ export function renderPolygons(glebas) {
 
     // Borda vermelha se reprovada, amarela se alerta, azul se ok
     const strokeColor = conf?.reprovada ? '#dc2626'
-      : g.tiIntersecoes?.length ? '#f59e0b'
-        : conf?.temAlerta ? '#f59e0b'
+      : g.tiIntersecoes?.length ? '#F68B1F'
+        : conf?.temAlerta ? '#F68B1F'
           : color;
 
     const polygon = L.polygon(g.coords, {
-      color: strokeColor, weight: 2.5, opacity: 0.9,
-      fillColor: color, fillOpacity: 0.38,
+      color: strokeColor, weight: 2.5, opacity: 0.5,
+      fillColor: color, fillOpacity: 0.5,
     });
 
     polygon.bindPopup(buildPopup(g), { maxWidth: 300 });
@@ -86,7 +88,7 @@ export function renderPolygons(glebas) {
       this.bringToFront();
     });
     polygon.on('mouseout', function () {
-      this.setStyle({ weight: 2.5, fillOpacity: 0.38 });
+      this.setStyle({ weight: 2.5, fillOpacity: 0.8 });
     });
     polygon.on('click', e => { e.originalEvent._glebaClicked = true; });
     polygon._glebaId = g.glebaId;
@@ -111,7 +113,7 @@ export function renderMarkers(glebas) {
         radius: 5, color: '#fff', weight: 1.5, fillColor: '#1e3a5f', fillOpacity: 0.9,
       }).bindPopup(`<strong>Gleba ${g.glebaId} — Ponto ${i + 1}</strong><br>
         <span class="font-monospace" style="font-size:.8em">
-          Lat: ${coord[0].toFixed(6)}<br>Lon: ${coord[1].toFixed(6)}</span>`);
+          Lat: ${coord[0].toFixed(COORD_PRECISION)}<br>Lon: ${coord[1].toFixed(COORD_PRECISION)}</span>`);
       m.addTo(state.map);
       state.markerLayers.push(m);
     });
@@ -136,11 +138,62 @@ export function renderCentroids(glebas) {
     state.centroidLayers.push(centroidMarker); // Bug corrigido: era push() sem argumento
   });
 }
+/**
+ * Renderiza marcadores destacando problemas de validação 
+ * (pontos duplicados e autointerseções)
+ * Só é chamado quando "Validar Pontos" está marcado.
+ */
+export function renderValidationMarkers(glebas) {
+  // Remove marcadores antigos de validação
+  if (state.validationMarkerLayers) {
+    state.validationMarkerLayers.forEach(m => m && state.map.removeLayer(m));
+  }
+  state.validationMarkerLayers = [];
 
+  if (!state.validatePoints) return;
+
+  glebas.forEach(gleba => {
+    const coords = gleba.coords; // [lat, lon]
+
+    // Detecta duplicatas consecutivas
+    const duplicates = [];
+    for (let i = 1; i < coords.length; i++) {
+      const prev = coords[i - 1];
+      const curr = coords[i];
+      if (prev[0] === curr[0] && prev[1] === curr[1]) {
+        duplicates.push(curr);
+      }
+    }
+
+    // Marcadores vermelhos para duplicatas
+    duplicates.forEach((coord, idx) => {
+      const marker = L.circleMarker(coord, {
+        radius: 9,
+        color: '#fff',
+        weight: 3,
+        fillColor: '#dc3545',
+        fillOpacity: 0.95,
+        zIndexOffset: 1000
+      }).bindPopup(`<strong style="color:#dc3545"><i class="bi bi-exclamation-triangle-fill"></i> Ponto Duplicado</strong><br>
+        Gleba ${gleba.glebaId} — Ponto ${idx + 1}<br>
+        Lat: ${coord[0].toFixed(COORD_PRECISION)}<br>Lon: ${coord[1].toFixed(COORD_PRECISION)}`);
+
+      marker.addTo(state.map);
+      state.validationMarkerLayers.push(marker);
+    });
+
+    // Futuramente podemos destacar pontos de autointerseção aqui também
+  });
+
+  log(`Validation markers: ${state.validationMarkerLayers.length} problemas destacados`);
+}
 export function clearMapLayers() {
-  [...state.polygonLayers, ...state.markerLayers, ...state.centroidLayers]
+  [...state.polygonLayers,
+  ...state.markerLayers,
+  ...state.centroidLayers,
+  ...(state.validationMarkerLayers || [])]
     .forEach(l => l && state.map.removeLayer(l));
-  
+
   if (state.carLayer) {
     state.map.removeLayer(state.carLayer);
     state.carLayer = null;
@@ -150,14 +203,13 @@ export function clearMapLayers() {
   clearGlebas();
   log('Mapa limpo');
 }
-
 /**
  * Renderiza os polígonos do CAR no mapa.
  * @param {CARResult[]} imoveis 
  */
 export function renderCARLayer(imoveis) {
   if (state.carLayer) state.map.removeLayer(state.carLayer);
-  
+
   const features = imoveis
     .filter(i => i.geometry)
     .map(i => {
@@ -167,7 +219,12 @@ export function renderCARLayer(imoveis) {
         properties: {
           codigo: i.codigo,
           municipio: i.municipio,
-          area: i.areaHa
+          uf: i.uf,
+          area: i.areaHa,
+          status: i.status,
+          condicao: i.condicao,
+          datCriacao: i.datCriacao,
+          datAtualizacao: i.datAtualizacao
         }
       };
     });
@@ -183,14 +240,51 @@ export function renderCARLayer(imoveis) {
       dashArray: '5, 5'
     },
     onEachFeature: (f, l) => {
+      const p = f.properties;
+      const municipioUF = p.uf && p.uf !== '—'
+        ? `${p.municipio} - ${p.uf.toUpperCase()}`
+        : p.municipio;
+
+      const fmtData = (d) => {
+        if (!d || d === '—') return '—';
+        // Formato da API: YYYY-MM-DD ou YYYYMMDD
+        const m = String(d).match(/(\d{4})-?(\d{2})-?(\d{2})/);
+        return m ? `${m[3]}/${m[2]}/${m[1]}` : d;
+      };
+
+      const statusLabel = {
+        'AT': 'Ativo', 'CA': 'Cancelado',
+        'SU': 'Suspenso', 'PE': 'Pendente'
+      }[p.status] ?? p.status ?? '—';
+
+      const condicaoLabel = {
+        'REG': 'Regularizado', 'IRR': 'Irregular',
+        'PEN': 'Pendente'
+      }[p.condicao] ?? p.condicao ?? '—';
+
       l.bindPopup(`
-        <div class="small">
-          <strong class="d-block mb-1 text-success">Cadastro Ambiental Rural</strong>
-          <span class="d-block"><strong>Código:</strong> ${f.properties.codigo}</span>
-          <span class="d-block"><strong>Município:</strong> ${f.properties.municipio}</span>
-          <span class="d-block"><strong>Área:</strong> ${f.properties.area.toFixed(2)} ha</span>
+        <div class="small" style="min-width:240px">
+          <strong class="d-block mb-2 text-success border-bottom pb-1">
+            <i class="bi bi-tree-fill me-1"></i>Cadastro Ambiental Rural
+          </strong>
+          <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+            <tr><td style="color:#666;width:85px;padding:2px 0">Código</td>
+                <td><code style="font-size:0.75rem">${p.codigo}</code></td></tr>
+            <tr><td style="color:#666;padding:2px 0">Município</td>
+                <td><strong>${p.municipio} - ${String(p.uf).toUpperCase()}</strong></td></tr>
+            <tr><td style="color:#666;padding:2px 0">Área</td>
+                <td>${Number(p.area).toFixed(2).replace('.', ',')} ha</td></tr>
+            <tr><td style="color:#666;padding:2px 0">Situação</td>
+                <td><span style="color:${p.status === 'AT' ? '#2e7d32' : '#666'}">●</span> ${statusLabel}</td></tr>
+            <tr><td style="color:#666;padding:2px 0">Condição</td>
+                <td>${condicaoLabel}</td></tr>
+            <tr><td style="color:#666;padding:2px 0">Criado em</td>
+                <td>${fmtData(p.datCriacao)}</td></tr>
+            <tr><td style="color:#666;padding:2px 0">Atualizado</td>
+                <td>${fmtData(p.datAtualizacao)}</td></tr>
+          </table>
         </div>
-      `);
+    `);
     }
   }).addTo(state.map);
 
@@ -239,7 +333,7 @@ function buildPopup(g) {
       <tr><td style="color:#888">Municípios</td><td>${g.municipioCount}</td></tr>
       ${biomaLine}${tiLine}${confLine}
       <tr><td style="color:#888">Centroid</td>
-          <td class="font-monospace" style="font-size:.7em">${g.centroid[1].toFixed(5)},<br>${g.centroid[0].toFixed(5)}</td></tr>
+          <td class="font-monospace" style="font-size:.7em">${g.centroid[1].toFixed(COORD_PRECISION)},<br>${g.centroid[0].toFixed(COORD_PRECISION)}</td></tr>
     </table>
   </div>`;
 }

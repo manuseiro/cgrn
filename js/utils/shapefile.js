@@ -6,7 +6,10 @@
  * para o formato interno de coordenadas do CGRN.
  */
 
+import { CONFIG } from './config.js';
 import { log, warn } from '../components/ui.js';
+
+const { COORD_PRECISION } = CONFIG.VALIDATION;
 
 /**
  * Converte um ArrayBuffer de um arquivo .zip (Shapefile) para o formato de texto do CGRN.
@@ -26,7 +29,7 @@ export async function shapefileToCoordText(arrayBuffer) {
 
     // shp() pode receber um ArrayBuffer de um zip
     const geojson = await shp(arrayBuffer);
-    
+
     // shpjs pode retornar um único FeatureCollection ou um array deles se houver múltiplos layers
     const layers = Array.isArray(geojson) ? geojson : [geojson];
 
@@ -42,8 +45,8 @@ export async function shapefileToCoordText(arrayBuffer) {
         const nomeGleba = props.nome || props.NOME || props.NM_MUNICIPIO || props.ID || `Gleba ${glebaId}`;
 
         // Suporta Polygon e MultiPolygon
-        const polygons = geometry.type === 'Polygon' 
-          ? [geometry.coordinates] 
+        const polygons = geometry.type === 'Polygon'
+          ? [geometry.coordinates]
           : (geometry.type === 'MultiPolygon' ? geometry.coordinates : []);
 
         for (const polyCoords of polygons) {
@@ -54,7 +57,7 @@ export async function shapefileToCoordText(arrayBuffer) {
           // Formato CGRN: glebaId pontoId lat lon
           ring.forEach((coord, index) => {
             const [lon, lat] = coord;
-            lines.push(`${glebaId} ${index + 1} ${lat.toFixed(6)} ${lon.toFixed(6)}`);
+            lines.push(`${glebaId} ${index + 1} ${lat.toFixed(COORD_PRECISION)} ${lon.toFixed(COORD_PRECISION)}`);
           });
 
           log(`Shapefile: Importada gleba ${glebaId} ("${nomeGleba}") com ${ring.length} pontos`);

@@ -21,6 +21,8 @@ export const CONFIG = Object.freeze({
     MIN_POINTS: 4,
     /** BACEN/SICOR: máximo de municípios por gleba */
     MAX_MUNICIPIOS: 4,
+    /** Precisão decimal recomendada para bases SICAR/BACEN (evita truncamento) */
+    COORD_PRECISION: 8,
     /** BACEN/SICOR: área mínima da gleba em hectares */
     AREA_MIN_HA: 0.1,
     /** BACEN/SICOR: área máxima por gleba para crédito rural geral */

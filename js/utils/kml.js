@@ -9,7 +9,10 @@
  * Export: GlebaData[] → KML com estilo visual e dados das glebas
  */
 
+import { CONFIG } from './config.js';
 import { log, warn, showToast, setCoordText } from '../components/ui.js';
+
+const { COORD_PRECISION } = CONFIG.VALIDATION;
 
 // ─── KML IMPORT ──────────────────────────────────────────────────────────────
 
@@ -23,8 +26,8 @@ import { log, warn, showToast, setCoordText } from '../components/ui.js';
  */
 export function kmlToCoordText(kmlText) {
   const errors = [];
-  const lines  = [];
-  let glebaId  = 1;
+  const lines = [];
+  let glebaId = 1;
 
   let doc;
   try {
@@ -48,7 +51,7 @@ export function kmlToCoordText(kmlText) {
   } else {
     for (const pm of placemarks) {
       const nome = pm.querySelector('name')?.textContent?.trim() || `Gleba ${glebaId}`;
-      
+
       // Coleta todos os polígonos dentro do Placemark (suporta MultiGeometry)
       const polygons = [...pm.querySelectorAll('Polygon')];
       if (!polygons.length) continue;
@@ -72,11 +75,11 @@ export function kmlToCoordText(kmlText) {
       if (!pair.trim()) continue;
       const parts = pair.split(',');
       if (parts.length < 2) continue;
-      
+
       const lon = parseFloat(parts[0]);
       const lat = parseFloat(parts[1]);
       // Ignora altitude se houver (parts[2])
-      
+
       if (isNaN(lon) || isNaN(lat)) continue;
       pontos.push([lat, lon]);
     }
@@ -95,7 +98,7 @@ export function kmlToCoordText(kmlText) {
 
     // Gera linhas no formato: glebaId pontoId lat lon
     pontos.forEach(([lat, lon], i) => {
-      lines.push(`${glebaId} ${i + 1} ${lat.toFixed(6)} ${lon.toFixed(6)}`);
+      lines.push(`${glebaId} ${i + 1} ${lat.toFixed(COORD_PRECISION)} ${lon.toFixed(COORD_PRECISION)}`);
     });
 
     log(`KML: gleba ${glebaId} "${nome}" com ${pontos.length} pontos`);
@@ -142,28 +145,28 @@ export function glebesToKML(glebas, projectName = 'Glebas CGRN') {
   // ── Placemarks ─────────────────────────────────────────────────────────
   const placemarks = glebas.map(g => {
     // Determina estilo baseado nos flags de conformidade e TI
-    const tiOk    = !g.tiIntersecoes?.length;
-    const conf    = g.conformidade;
+    const tiOk = !g.tiIntersecoes?.length;
+    const conf = g.conformidade;
     const isReprovada = conf?.reprovada;
-    const temAlerta  = conf?.temAlerta;
+    const temAlerta = conf?.temAlerta;
 
     const styleId = isReprovada || !tiOk ? 'glebaConflito'
-                  : temAlerta            ? 'glebaAlerta'
-                  : 'glebaOk';
+      : temAlerta ? 'glebaAlerta'
+        : 'glebaOk';
 
     // Coordenadas KML: lon,lat,altitude
     const coords = g.geoJsonCoords
-      .map(([lon, lat]) => `${lon.toFixed(7)},${lat.toFixed(7)},0`)
+      .map(([lon, lat]) => `${lon.toFixed(COORD_PRECISION)},${lat.toFixed(COORD_PRECISION)},0`)
       .join('\n          ');
 
     // Metadados para o balão
     const carItem = conf?.itens?.find(i => i.id === 'car');
     const coverage = carItem?.coverage ?? 0;
-    const carArea  = carItem?.carAreaHa ? `${carItem.carAreaHa.toFixed(2)} ha` : 'N/A';
-    
+    const carArea = carItem?.carAreaHa ? `${carItem.carAreaHa.toFixed(2)} ha` : 'N/A';
+
     const tiInfo = g.tiIntersecoes?.length
       ? `<tr style="color:#d32f2f"><td>Terras Indígenas:</td><td><b>${g.tiIntersecoes.map(t => t.nome).join(', ')}</b></td></tr>` : '';
-    
+
     const statusText = isReprovada ? 'REPROVADA' : temAlerta ? 'RESSALVAS' : 'APROVADA';
     const statusColor = isReprovada ? '#d32f2f' : temAlerta ? '#f57c00' : '#388e3c';
 
@@ -175,7 +178,7 @@ export function glebesToKML(glebas, projectName = 'Glebas CGRN') {
         </p>
         <table border="0" cellpadding="3" style="font-size:12px; width:100%;">
           <tr><td style="color:#666">Área Total:</td><td><b>${g.area.toFixed(4)} ha</b></td></tr>
-          <tr><td style="color:#666">Perímetro:</td><td>${(g.perimeter/1000).toFixed(3)} km</td></tr>
+          <tr><td style="color:#666">Perímetro:</td><td>${(g.perimeter / 1000).toFixed(3)} km</td></tr>
           <tr><td style="color:#666">Municípios:</td><td>${g.municipioCount}</td></tr>
           <tr><td style="color:#666">Cobertura CAR:</td><td>${coverage}%</td></tr>
           <tr><td style="color:#666">Área no CAR:</td><td>${carArea}</td></tr>
@@ -229,9 +232,9 @@ export function glebesToKML(glebas, projectName = 'Glebas CGRN') {
 
 function escapeXml(str) {
   return String(str)
-    .replace(/&/g,  '&amp;')
-    .replace(/</g,  '&lt;')
-    .replace(/>/g,  '&gt;')
-    .replace(/"/g,  '&quot;')
-    .replace(/'/g,  '&apos;');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }

@@ -120,12 +120,16 @@ function normalizeTISource(raw) {
   return { type: 'FeatureCollection', features: [] };
 }
 
+const { COORD_PRECISION } = CONFIG.VALIDATION;
+
 /** Parse simples de WKT POLYGON/MULTIPOLYGON → GeoJSON geometry */
 function parseWKT(wkt) {
   const w = wkt.trim();
   const parseRing = s => s.trim().split(',').map(p => {
     const [lon, lat] = p.trim().split(/\s+/);
-    return [round5(parseFloat(lon)), round5(parseFloat(lat))];
+    const factor = Math.pow(10, COORD_PRECISION);
+    const rnd = n => Math.round(parseFloat(n) * factor) / factor;
+    return [rnd(lon), rnd(lat)];
   });
   const rings = s => [...s.matchAll(/\(([^()]+)\)/g)].map(m => parseRing(m[1]));
 
@@ -138,7 +142,6 @@ function parseWKT(wkt) {
   }
   return null;
 }
-const round5 = n => Math.round(n * 1e5) / 1e5;
 
 // ─── Camada visual ─────────────────────────────────────────────────────────
 

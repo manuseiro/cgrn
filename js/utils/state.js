@@ -4,64 +4,65 @@
  */
 
 export const state = {
-  map:          null,
-  drawControl:  null,
-  drawnItems:   null,
-  glebas:       [],
-  polygonLayers:[],
+  map: null,
+  drawControl: null,
+  drawnItems: null,
+  glebas: [],
+  polygonLayers: [],
   markerLayers: [],
-  centroidLayers:[],
+  centroidLayers: [],
+  validationMarkerLayers: [],
 
   // SUDENE
-  sudeneLayer:    null,
+  sudeneLayer: null,
   sudeneFeatures: [],
-  sudeneLoaded:   false,
+  sudeneLoaded: false,
 
   // Cache djb2
   cache: new Map(),
 
   // Flags de UI
-  isProcessing:   false,
-  darkMode:       false,
-  showMarkers:    false,
-  showCentroids:  false,
-  showGlebas:     true,
+  isProcessing: false,
+  darkMode: false,
+  showMarkers: false,
+  showCentroids: false,
+  showGlebas: true,
   validatePoints: true,
 
   // Terras Indígenas (FUNAI)
-  tiLayer:    null,
+  tiLayer: null,
   tiFeatures: [],
-  tiLoaded:   false,
-  showTI:     false,
+  tiLoaded: false,
+  showTI: false,
 
   // Camadas externas — conformidade ambiental
-  ucLayer:     null,   // Unidades de Conservação (ICMBio)
-  ucFeatures:  [],
-  ucLoaded:    false,
-  showUC:      false,
+  ucLayer: null,   // Unidades de Conservação (ICMBio)
+  ucFeatures: [],
+  ucLoaded: false,
+  showUC: false,
 
-  ibamaLayer:    null, // Embargos IBAMA
+  ibamaLayer: null, // Embargos IBAMA
   ibamaFeatures: [],
-  ibamaLoaded:   false,
-  showIbama:     false,
+  ibamaLoaded: false,
+  showIbama: false,
 
-  biomeLayer:  null,   // Biomas (IBGE)
-  biomeFeatures:[],
+  biomeLayer: null,   // Biomas (IBGE)
+  biomeFeatures: [],
   biomeLoaded: false,
-  showBioma:   false,
+  showBioma: false,
 
-  carLayer:    null,   // Layer para visualização de geometrias do CAR
+  carLayer: null,   // Layer para visualização de geometrias do CAR
   carFeatures: [],
-  showCAR:     false,
+  showCAR: false,
 
   /** Resultados de conformidade BACEN/SICOR por glebaId */
   conformidade: new Map(),  // glebaId → ConformidadeResult
 };
 
 export function clearGlebas() {
-  state.glebas        = [];
+  state.glebas = [];
   state.polygonLayers = [];
-  state.markerLayers  = [];
-  state.centroidLayers= [];
-  state.conformidade  = new Map();
+  state.markerLayers = [];
+  state.centroidLayers = [];
+  state.conformidade = new Map();
 }

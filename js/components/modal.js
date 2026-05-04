@@ -6,7 +6,17 @@
 export class ModalManager {
   constructor() {
     this.modals = new Map();
+  }
+
+  /**
+   * Inicializa o gerenciador e pré-registra modais do DOM.
+   */
+  init() {
     this._initListeners();
+    document.querySelectorAll('.modal').forEach(el => {
+      this.getOrCreate(el.id);
+    });
+    console.log('[ModalManager] Inicializado');
   }
 
   /**

@@ -15,10 +15,10 @@
  */
 
 import { CONFIG } from '../utils/config.js';
-import { state }  from '../utils/state.js';
-import { log }    from '../components/ui.js';
+import { state } from '../utils/state.js';
+import { log } from '../components/ui.js';
 
-const { NORDESTE, MIN_POINTS, MAX_MUNICIPIOS } = CONFIG.VALIDATION;
+const { NORDESTE, MIN_POINTS, MAX_MUNICIPIOS, COORD_PRECISION } = CONFIG.VALIDATION;
 
 // ─── Hash djb2 para chave de cache ────────────────────────────────────────
 // Usar o texto bruto como chave de Map pode consumir muita memória em textos
@@ -93,40 +93,44 @@ function findMunicipios(points, polyBbox, validarPontos) {
  * Converte o texto bruto em Map<glebaId, [lon, lat][]>.
  * @returns {{ errors: string[], glebaMap: Map<number, number[][]> }}
  */
+/**
+ * Converte o texto bruto em Map<glebaId, [lon, lat][]>.
+ */
 function parseRawText(text) {
   const glebaMap = new Map();
-  const errors   = [];
+  const errors = [];
 
   text.split('\n').forEach((raw, i) => {
     const line = raw.trim();
     if (!line) return;
 
-    const parts = line.split(/[\s,;]+/); // aceita espaço, vírgula ou ponto-e-vírgula
+    const parts = line.split(/[\s,;]+/);
     if (parts.length < 4) {
-      errors.push(`Linha ${i + 1}: esperado 4 valores (gleba ponto lat lon), encontrado ${parts.length}.`);
+      errors.push(`Linha ${i + 1}: esperado 4 valores.`);
       return;
     }
 
-    const [glebaId, , lat, lon] = parts.map(Number);
+    const glebaId = Number(parts[0]);
+    const lat = Number(parts[2]);
+    const lon = Number(parts[3]);
+
     if ([glebaId, lat, lon].some(isNaN)) {
       errors.push(`Linha ${i + 1}: valores não numéricos.`);
       return;
     }
-    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-      errors.push(`Linha ${i + 1}: lat/lon fora dos limites globais.`);
-      return;
-    }
-    if (lat < NORDESTE.latMin || lat > NORDESTE.latMax ||
-        lon < NORDESTE.lngMin || lon > NORDESTE.lngMax) {
-      errors.push(
-        `Linha ${i + 1}: [${lat}, ${lon}] fora do Nordeste ` +
-        `(lat ${NORDESTE.latMin}..${NORDESTE.latMax}, lon ${NORDESTE.lngMin}..${NORDESTE.lngMax}).`
-      );
+
+    // Precisão aumentada para evitar truncamento irreversível
+    const fixedLat = Number(lat.toFixed(COORD_PRECISION));
+    const fixedLon = Number(lon.toFixed(COORD_PRECISION));
+
+    if (fixedLat < NORDESTE.latMin || fixedLat > NORDESTE.latMax ||
+      fixedLon < NORDESTE.lngMin || fixedLon > NORDESTE.lngMax) {
+      errors.push(`Linha ${i + 1}: coordenadas fora do Nordeste.`);
       return;
     }
 
     if (!glebaMap.has(glebaId)) glebaMap.set(glebaId, []);
-    glebaMap.get(glebaId).push([lon, lat]); // GeoJSON order
+    glebaMap.get(glebaId).push([fixedLon, fixedLat]);
   });
 
   return { errors, glebaMap };
@@ -138,11 +142,11 @@ function parseRawText(text) {
  * @param {number}    glebaId
  * @param {number[][]} points   - [lon, lat][]
  * @param {boolean}   validarPontos
+ * @param {string[]}  allWarnings  ← Adicionado: referência para coletar avisos
  * @returns {{ errors: string[], glebaData: GlebaData|null }}
  */
-function validateSingleGleba(glebaId, points, validarPontos) {
-
-  // 1. Mínimo de pontos
+function validateSingleGleba(glebaId, points, validarPontos, allWarnings) {
+  // 1. Pontos minimos
   if (points.length < MIN_POINTS) {
     return { errors: [`Gleba ${glebaId}: mínimo ${MIN_POINTS} pontos (${points.length} fornecido[s]).`], glebaData: null };
   }
@@ -151,80 +155,76 @@ function validateSingleGleba(glebaId, points, validarPontos) {
   const [fx, fy] = points[0];
   const [lx, ly] = points[points.length - 1];
   if (fx !== lx || fy !== ly) {
-    return { errors: [`Gleba ${glebaId}: polígono não fechado — primeiro e último ponto devem ser iguais.`], glebaData: null };
+    return { errors: [`Gleba ${glebaId}: polígono não fechado.`], glebaData: null };
   }
 
-  // 3. Sem pontos consecutivos iguais (exceto fechamento)
-  for (let i = 0; i < points.length - 2; i++) {
-    const [ax, ay] = points[i];
-    const [bx, by] = points[i + 1];
-    if (ax === bx && ay === by) {
-      return { errors: [`Gleba ${glebaId}: pontos consecutivos duplicados nas posições ${i + 1} e ${i + 2}.`], glebaData: null };
+  // 3. Detecção de duplicatas (SEM REMOVER)
+  let duplicatas = 0;
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    if (prev[0] === curr[0] && prev[1] === curr[1]) {
+      duplicatas++;
     }
   }
 
-  // 4. Construção do polígono Turf
+  if (duplicatas > 0) {
+    allWarnings.push(
+      `<i class="bi bi-exclamation-triangle-fill text-warning"></i> Gleba ${glebaId}: possui ${duplicatas} ponto(s) duplicado(s) consecutivo(s).`
+    );
+  }
+
+  // 4. Autointerseções
   let poly;
   try {
     poly = turf.polygon([points]);
   } catch (e) {
-    return { errors: [`Gleba ${glebaId}: polígono inválido — ${e.message}.`], glebaData: null };
+    return { errors: [`Gleba ${glebaId}: geometria inválida.`], glebaData: null };
   }
 
-  // 5. Sem autointerseção
   try {
     const kinks = turf.kinks(poly);
     if (kinks.features.length > 0) {
-      return { errors: [`Gleba ${glebaId}: possui ${kinks.features.length} autointerseção(ões).`], glebaData: null };
+      allWarnings.push(
+        `<i class="bi bi-exclamation-triangle-fill text-warning"></i> Gleba ${glebaId}: possui ${kinks.features.length} autointerseção(ões).`
+      );
     }
-  } catch (_) {
-    return { errors: [`Gleba ${glebaId}: erro ao verificar autointerseção.`], glebaData: null };
+  } catch (e) {
+    console.warn(`Gleba ${glebaId}: erro ao verificar autointerseções`);
   }
 
-  // 6. Municípios (usa índice espacial ou pula se validarPontos=false)
+  // 5. Municípios e metricas
   if (!state.sudeneLoaded) {
-    return { errors: [`Gleba ${glebaId}: SUDENE ainda não carregada — aguarde e tente novamente.`], glebaData: null };
+    return { errors: [`Gleba ${glebaId}: SUDENE não carregada.`], glebaData: null };
   }
 
   const polyBbox = turf.bbox(poly);
   const { municipios, semiArido } = findMunicipios(points, polyBbox, validarPontos);
 
-  if (municipios === null) {
-    return { errors: [`Gleba ${glebaId}: não foi possível verificar municípios.`], glebaData: null };
-  }
-
   if (validarPontos && municipios.size > MAX_MUNICIPIOS) {
-    return {
-      errors: [`Gleba ${glebaId}: abrange ${municipios.size} municípios (máximo: ${MAX_MUNICIPIOS}).`],
-      glebaData: null,
-    };
+    return { errors: [`Gleba ${glebaId}: abrange ${municipios.size} municípios (máx. ${MAX_MUNICIPIOS}).`], glebaData: null };
   }
 
-  // 7. Métricas geográficas
   let area, centroid, perimeter;
   try {
-    area      = turf.area(poly) / 10_000;                        // m² → hectares
-    centroid  = turf.centroid(poly).geometry.coordinates;         // [lon, lat]
+    area = turf.area(poly) / 10000;
+    centroid = turf.centroid(poly).geometry.coordinates;
     perimeter = turf.length(turf.polygonToLine(poly), { units: 'meters' });
   } catch (e) {
-    return { errors: [`Gleba ${glebaId}: erro ao calcular métricas — ${e.message}.`], glebaData: null };
+    return { errors: [`Gleba ${glebaId}: erro ao calcular métricas.`], glebaData: null };
   }
 
-  /** @type {GlebaData} */
   const glebaData = {
-    glebaId:      parseInt(glebaId, 10),
-    coords:       points.map(([lon, lat]) => [lat, lon]),  // Leaflet [lat, lon]
-    geoJsonCoords: points,                                  // GeoJSON [lon, lat]
-    area,
-    perimeter,
-    centroid,                                               // [lon, lat]
-    municipios:   Array.from(municipios),
+    glebaId: parseInt(glebaId, 10),
+    coords: points.map(([lon, lat]) => [lat, lon]),
+    geoJsonCoords: points,
+    area, perimeter, centroid,
+    municipios: Array.from(municipios),
     municipioCount: municipios.size,
-    semiArido,                                              // boolean | null
-    turfPolygon:  poly,
+    semiArido,
+    turfPolygon: poly,
   };
 
-  log(`Gleba ${glebaId}: ${area.toFixed(2)} ha, ${municipios.size} mun.`);
   return { errors: [], glebaData };
 }
 
@@ -237,37 +237,88 @@ function validateSingleGleba(glebaId, points, validarPontos) {
  * @param {string} rawText
  * @param {object} [opts]
  * @param {boolean} [opts.validarPontos=true] - Validar cada ponto contra SUDENE
- * @returns {{ valid: boolean, errors: string[], data: GlebaData[], fromCache: boolean }}
+ * @returns {{ valid: boolean, errors: string[], warnings?: string[], data: GlebaData[], fromCache: boolean }}
  */
 export function validateCoordinates(rawText, { validarPontos = true } = {}) {
   const text = rawText.trim();
   if (!text) {
-    return { valid: false, errors: ['Nenhuma coordenada fornecida.'], data: [], fromCache: false };
+    return {
+      valid: false,
+      errors: ['Nenhuma coordenada fornecida.'],
+      warnings: [],
+      data: [],
+      fromCache: false
+    };
   }
 
-  // Cache hit (inclui validarPontos na chave para evitar false positives)
+  // Cache hit
   const cacheKey = `${djb2(text)}_${validarPontos ? '1' : '0'}`;
   if (state.cache.has(cacheKey)) {
     log('Cache hit:', cacheKey);
-    return { valid: true, errors: [], data: state.cache.get(cacheKey), fromCache: true };
+    return {
+      valid: true,
+      errors: [],
+      warnings: [],
+      data: state.cache.get(cacheKey),
+      fromCache: true
+    };
   }
 
   const { errors: parseErrors, glebaMap } = parseRawText(text);
-  if (parseErrors.length) return { valid: false, errors: parseErrors, data: [], fromCache: false };
-  if (!glebaMap.size) return { valid: false, errors: ['Nenhuma gleba encontrada.'], data: [], fromCache: false };
+  if (parseErrors.length) {
+    return {
+      valid: false,
+      errors: parseErrors,
+      warnings: [],
+      data: [],
+      fromCache: false
+    };
+  }
+
+  if (!glebaMap.size) {
+    return {
+      valid: false,
+      errors: ['Nenhuma gleba encontrada.'],
+      warnings: [],
+      data: [],
+      fromCache: false
+    };
+  }
 
   const allErrors = [];
-  const allData   = [];
+  const allWarnings = [];   // ← Declarada aqui
+  const allData = [];
 
   for (const [glebaId, points] of glebaMap) {
-    const { errors, glebaData } = validateSingleGleba(glebaId, points, validarPontos);
+    const { errors, glebaData } = validateSingleGleba(
+      glebaId,
+      points,
+      validarPontos,
+      allWarnings     // ← Muito importante
+    );
     if (errors.length) allErrors.push(...errors);
     else allData.push(glebaData);
   }
 
-  if (allErrors.length) return { valid: false, errors: allErrors, data: [], fromCache: false };
+  if (allErrors.length) {
+    return {
+      valid: false,
+      errors: allErrors,
+      warnings: allWarnings,
+      data: [],
+      fromCache: false
+    };
+  }
 
+  // Sucesso
   allData.sort((a, b) => a.glebaId - b.glebaId);
   state.cache.set(cacheKey, allData);
-  return { valid: true, errors: [], data: allData, fromCache: false };
+
+  return {
+    valid: true,
+    errors: [],
+    warnings: allWarnings,
+    data: allData,
+    fromCache: false
+  };
 }

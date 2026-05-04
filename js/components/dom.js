@@ -30,13 +30,14 @@ export const el = {
   get mostrarUC() { return document.getElementById('mostrarUC'); },
   get mostrarIbama() { return document.getElementById('mostrarIbama'); },
   get mostrarBioma() { return document.getElementById('mostrarBioma'); },
-  get validarPontos() { return document.getElementById('validarPontos'); },
+  get validarRegras() { return document.getElementById('validarRegras'); },
 
   // Botões — modal Adicionar Gleba
   get btnAdicionar() { return document.getElementById('adicionar-gleba-btn'); },
   get btnValidar() { return document.getElementById('validar-gleba-btn'); },
   get btnLimparMapa() { return document.getElementById('limparMapa'); },
   get btnInserirExemplo() { return document.getElementById('inserirExemplo'); },
+  get carSearchCode() { return document.getElementById('carSearchCode'); },
 
   // Botões — navbar
   get btnCalcular() { return document.getElementById('calcularArea'); },
