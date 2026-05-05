@@ -40,13 +40,30 @@ export const CONFIG = Object.freeze({
   }),
 
   /**
-   * Terras Indígenas — FUNAI via api/funai/manuseiro.github.io/.
+   * Terras Indígenas — FUNAI via https://manuseiro.github.io/api/funai/.
    * Fallback para arquivo local se a URL externa falhar.
    */
   TI: Object.freeze({
     URL_PRIMARIA: 'https://manuseiro.github.io/api/funai/terras_indigenas_nordeste_2023.geojson',
-    URL_FALLBACK: 'api/funai/terras_indigenas_nordeste.geojson',
+    URL_FALLBACK: 'api/terras_indigenas_nordeste.geojson',
     NORDESTE_UFS: Object.freeze(['MA', 'PI', 'CE', 'RN', 'PB', 'PE', 'AL', 'SE', 'BA']),
+  }),
+
+  /**
+   * ICMBio — Unidades de Conservação (Arquivo Interno) via https://manuseiro.github.io/api/icmbio/.
+   * Fallback para arquivo local se a URL externa falhar.
+   */
+  ICMBIO: Object.freeze({
+    URL_PRIMARIA: 'https://manuseiro.github.io/api/icmbio/limite_ucs_federais_icmbio_geo.json',
+    URL_FALLBACK: 'api/limite_ucs_federais_icmbio_geo.json',
+  }),
+
+  /**
+   * IBAMA — Áreas Embargadas (Arquivo Interno)
+   */
+  IBAMA: Object.freeze({
+    URL_PRIMARIA: 'https://manuseiro.github.io/api/ibama/are_embargo_ibama.json', // ← nova linha
+    URL_FALLBACK: 'api/are_embargo_ibama.json',
   }),
 
   /**
@@ -54,23 +71,15 @@ export const CONFIG = Object.freeze({
    * Todas são serviços públicos e gratuitos.
    */
   CONFORMIDADE: Object.freeze({
-    /**
-     * ICMBio — Unidades de Conservação (WMS + WFS)
-     * WMS para tiles visuais, WFS para intersection check
-     */
-    UC_WMS: 'https://geoservices.icmbio.gov.br/arcgis/services/portal/NGIT_UNIDADES_CONSERVACAO/MapServer/WMSServer',
-    UC_API: 'https://geoservices.icmbio.gov.br/arcgis/rest/services/portal/NGIT_UNIDADES_CONSERVACAO/MapServer/0/query',
 
-    /**
-     * IBAMA — Áreas Embargadas
-     * REST endpoint público do IBAMA
-     */
-    EMBARGO_API: 'https://ibama.gov.br/component/phocadownload/file/1050-consulta-embs',
+
+
     /** Alternativa: SICAR / Módulo PRA */
     SICAR_API: 'https://www.car.gov.br/publico/municipios/downloads',
 
     /**
      * INPE TerraBrasilis — PRODES (desmatamento acumulado) e DETER (alertas)
+     * https://terrabrasilis.dpi.inpe.br/geoserver/prodes-brasil-nb/prodes_brasil/wms
      * Biomas: Caatinga, Cerrado, Mata Atlântica no Nordeste
      */
     PRODES_API: 'https://terrabrasilis.dpi.inpe.br/app/api/v1/',
