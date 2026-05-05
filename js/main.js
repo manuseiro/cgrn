@@ -1,14 +1,7 @@
 /**
- * @file main.js — v3.4
+ * @file main.js — v3.6.0
  * @description Orquestrador principal da aplicação CGRN.
  *
- * Novidades v3.4:
- *   - Painel CAR no modal de conformidade completamente redesenhado:
- *       · Barra de cobertura visual (total e por imóvel individual)
- *       · Campo "Área descoberta" (uncoveredHa) quando aplicável
- *       · Botão "Acessar CAR no site oficial" por imóvel
- *       · Distinção visual entre imóvel principal e adjacentes
- *   - Cache CAR invalidado automaticamente ao editar gleba
  */
 
 import { CONFIG } from './utils/config.js';
@@ -19,7 +12,6 @@ import {
   setGlebasVisible, setMarkersVisible, setCentroidsVisible
 } from './components/map.js';
 
-const { COORD_PRECISION } = CONFIG.VALIDATION;
 import { validateCoordinates } from './services/validation.js';
 import {
   showMessage, showToast, clearMessage,
@@ -43,18 +35,20 @@ import {
   checkGlebaTI, buildTILegend
 } from './services/terras_indigenas.js';
 import {
-  createUCLayer, createIBAMALayer, createBiomaLayer,
+  createBiomaLayer,
   invalidarCacheCAR, findCARByCode
 } from './services/camadas_externas.js';
+import { loadICMBIO, setICMBioVisible } from './services/icmbio.js';
+import { loadIBAMA, setIbamaVisible } from './services/ibama.js';
 import { verificarConformidade, CHECKS } from './services/conformidade.js';
 import { modals } from './components/modal.js';
-
-let searchTimeout;
+const { COORD_PRECISION } = CONFIG.VALIDATION;
+//let searchTimeout; - variável já declarada dentro de bindEvents()
 
 // ─── Boot ─────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
-  log('CGRN v3.4 inicializando...');
+  log('CGRN v3.6.0 inicializando...');
   modals.init();
   initMap();
   bindEvents();
@@ -66,6 +60,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await Promise.allSettled([
     loadSudeneLayer(),
     loadTerrasIndigenas(),
+    loadICMBIO(),
+    loadIBAMA(),
   ]);
 
   log('CGRN pronto ✅');
@@ -139,7 +135,21 @@ function bindEvents() {
       case 'project': exportProject(state.glebas); break;
     }
   });
+  // Toggle do painel flutuante de camadas
+  document.getElementById('btnToggleLayerPanel')?.addEventListener('click', () => {
+    const body = document.getElementById('layerPanelBody');
+    const icon = document.getElementById('layerPanelIcon');
+    const panel = document.getElementById('layerControlPanel');
+    const collapsed = body.classList.toggle('collapsed');
+    panel.classList.toggle('expanded', !collapsed);
+    if (icon) icon.className = collapsed ? 'bi bi-chevron-down ms-auto' : 'bi bi-chevron-up ms-auto';
+  });
 
+  // Sincroniza o painel flutuante com o mostrarTI (que também controla a legenda)
+  document.getElementById('mostrarTI')?.addEventListener('change', e => {
+    setTerrasIndigenasVisible(e.target.checked);
+    document.getElementById('tiLegendPanel')?.classList.toggle('d-none', !e.target.checked);
+  });
   // Checkboxes de visualização
   el.mostrarGlebas?.addEventListener('change', e => setGlebasVisible(e.target.checked));
   el.mostrarMarcadores?.addEventListener('change', e => {
@@ -166,11 +176,12 @@ function bindEvents() {
     setTerrasIndigenasVisible(e.target.checked);
     document.getElementById('tiLegendPanel')?.classList.toggle('d-none', !e.target.checked);
   });
-  el.mostrarUC?.addEventListener('change', e => toggleExternalLayer('uc', e.target.checked));
-  el.mostrarIbama?.addEventListener('change', e => toggleExternalLayer('ibama', e.target.checked));
+  el.mostrarUC?.addEventListener('change', e => setICMBioVisible(e.target.checked));
+  el.mostrarIbama?.addEventListener('change', e => setIbamaVisible(e.target.checked));
   el.mostrarBioma?.addEventListener('change', e => toggleExternalLayer('bioma', e.target.checked));
   el.validarRegras?.addEventListener('change', e => {
     state.validatePoints = e.target.checked;
+    state.cache.clear();     // Cache limpo ao trocar validarRegras
     processAndRender();
     invalidarCacheCAR(); // Também invalida o cache CAR se as regras mudarem
   });
@@ -202,14 +213,17 @@ function bindEvents() {
   state.map.on('draw:edited', e => {
     const lines = [];
     state.drawnItems.eachLayer(l => {
-      const gid = l._glebaId || 1;
+      const gid = l._glebaId ?? null;
+      if (gid === null) return;
       const pts = l.getLatLngs()[0];
       if (!pts || !pts.length) return;
       
       // Leaflet.Draw às vezes retorna array aninhado dependendo do tipo de edição
       const latlngs = Array.isArray(pts[0]) ? pts[0] : pts;
       
-      latlngs.forEach((ll, i) => lines.push(`${gid} ${i + 1} ${ll.lat.toFixed(COORD_PRECISION)} ${ll.lng.toFixed(COORD_PRECISION)}`));
+      latlngs.forEach((ll, i) => lines.push(
+        `${gid} ${i + 1} ${ll.lat.toFixed(COORD_PRECISION)} ${ll.lng.toFixed(COORD_PRECISION)}`
+      ));
       // Garante fechamento do polígono
       lines.push(`${gid} ${latlngs.length + 1} ${latlngs[0].lat.toFixed(COORD_PRECISION)} ${latlngs[0].lng.toFixed(COORD_PRECISION)}`);
     });
@@ -274,8 +288,8 @@ function bindEvents() {
 // ─── Camadas externas on/off ───────────────────────────────────────────────
 
 function toggleExternalLayer(key, visible) {
-  const stateKeyMap = { uc: 'ucLayer', ibama: 'ibamaLayer', bioma: 'biomeLayer' };
-  const createFnMap = { uc: createUCLayer, ibama: createIBAMALayer, bioma: createBiomaLayer };
+  const stateKeyMap = { bioma: 'biomeLayer' };
+  const createFnMap = { bioma: createBiomaLayer };
   const stateKey = stateKeyMap[key];
 
   if (visible) {
@@ -695,7 +709,11 @@ async function searchCARByCode() {
       const feat = car.geometry.type === 'MultiPolygon' ? car.geometry.coordinates[0][0] : car.geometry.coordinates[0];
       const nextGid = state.glebas.length > 0 ? Math.max(...state.glebas.map(g => g.glebaId)) + 1 : 1;
       const lines = feat.map((ll, i) => `${nextGid} ${i + 1} ${ll[1].toFixed(COORD_PRECISION)} ${ll[0].toFixed(COORD_PRECISION)}`);
-
+      //ADICIONAR ESTAS 4 LINHAS — fecha o anel se necessário
+      const f = feat[0], l = feat[feat.length - 1];
+      if (f[0] !== l[0] || f[1] !== l[1]) {
+        lines.push(`${nextGid} ${lines.length + 1} ${f[1].toFixed(COORD_PRECISION)} ${f[0].toFixed(COORD_PRECISION)}`);
+      }
       const current = getCoordText();
       setCoordText(current ? current + '\n' + lines.join('\n') : lines.join('\n'));
 

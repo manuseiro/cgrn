@@ -176,7 +176,7 @@ export function checkGlebaTI(gleba) {
   const results = [];
 
   for (const ti of state.tiFeatures) {
-    if (!bboxOk(polyBbox, ti.bbox)) continue;
+    if (!bboxIntersects(polyBbox, ti.bbox)) continue;
     try {
       if (turf.booleanIntersects(gleba.turfPolygon, ti.feature)) {
         let areaHa = null;
@@ -221,9 +221,11 @@ export function buildTILegend() {
 
 // ─── Utilitários ──────────────────────────────────────────────────────────
 
-function bboxOk([ax0, ay0, ax1, ay1], [bx0, by0, bx1, by1]) {
+/*function bboxOk([ax0, ay0, ax1, ay1], [bx0, by0, bx1, by1]) {
   return !(ax1 < bx0 || ax0 > bx1 || ay1 < by0 || ay0 > by1);
-}
+}*/
+// ibama.js, icmbio.js, terras_indigenas.js — remover a função local e adicionar o import:
+import { bboxIntersects } from '../utils/geo.js';
 
 function buildTIPopup(p) {
   const s = FASE_STYLE[p?.fase] ?? FASE_DEFAULT;

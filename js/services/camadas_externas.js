@@ -90,40 +90,9 @@ const IBGE_PREFIX_TO_UF = Object.freeze({
 
 // ─── WMS — Camadas Visuais ─────────────────────────────────────────────────
 
-/**
- * Cria e retorna camada WMS das Unidades de Conservação (ICMBio).
- * A camada é VISUAL apenas — para intersection check usa-se checkUCIntersection().
- */
-export function createUCLayer() {
-  return L.tileLayer.wms(
-    'https://geoservices.icmbio.gov.br/arcgis/services/portal/NGIT_UNIDADES_CONSERVACAO/MapServer/WMSServer',
-    {
-      layers: '0',
-      format: 'image/png',
-      transparent: true,
-      opacity: 0.55,
-      attribution: 'ICMBio — Unidades de Conservação',
-      updateWhenIdle: true,
-      updateWhenZooming: false,
-    }
-  );
-}
 
-/** Camada WMS IBAMA — Áreas Embargadas. */
-export function createIBAMALayer() {
-  return L.tileLayer.wms(
-    'https://siscom.ibama.gov.br/geoserver/ows',
-    {
-      layers: 'ibama:embargo_ibama',
-      format: 'image/png',
-      transparent: true,
-      opacity: 0.65,
-      attribution: 'IBAMA — Áreas Embargadas',
-      updateWhenIdle: true,
-      updateWhenZooming: false,
-    }
-  );
-}
+
+
 
 /** Camada WMS Biomas IBGE. */
 export function createBiomaLayer() {
@@ -144,73 +113,9 @@ export function createBiomaLayer() {
 
 // ─── API — Verificação de Interseção ─────────────────────────────────────────
 
-/**
- * Verifica se uma gleba intercepta Unidades de Conservação via API ICMBio.
- * @param {GlebaData} gleba
- * @returns {Promise<UCResult[]>}
- */
-export async function checkUCIntersection(gleba) {
-  const url = new URL(
-    'https://geoservices.icmbio.gov.br/arcgis/rest/services/portal/NGIT_UNIDADES_CONSERVACAO/MapServer/0/query'
-  );
-  url.searchParams.set('geometry', JSON.stringify(gleba.turfPolygon.geometry));
-  url.searchParams.set('geometryType', 'esriGeometryPolygon');
-  url.searchParams.set('spatialRel', 'esriSpatialRelIntersects');
-  url.searchParams.set('outFields', 'NM_UC,CATEGORIA_UC,GRUPO_UC,DS_ESFERA,NO_ORGAO');
-  url.searchParams.set('returnGeometry', 'false');
-  url.searchParams.set('f', 'geojson');
 
-  try {
-    const res = await fetchWithTimeout(url.toString(), TIMEOUT);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
 
-    return (data.features ?? []).map(f => ({
-      nome: f.properties.NM_UC ?? '—',
-      categoria: f.properties.CATEGORIA_UC ?? '—',
-      grupo: f.properties.GRUPO_UC ?? '—',
-      esfera: f.properties.DS_ESFERA ?? '—',
-      protecaoIntegral: UC_PROTECAO_INTEGRAL.has(f.properties.CATEGORIA_UC ?? ''),
-    }));
-  } catch (e) {
-    warn('UC API erro:', e.message);
-    return [];
-  }
-}
 
-/**
- * Verifica embargos IBAMA ativos para a área da gleba.
- * @param {GlebaData} gleba
- * @returns {Promise<EmbargoResult[]>}
- */
-export async function checkEmbargoIBAMA(gleba) {
-  const bbox = turf.bbox(gleba.turfPolygon);
-  const url = new URL('https://ibama.gov.br/api/embargo/geometria');
-  url.searchParams.set('xmin', bbox[0]);
-  url.searchParams.set('ymin', bbox[1]);
-  url.searchParams.set('xmax', bbox[2]);
-  url.searchParams.set('ymax', bbox[3]);
-
-  try {
-    const res = await fetchWithTimeout(url.toString(), TIMEOUT);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-
-    return (data.embargos ?? data.features ?? [])
-      .filter(e => e.ativo !== false)
-      .map(e => ({
-        numAI: e.num_ai ?? e.properties?.num_ai ?? '—',
-        cpfCnpj: e.cpf_cnpj ?? e.properties?.cpf_cnpj ?? '—',
-        municipio: e.municipio ?? e.properties?.municipio ?? '—',
-        bioma: e.bioma ?? e.properties?.bioma ?? '—',
-        situacao: e.situacao ?? e.properties?.situacao ?? 'Ativo',
-        dataEmissao: e.data_emissao ?? e.properties?.data_emissao ?? '—',
-      }));
-  } catch (e) {
-    warn('IBAMA embargo API erro:', e.message);
-    return [];
-  }
-}
 
 /**
  * Identifica o bioma predominante da gleba via IBGE API.

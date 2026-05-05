@@ -72,12 +72,35 @@
     </div>
 
     <div class="timeline">
-
+    <!-- Versão 3.6.0 -->
+      <div class="timeline-item">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-success version-badge">v3.6.0</span>
+          <span class="text-muted small">05/05/2026 (Atual)</span>
+        </div>
+        <div class="card border-0 shadow-sm rounded-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-3 text-primary">Refatoração de Busca e Robustez CAR</h5>
+            <ul class="mb-0 small">
+              <li><strong>Refatoração Spatial:</strong> Lógica de MultiPolygon movida para
+                <code>spatial_analysis.js</code> com tratamento de erros topológicos.
+              </li>
+              <li><strong>Busca Inteligente CAR:</strong> Suporte a múltiplos formatos de código e detecção automática
+                de UF via Regex.</li>
+              <li><strong>Otimização de Performance:</strong> Debounce na busca CAR e cache alfanumérico por código de
+                imóvel.</li>
+              <li><strong>Interface Moderna:</strong> Renovação visual das páginas de Documentação e Changelog.</li>
+              <li><strong>UI Improvements:</strong> Novo botão para limpar cache do SICAR e feedback visual aprimorado
+                em processamentos longos.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
       <!-- Versão 3.5.1 -->
       <div class="timeline-item">
         <div class="d-flex align-items-center gap-2 mb-2">
           <span class="badge bg-success version-badge">v3.5.1</span>
-          <span class="text-muted small">02/05/2026 (Atual)</span>
+          <span class="text-muted small">02/05/2026</span>
         </div>
         <div class="card border-0 shadow-sm rounded-4">
           <div class="card-body p-4">
@@ -112,21 +135,6 @@
               <li>Integração com bases ICMBio, IBAMA e FUNAI via GeoServer.</li>
               <li>Cálculo de sobreposição percentual em tempo real.</li>
             </ul>
-          </div>
-        </div>
-      </div>
-
-      <!-- Futuro -->
-      <div class="timeline-item future">
-        <div class="d-flex align-items-center gap-2 mb-2">
-          <span class="badge bg-secondary version-badge">v3.6.0</span>
-          <span class="text-muted small">Planejado</span>
-        </div>
-        <div class="card border-0 shadow-sm rounded-4 bg-light">
-          <div class="card-body p-4">
-            <h5 class="fw-bold mb-2">Próximas Melhorias</h5>
-            <p class="small text-muted mb-0">Exportação de relatórios em PDF, suporte a formatos GeoJSON em importação
-              direta e integração com APIs de Preços de Terras.</p>
           </div>
         </div>
       </div>

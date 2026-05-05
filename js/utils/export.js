@@ -41,7 +41,7 @@ export function exportToCSV(glebas) {
     const conf = state.conformidade.get(g.glebaId);
     return [
       g.glebaId,
-      g.area.toFixed(6),
+      g.area.toFixed(2),
       g.perimeter.toFixed(2),
       g.municipioCount,
       g.semiArido === true ? 'Sim' : g.semiArido === false ? 'Não' : '—',
@@ -58,7 +58,7 @@ export function exportToCSV(glebas) {
   });
 
   const totalArea = glebas.reduce((s,g)=>s+g.area, 0);
-  rows.push(['TOTAL', totalArea.toFixed(6), '', glebas.length+' gleba(s)','','','','','','','','','','']);
+  rows.push(['TOTAL', totalArea.toFixed(2), '', glebas.length+' gleba(s)','','','','','','','','','','']);
 
   const csv = [headers, ...rows]
     .map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','))
@@ -82,7 +82,7 @@ export function exportToGeoJSON(glebas) {
       type:'Feature',
       properties:{
         gleba_id:      g.glebaId,
-        area_ha:       +g.area.toFixed(6),
+        area_ha:       +g.area.toFixed(2),
         perimetro_m:   +g.perimeter.toFixed(2),
         municipios:    g.municipioCount,
         semiarido:     g.semiArido,

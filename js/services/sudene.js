@@ -19,18 +19,38 @@ const { STATE_COLORS, DEFAULT_COLOR } = CONFIG.SUDENE;
 export async function loadSudeneLayer() {
   setSudeneStatus('loading');
 
+  // ── Busca dados com fallback local ────────────────────────────────────────
+  // 1º tenta a URL externa (GitHub/gov) com timeout de 12s.
+  // Se falhar por CORS, timeout ou HTTP error, usa o arquivo local (1.6MB).
+  let sudeneData = null;
+
   try {
-    const response = await fetch(CONFIG.SUDENE.URL);
+    const proxiedUrl = CONFIG.PROXY_URL + encodeURIComponent(CONFIG.SUDENE.URL);
+    const response = await fetch(proxiedUrl, { signal: AbortSignal.timeout(12000) });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const sudeneData = await response.json();
-
-    if (!sudeneData?.features?.length) {
-      throw new Error('Formato de dados inválido (sem features)');
+    sudeneData = await response.json();
+    log(`SUDENE externa: ${sudeneData.features.length} features carregadas`);
+  } catch (e1) {
+    warn('SUDENE externa falhou:', e1.message, '— usando fallback local');
+    try {
+      const response2 = await fetch('api/SUDENE_2021.json');
+      if (!response2.ok) throw new Error(`HTTP ${response2.status}`);
+      sudeneData = await response2.json();
+      log(`SUDENE fallback local: ${sudeneData.features.length} features carregadas`);
+    } catch (e2) {
+      warn('SUDENE fallback local também falhou:', e2.message);
+      setSudeneStatus('error');
+      return;
     }
+  }
 
-    log(`SUDENE: ${sudeneData.features.length} features carregadas`);
+  if (!sudeneData?.features?.length) {
+    warn('SUDENE: formato inválido (sem features)');
+    setSudeneStatus('error');
+    return;
+  }
 
+  try {
     // ── Construção do índice espacial ────────────────────────────────────
     // Para cada feature, pré-computa o bbox e armazena junto com o objeto GeoJSON.
     // Isso reduz o custo de validação de município de O(n) para O(k)
@@ -94,7 +114,7 @@ export async function loadSudeneLayer() {
     setSudeneStatus('ok');
 
   } catch (error) {
-    warn('Erro ao carregar SUDENE:', error);
+    warn('Erro ao processar dados da SUDENE:', error);
     setSudeneStatus('error');
     // Não lança o erro — a aplicação pode funcionar parcialmente sem SUDENE
     // A validação de município mostrará erro descritivo ao usuário

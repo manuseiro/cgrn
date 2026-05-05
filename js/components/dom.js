@@ -37,7 +37,8 @@ export const el = {
   get btnValidar() { return document.getElementById('validar-gleba-btn'); },
   get btnLimparMapa() { return document.getElementById('limparMapa'); },
   get btnInserirExemplo() { return document.getElementById('inserirExemplo'); },
-  get carSearchCode() { return document.getElementById('carSearchCode'); },
+  get carSearchCode()  { return document.getElementById('carSearchCode'); },
+  get btnSearchCAR()   { return document.getElementById('btnSearchCAR'); },
 
   // Botões — navbar
   get btnCalcular() { return document.getElementById('calcularArea'); },
@@ -58,6 +59,6 @@ export const el = {
   get sudeneStatus() { return document.getElementById('sudeneStatus'); },
   get savedProjectInfo() { return document.getElementById('savedProjectInfo'); },
 };
-
-export const log = (...a) => (window.CGRN_DEBUG !== false) && console.log('[CGRN]', ...a);
-export const warn = (...a) => (window.CGRN_DEBUG !== false) && console.warn('[CGRN]', ...a);
+import { CONFIG } from '../utils/config.js';
+export const log  = (...a) => CONFIG.DEBUG && console.log('[CGRN]', ...a);
+export const warn = (...a) => CONFIG.DEBUG && console.warn('[CGRN]', ...a);

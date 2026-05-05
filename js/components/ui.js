@@ -4,6 +4,7 @@
  */
 
 import { CONFIG } from '../utils/config.js';
+const { COORD_PRECISION } = CONFIG.VALIDATION;
 import { state } from '../utils/state.js';
 import { el, log, warn } from './dom.js';
 
@@ -84,11 +85,11 @@ export function formatPerimeter(m) {
   return m >= 1000 ? `${(m / 1000).toFixed(3)} km` : `${m.toFixed(1)} m`;
 }
 
-export function areaToColor(area, maxArea) {
-  // Cor fixa para todas as glebas para evitar conflito visual e manter consistência
-  return '#F68B1F'; 
+// 05/05/2026 - 00:30 - Subistuimos o trecho: export function areaToColor(area, maxArea) {return '#F68B1F'; }
+export function areaToColor(area, maxArea, glebaId = 1) {
+  const paleta = ['#1D9E75','#185FA5','#854F0B','#7F77DD','#D85A30','#3B6D11','#993556'];
+  return paleta[(glebaId - 1) % paleta.length];
 }
-
 // ─── Tabela de resultados ─────────────────────────────────────────────────
 export function renderResultsTable(glebas) {
   const body = el.resultadosTableBody;
@@ -232,7 +233,8 @@ export function updateStatusBar(glebas) {
 }
 export function updateStatusCoords(latlng) {
   if (el.statusCoords) {
-    el.statusCoords.textContent = `Lat ${latlng.lat.toFixed(5)} | Lon ${latlng.lng.toFixed(5)}`;
+    el.statusCoords.textContent = 
+    `Lat ${latlng.lat.toFixed(COORD_PRECISION)} | Lon ${latlng.lng.toFixed(COORD_PRECISION)}`;
   }
 }
 

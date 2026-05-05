@@ -286,7 +286,98 @@ body {
   background: #1f2937 !important;
   color: #e5e7eb !important;
 }
+/* ─── Painel flutuante de camadas (direita) ─────────────────── */
+#layerControlPanel {
+  position: fixed;
+  right: 10px;
+  bottom: calc(var(--cgrn-status-h) + 25px);
+  z-index: 1000;
+  background: rgba(255, 255, 255, .97);
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  border-radius: var(--cgrn-radius);
+  box-shadow: var(--cgrn-shadow);
+  min-width: 200px;
+  max-width: 230px;
+  overflow: hidden;
+  transition: all .2s ease;
+}
 
+[data-bs-theme="dark"] #layerControlPanel {
+  background: rgba(31, 41, 55, .97);
+}
+
+.lcp-header {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .45rem .75rem;
+  font-size: .75rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  background: rgba(0, 0, 0, .03);
+  border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+}
+
+.lcp-header:hover { background: rgba(0, 0, 0, .06); }
+
+[data-bs-theme="dark"] .lcp-header { background: rgba(255,255,255,.04); }
+
+#layerPanelBody { padding: .4rem 0 .5rem; }
+
+#layerPanelBody.collapsed { display: none; }
+
+.lcp-section-title {
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--bs-secondary-color, #6c757d);
+  padding: .3rem .75rem .1rem;
+}
+
+.lcp-item {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .3rem .75rem;
+  font-size: .76rem;
+  cursor: pointer;
+  transition: background .12s;
+}
+
+.lcp-item:hover { background: rgba(0,0,0,.04); }
+[data-bs-theme="dark"] .lcp-item:hover { background: rgba(255,255,255,.06); }
+
+.lcp-swatch {
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  border: 2px solid;
+  flex-shrink: 0;
+}
+
+.lcp-switch { cursor: pointer; }
+
+.lcp-divider {
+  margin: .35rem .75rem;
+  border-top: 1px solid var(--bs-border-color, #dee2e6);
+}
+
+/* Recua o painel quando a legenda TI está visível */
+#tiLegendPanel:not(.d-none) ~ #layerControlPanel {
+  /* Não há conflito pois TI fica à esquerda e este à direita */
+}
+
+/* Mobile: colapsa automaticamente em telas pequenas */
+@media (max-width: 576px) {
+  #layerControlPanel {
+    right: 6px;
+    min-width: 180px;
+  }
+  #layerPanelBody { display: none; }
+  #layerControlPanel.expanded #layerPanelBody { display: block; }
+}
 /* ─── Painel de legenda TI ───────────────────────────────────── */
 #tiLegendPanel {
   position: fixed;
@@ -363,6 +454,55 @@ body {
   font-size: .68rem;
   color: #888;
   margin-top: .5rem;
+}
+
+/* ─── Abas da modal adicionarGleba ──────────────────────────── */
+/*
+ * Transforma nav-pills em abas reais usando apenas CSS.
+ * O HTML não precisa ser alterado.
+ */
+#adicionarGleba .nav.nav-pills {
+  gap: 0;
+  padding: 0 !important;
+  background: transparent !important;
+  border-bottom: 2px solid var(--bs-border-color, #dee2e6);
+  border-radius: 0 !important;
+  margin-bottom: 1.25rem !important;
+}
+
+#adicionarGleba .nav.nav-pills .nav-item {
+  margin-bottom: -2px; /* sobrepõe a borda inferior do container */
+}
+
+#adicionarGleba .nav.nav-pills .nav-link {
+  border-radius: 8px 8px 0 0 !important;
+  border: 2px solid transparent;
+  border-bottom: none;
+  padding: 0.55rem 1rem;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--bs-secondary-color);
+  background: transparent;
+  transition: color .15s, background .15s, border-color .15s;
+  white-space: nowrap;
+}
+
+#adicionarGleba .nav.nav-pills .nav-link:hover:not(.active) {
+  color: var(--bs-body-color);
+  background: var(--bs-tertiary-bg);
+  border-color: var(--bs-border-color) var(--bs-border-color) transparent;
+}
+
+#adicionarGleba .nav.nav-pills .nav-link.active {
+  color: var(--bs-primary);
+  background: var(--bs-modal-bg, #fff);
+  border-color: var(--bs-border-color) var(--bs-border-color) var(--bs-modal-bg, #fff);
+  font-weight: 600;
+}
+
+[data-bs-theme="dark"] #adicionarGleba .nav.nav-pills .nav-link.active {
+  background: var(--bs-modal-bg, #212529);
+  border-bottom-color: var(--bs-modal-bg, #212529);
 }
 
 /* ─── Modal conformidade ─────────────────────────────────────── */

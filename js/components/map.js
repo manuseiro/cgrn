@@ -67,7 +67,8 @@ export function renderPolygons(glebas) {
   const maxArea = Math.max(...glebas.map(g => g.area));
 
   glebas.forEach(g => {
-    const color = areaToColor(g.area, maxArea);
+    //05/05/2026 - subistituimos o trecho: const color = areaToColor(g.area, maxArea);
+    const color = areaToColor(g.area, maxArea, g.glebaId);
     const conf = state.conformidade.get(g.glebaId);
 
     // Borda vermelha se reprovada, amarela se alerta, azul se ok
@@ -126,7 +127,7 @@ export function renderCentroids(glebas) {
   const maxArea = Math.max(...glebas.map(g => g.area));
   glebas.forEach(g => {
     const [lon, lat] = g.centroid;
-    const color = areaToColor(g.area, maxArea);
+    const color = areaToColor(g.area, maxArea, g.glebaId);
     const icon = L.divIcon({
       className: '',
       html: `<div class="cgrn-centroid" style="background:${color};border-color:${color}">${g.glebaId}</div>`,
@@ -182,7 +183,31 @@ export function renderValidationMarkers(glebas) {
       state.validationMarkerLayers.push(marker);
     });
 
-    // Futuramente podemos destacar pontos de autointerseção aqui também
+    // Autointerseções (Kinks)
+    if (gleba.turfPolygon) {
+      try {
+        const kinks = turf.kinks(gleba.turfPolygon);
+        kinks.features.forEach((feat) => {
+          const coord = [feat.geometry.coordinates[1], feat.geometry.coordinates[0]]; // [lat, lon]
+          const marker = L.circleMarker(coord, {
+            radius: 10,
+            color: '#fff',
+            weight: 3,
+            fillColor: '#f59e0b', // Laranja ambar
+            fillOpacity: 0.95,
+            zIndexOffset: 1100
+          }).bindPopup(`<strong style="color:#d97706"><i class="bi bi-intersect"></i> Autointerseção</strong><br>
+            Gleba ${gleba.glebaId}<br>
+            Cruzamento de linhas detectado neste ponto.<br>
+            Lat: ${coord[0].toFixed(COORD_PRECISION)}<br>Lon: ${coord[1].toFixed(COORD_PRECISION)}`);
+
+          marker.addTo(state.map);
+          state.validationMarkerLayers.push(marker);
+        });
+      } catch (e) {
+        console.warn(`Gleba ${gleba.glebaId}: Erro ao processar autointerseções para o mapa.`, e);
+      }
+    }
   });
 
   log(`Validation markers: ${state.validationMarkerLayers.length} problemas destacados`);
@@ -265,7 +290,7 @@ export function renderCARLayer(imoveis) {
       l.bindPopup(`
         <div class="small" style="min-width:240px">
           <strong class="d-block mb-2 text-success border-bottom pb-1">
-            <i class="bi bi-tree-fill me-1"></i>Cadastro Ambiental Rural
+            <i class="bi bi-tree-fill me-1"></i> Cadastro Ambiental Rural
           </strong>
           <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
             <tr><td style="color:#666;width:85px;padding:2px 0">Código</td>

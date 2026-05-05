@@ -8,8 +8,8 @@ import { state } from '../utils/state.js';
 import { CONFIG } from '../utils/config.js';
 import {
   getCoordText, setCoordText,
-  showMessage, showProjectMessage, log, warn,
-  el
+  showMessage, showProjectMessage, showToast,  // ← adicionar showToast
+  log, warn, el
 } from '../components/ui.js';
 
 const STORAGE_KEY = CONFIG.STORAGE.KEY;

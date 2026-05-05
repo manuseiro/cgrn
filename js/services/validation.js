@@ -17,6 +17,7 @@
 import { CONFIG } from '../utils/config.js';
 import { state } from '../utils/state.js';
 import { log } from '../components/ui.js';
+import { warn } from '../components/ui.js';
 
 const { NORDESTE, MIN_POINTS, MAX_MUNICIPIOS, COORD_PRECISION } = CONFIG.VALIDATION;
 
@@ -190,7 +191,7 @@ function validateSingleGleba(glebaId, points, validarPontos, allWarnings) {
       );
     }
   } catch (e) {
-    console.warn(`Gleba ${glebaId}: erro ao verificar autointerseções`);
+    warn(`Gleba ${glebaId}: erro ao verificar autointerseções`);
   }
 
   // 5. Municípios e metricas

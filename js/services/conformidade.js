@@ -27,14 +27,14 @@ import { state } from '../utils/state.js';
 import { CONFIG } from '../utils/config.js';
 import { log, warn } from '../components/ui.js';
 import {
-  checkUCIntersection,
-  checkEmbargoIBAMA,
   getBiomaGleba,
   checkDesmatamento,
   checkCAR,
   BIOMA_REGULACAO,
   UC_PROTECAO_INTEGRAL,
 } from './camadas_externas.js';
+import { checkGlebaICMBio } from './icmbio.js';
+import { checkGlebaIbama } from './ibama.js';
 import { analyzeGlebaInCAR } from './spatial_analysis.js';
 
 // ─── Tipos de verificação (rótulos UI) ────────────────────────────────────
@@ -85,7 +85,7 @@ export async function verificarConformidade(gleba, { skipApi = false } = {}) {
   const itens = [];
 
   // ── Verificações LOCAIS (síncronas) ─────────────────────────────────────
-
+  itens.push(checkGeometria(gleba));
   itens.push(checkArea(gleba));
   itens.push(checkMunicipios(gleba));
   itens.push(checkTI(gleba));
@@ -94,8 +94,8 @@ export async function verificarConformidade(gleba, { skipApi = false } = {}) {
   // ── Verificações via API (assíncronas e paralelas) ─────────────────────
   if (!skipApi) {
     const [ucRes, embargoRes, biomaRes, desmatRes, carRes] = await Promise.allSettled([
-      checkUCIntersection(gleba),
-      checkEmbargoIBAMA(gleba),
+      checkGlebaICMBio(gleba),
+      checkGlebaIbama(gleba),
       getBiomaGleba(gleba),
       checkDesmatamento(gleba),
       checkCAR(gleba),
@@ -199,7 +199,7 @@ function checkSemiArido(g) {
   if (g.semiArido === true) {
     return {
       ...CHECKS.SEMIARIDO, status: 'ok',
-      mensagem: 'Gleba localizada na região Semiárida (SUDENE). Elegível para FNE, BNB, PRONAF Semiárido.'
+      mensagem: 'Gleba localizada na região Semiárida (SUDENE). Elegível para FNE, PRONAFm, PNCF, Projetos Estruturantes, FDNE e etc...'
     };
   }
   if (g.semiArido === false) {
@@ -213,14 +213,25 @@ function checkSemiArido(g) {
     mensagem: 'Situação em relação ao semiárido não pôde ser determinada.'
   };
 }
-
+function checkGeometria(g) {
+  const { AREA_MIN_HA, AREA_MAX_HA } = CONFIG.VALIDATION;
+  if (!g.turfPolygon) {
+    return { ...CHECKS.GEOMETRIA, status: 'bloqueio', mensagem: 'Geometria inválida ou ausente.' };
+  }
+  const kinks = turf.kinks(g.turfPolygon);
+  if (kinks.features.length > 0) {
+    return { ...CHECKS.GEOMETRIA, status: 'alerta',
+      mensagem: `Polígono com ${kinks.features.length} autointerseção(ões).` };
+  }
+  return { ...CHECKS.GEOMETRIA, status: 'ok', mensagem: 'Geometria válida.' };
+}
 // ─── Builders para resultados de API ──────────────────────────────────────
 
 function buildUCItem(gleba, ucRes) {
-  if (ucRes.status === 'rejected') {
+  if (ucRes.status === 'rejected' || !state.ucLoaded) {
     return {
       ...CHECKS.UC_INTEGRAL, status: 'pendente',
-      mensagem: 'API ICMBio indisponível. Consulte geoservices.icmbio.gov.br manualmente.', dados: []
+      mensagem: 'Camada ICMBio indisponível ou não carregada.', dados: []
     };
   }
   const ucs = ucRes.value ?? [];
@@ -248,10 +259,10 @@ function buildUCItem(gleba, ucRes) {
 }
 
 function buildEmbargoItem(gleba, res) {
-  if (res.status === 'rejected') {
+  if (res.status === 'rejected' || !state.ibamaLoaded) {
     return {
       ...CHECKS.EMBARGO, status: 'pendente',
-      mensagem: 'API IBAMA indisponível. Consulte ibama.gov.br/embargos manualmente.', dados: []
+      mensagem: 'Camada IBAMA indisponível ou não carregada.', dados: []
     };
   }
   const embargos = res.value ?? [];
