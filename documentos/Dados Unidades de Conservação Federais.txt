@@ -1,0 +1,11 @@
+
+Formato do link para o GEOJSON - WFS das Limites das Unidades de Conservação Federais(ICMBio Mar/2026) é:
+
+
+https://geoservicos.inde.gov.br/geoserver/ICMBio/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=limiteucsfederais_a&outputFormat=application%2Fjson
+
+Exemplo da estrutura de dados retornado na consulta ao GEOJSON:
+
+{"type":"FeatureCollection","features":[{"type":"Feature","id":"limiteucsfederais_a.1","geometry":{"type":"MultiPolygon","coordinates":[[[[-42.86451029,-16.1568561],[-42.86462291,-16.15682304],[-42.86486516,-16.15651279],[-42.86489224,-16.15647623]]]]},"geometry_name":"the_geom","properties":{"ogc_fid":1,"nomeuc":"RESERVA DE DESENVOLVIMENTO SUSTENTÁVEL CÓRREGOS DOS VALES DO NORTE DE MINAS","cnuc":"0000.00.5332","criacaoano":"2026","areahaalb":40834.54267582094,"perimm":188306.178452592,"criacaoato":"DEC 12.888 de 23/03/2026","esferaadm":"Federal","siglacateg":"RDS","grupouc":"US","ufabrang":"MG","biomas":"CERRADO e CAATINGA","gregional":"GR4","fusoabrang":"23S","demarcacao":"Não demarcada","escalauc":"Dado não disponível"},"bbox":[-43.12405343,-16.16999244,-42.78598376,-15.96748377]},
+
+...

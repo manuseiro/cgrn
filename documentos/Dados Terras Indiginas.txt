@@ -1,0 +1,60 @@
+
+Formato do link para o GEOJSON - WFS Da Terras Indiginas é:
+
+
+https://geoserver.funai.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=Funai:tis_poligonais&outputFormat=application%2Fjson
+
+Exemplo de estrutura base do geojson é essa:
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "id": "tis_poligonais.fid-2031fd67_19dfb8cceb0_6c13",
+            "geometry": {
+                "type": "MultiPolygon",
+                "coordinates": [
+                    [
+                        [
+                            [
+                                -66.88240952,
+                                -2.56074434
+                            ],
+                            [
+                                -66.88290078,
+                                -2.55178065
+                            ],
+                            [
+                                -66.88335801,
+                                -2.54273373
+                            ],
+                            [
+                                -66.88359129,
+                                -2.53752111
+                            ]
+                        ]
+                    ]
+                ]
+            },
+            "geometry_name": "the_geom",
+            "properties": {
+                "gid": 1,
+                "terrai_codigo": 101,
+                "terrai_nome": "Acapuri de Cima",
+                "etnia_nome": "Kokama",
+                "municipio_nome": "Fonte Boa",
+                "uf_sigla": "AM",
+                "superficie_perimetro_ha": 18393.9411,
+                "fase_ti": "Regularizada",
+                "modalidade_ti": "Tradicionalmente ocupada",
+                "reestudo_ti": "",
+                "cr": "COORDENACAO REGIONAL DO ALTO SOLIMOES",
+                "faixa_fronteira": "Não",
+                "undadm_codigo": 30202001857,
+                "undadm_nome": "COORDENACAO REGIONAL DO ALTO SOLIMOES",
+                "undadm_sigla": "CR-AS",
+                "dominio_uniao": "t",
+                "data_atualizacao": "05/09/2023",
+                "epsg": 4674
+            }
+        },

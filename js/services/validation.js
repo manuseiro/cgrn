@@ -229,6 +229,53 @@ function validateSingleGleba(glebaId, points, validarPontos, allWarnings) {
   return { errors: [], glebaData };
 }
 
+/**
+ * Verifica se há sobreposição entre glebas (lote atual e existentes).
+ * @param {GlebaData[]} newGlebas 
+ * @param {string[]} allWarnings 
+ * @param {Feature[]} overlapFeatures - Coleta as geometrias de interseção
+ */
+function checkOverlaps(newGlebas, allWarnings, overlapFeatures) {
+  const existingGlebas = state.glebas || [];
+  const all = [...existingGlebas, ...newGlebas];
+
+  for (let i = 0; i < newGlebas.length; i++) {
+    const g1 = newGlebas[i];
+    const bbox1 = turf.bbox(g1.turfPolygon);
+
+    // Compara com as outras do mesmo lote e com as já existentes
+    for (let j = 0; j < all.length; j++) {
+      const g2 = all[j];
+      if (g1.glebaId === g2.glebaId) continue;
+
+      const bbox2 = turf.bbox(g2.turfPolygon);
+      if (!bboxIntersects(bbox1, bbox2)) continue;
+
+      try {
+        const intersection = turf.intersect(g1.turfPolygon, g2.turfPolygon);
+        if (intersection) {
+          const areaOverlap = turf.area(intersection) / 10000;
+          if (areaOverlap > 0.0001) { // ignora toques de borda/precisão
+            allWarnings.push(
+              `<i class="bi bi-intersect text-warning"></i> Sobreposição detectada: Gleba ${g1.glebaId} intersecta com Gleba ${g2.glebaId} (~${areaOverlap.toFixed(4)} ha).`
+            );
+            // Armazena a geometria para visualização no mapa
+            intersection.properties = { 
+              type: 'overlap', 
+              gleba1: g1.glebaId, 
+              gleba2: g2.glebaId,
+              area: areaOverlap 
+            };
+            overlapFeatures.push(intersection);
+          }
+        }
+      } catch (e) {
+        warn(`Erro ao verificar sobreposição entre Gleba ${g1.glebaId} e ${g2.glebaId}`);
+      }
+    }
+  }
+}
+
 // ─── Função principal (pública) ───────────────────────────────────────────
 
 /**
@@ -238,7 +285,7 @@ function validateSingleGleba(glebaId, points, validarPontos, allWarnings) {
  * @param {string} rawText
  * @param {object} [opts]
  * @param {boolean} [opts.validarPontos=true] - Validar cada ponto contra SUDENE
- * @returns {{ valid: boolean, errors: string[], warnings?: string[], data: GlebaData[], fromCache: boolean }}
+ * @returns {{ valid: boolean, errors: string[], warnings?: string[], data: GlebaData[], overlapFeatures?: Feature[], fromCache: boolean }}
  */
 export function validateCoordinates(rawText, { validarPontos = true } = {}) {
   const text = rawText.trim();
@@ -287,8 +334,9 @@ export function validateCoordinates(rawText, { validarPontos = true } = {}) {
   }
 
   const allErrors = [];
-  const allWarnings = [];   // ← Declarada aqui
+  const allWarnings = [];
   const allData = [];
+  const overlapFeatures = [];
 
   for (const [glebaId, points] of glebaMap) {
     const { errors, glebaData } = validateSingleGleba(
@@ -311,6 +359,11 @@ export function validateCoordinates(rawText, { validarPontos = true } = {}) {
     };
   }
 
+  // Verificação de sobreposição entre glebas (Priority 2)
+  if (allData.length > 0) {
+    checkOverlaps(allData, allWarnings, overlapFeatures);
+  }
+
   // Sucesso
   allData.sort((a, b) => a.glebaId - b.glebaId);
   state.cache.set(cacheKey, allData);
@@ -320,6 +373,7 @@ export function validateCoordinates(rawText, { validarPontos = true } = {}) {
     errors: [],
     warnings: allWarnings,
     data: allData,
+    overlapFeatures,
     fromCache: false
   };
 }

@@ -84,40 +84,39 @@ export async function loadTerrasIndigenas() {
  * A URL leosil21 pode retornar array ou FeatureCollection.
  */
 function normalizeTISource(raw) {
-  // Já é FeatureCollection GeoJSON
-  if (raw?.type === 'FeatureCollection') return raw;
+  let features = [];
 
-  // Array com geometria WKT (formato FUNAI original)
-  if (Array.isArray(raw)) {
-    const features = raw
-      .filter(item => item.the_geom || item.geometry)
-      .map(item => {
-        let geometry = item.geometry ?? null;
-        if (!geometry && item.the_geom) {
-          geometry = parseWKT(item.the_geom);
-        }
-        if (!geometry) return null;
-        return {
-          type: 'Feature',
-          properties: {
-            codigo: item.terrai_codigo ?? item.codigo,
-            nome: item.terrai_nome ?? item.nome,
-            etnia: item.etnia_nome ?? item.etnia,
-            municipio: item.municipio_nome ?? item.municipio,
-            uf: item.uf_sigla ?? item.uf,
-            area_ha: item.superficie_perimetro_ha ?? item.area_ha,
-            fase: item.fase_ti ?? item.fase,
-            modalidade: item.modalidade_ti ?? item.modalidade,
-            atualizado: item.data_atualizacao ?? item.atualizado,
-          },
-          geometry,
-        };
-      })
-      .filter(Boolean);
-    return { type: 'FeatureCollection', features };
+  if (raw?.type === 'FeatureCollection') {
+    features = raw.features;
+  } else if (Array.isArray(raw)) {
+    features = raw;
   }
 
-  return { type: 'FeatureCollection', features: [] };
+  const normalized = features.map(item => {
+    // Pode ser uma Feature GeoJSON ou um objeto simples da API
+    const props = item.properties ?? item;
+    const geom = item.geometry ?? (props.the_geom ? parseWKT(props.the_geom) : null);
+
+    if (!geom) return null;
+
+    return {
+      type: 'Feature',
+      properties: {
+        codigo: props.terrai_codigo ?? props.terrai_cod ?? props.codigo ?? '—',
+        nome: props.terrai_nome ?? props.nom_terrai ?? props.nome ?? 'Terra Indígena',
+        etnia: props.etnia_nome ?? props.etnia ?? '—',
+        municipio: props.municipio_nome ?? props.municipio ?? '—',
+        uf: props.uf_sigla ?? props.uf ?? '—',
+        area_ha: props.superficie_perimetro_ha ?? props.area_ha ?? 0,
+        fase: props.fase_ti ?? props.fase ?? '—',
+        modalidade: props.modalidade_ti ?? props.modalidade ?? '—',
+        atualizado: props.data_atualizacao ?? props.atualizado ?? '—',
+      },
+      geometry: geom,
+    };
+  }).filter(Boolean);
+
+  return { type: 'FeatureCollection', features: normalized };
 }
 
 const { COORD_PRECISION } = CONFIG.VALIDATION;

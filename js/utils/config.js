@@ -44,7 +44,7 @@ export const CONFIG = Object.freeze({
    * Fallback para arquivo local se a URL externa falhar.
    */
   TI: Object.freeze({
-    URL_PRIMARIA: 'https://manuseiro.github.io/api/funai/terras_indigenas_nordeste_2023.geojson',
+    URL_PRIMARIA: 'https://geoserver.funai.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=Funai:tis_poligonais&outputFormat=application%2Fjson&CQL_FILTER=uf_sigla+IN+(\'MA\',\'PI\',\'CE\',\'RN\',\'PB\',\'PE\',\'AL\',\'SE\',\'BA\')',
     URL_FALLBACK: 'api/terras_indigenas_nordeste.geojson',
     NORDESTE_UFS: Object.freeze(['MA', 'PI', 'CE', 'RN', 'PB', 'PE', 'AL', 'SE', 'BA']),
   }),
@@ -54,15 +54,15 @@ export const CONFIG = Object.freeze({
    * Fallback para arquivo local se a URL externa falhar.
    */
   ICMBIO: Object.freeze({
-    URL_PRIMARIA: 'https://manuseiro.github.io/api/icmbio/limite_ucs_federais_icmbio_geo.json',
-    URL_FALLBACK: 'api/limite_ucs_federais_icmbio_geo.json',
+    URL_PRIMARIA: 'https://geoservicos.inde.gov.br/geoserver/ICMBio/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=limiteucsfederais_a&outputFormat=application%2Fjson',
+    URL_FALLBACK: 'api/limiteucsfederais_a.json',
   }),
 
   /**
    * IBAMA — Áreas Embargadas (Arquivo Interno)
    */
   IBAMA: Object.freeze({
-    URL_PRIMARIA: 'https://manuseiro.github.io/api/ibama/are_embargo_ibama.json', // ← nova linha
+    URL_PRIMARIA: 'https://siscom.ibama.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=siscom:areas_embargadas&outputFormat=application/json&CQL_FILTER=uf+IN+(\'MA\',\'PI\',\'CE\',\'RN\',\'PB\',\'PE\',\'AL\',\'SE\',\'BA\')',
     URL_FALLBACK: 'api/are_embargo_ibama.json',
   }),
 
@@ -84,6 +84,7 @@ export const CONFIG = Object.freeze({
      */
     PRODES_API: 'https://terrabrasilis.dpi.inpe.br/app/api/v1/',
     DETER_WMS: 'https://terrabrasilis.dpi.inpe.br/geoserver/deter-amz/wms',
+    BIOMA_WFS: 'https://geoservicos.ibge.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=CGEO:bioma_250k&outputFormat=application/json',
 
     /**
      * MapBiomas Alerta — desmatamento ilegal pós-marco legal
@@ -95,7 +96,7 @@ export const CONFIG = Object.freeze({
      * CAR — Cadastro Ambiental Rural (SICAR)
      * Consulta pública por CPF/CNPJ ou código do imóvel
      */
-    CAR_API: 'https://www.car.gov.br/publico/imoveis/index',
+    CAR_API: 'https://car.gov.br/#/consultar',
 
     /** Timeout para chamadas de API externas (ms) */
     TIMEOUT_MS: 15000,
@@ -108,11 +109,11 @@ export const CONFIG = Object.freeze({
    * Escolhido por estar em área de Caatinga sem conflitos
    */
   EXAMPLE_COORDS: [
-    '1 1 -6.2410 -38.9140',
-    '1 2 -6.2410 -38.8980',
-    '1 3 -6.2270 -38.8980',
-    '1 4 -6.2270 -38.9140',
-    '1 5 -6.2410 -38.9140',
+    '1 1 -6.24100000 -38.91400000',
+    '1 2 -6.24100000 -38.89800000',
+    '1 3 -6.22700000 -38.89800000',
+    '1 4 -6.22700000 -38.91400000',
+    '1 5 -6.24100000 -38.91400000',
   ].join('\n'),
 
   DEBUG: false,

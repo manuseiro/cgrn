@@ -57,6 +57,9 @@ export const state = {
 
   /** Resultados de conformidade BACEN/SICOR por glebaId */
   conformidade: new Map(),  // glebaId → ConformidadeResult
+
+  /** Armazena o último resultado de busca do SICAR para importação via delegação de evento */
+  lastCarSearch: null,
 };
 
 export function clearGlebas() {

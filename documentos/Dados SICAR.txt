@@ -1,0 +1,156 @@
+
+Formato do link para o GEOJSON - WFS dos CAR é:
+
+A consulta é definida por estado (UF), o typeName = sicar:sicar_imoveis_ac, neste caso o UF desse link é AC. 
+
+https://geoserver.car.gov.br/geoserver/sicar/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sicar%3Asicar_imoveis_ac&outputFormat=application%2Fjson
+
+A estrutura base do geojson e essa:
+
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "id": "sicar_imoveis_ac.6080446",
+            "geometry": {
+                "type": "MultiPolygon",
+                "coordinates": [
+                    [
+                        [
+                            [
+                                -70.57109873,
+                                -9.43314736
+                            ],
+                            [
+                                -70.57334012,
+                                -9.43143752
+                            ],
+                            [
+                                -70.5765152,
+                                -9.41822081
+                            ],
+                            [
+                                -70.56979895,
+                                -9.41747991
+                            ],
+                            [
+                                -70.56856187,
+                                -9.4319471
+                            ],
+                            [
+                                -70.57025593,
+                                -9.43202996
+                            ],
+                            [
+                                -70.57109873,
+                                -9.43314736
+                            ]
+                        ]
+                    ]
+                ]
+            },
+            "geometry_name": "geo_area_imovel",
+            "properties": {
+                "cod_imovel": "AC-1200435-0318105B6E0B4C70B656748ADF57D846",
+                "status_imovel": "AT",
+                "dat_criacao": "2018-11-12T01:15:29.133Z",
+                "data_atualizacao": "2018-11-12T01:15:41.495Z",
+                "area": 100.1005,
+                "condicao": "Aguardando análise",
+                "uf": "AC",
+                "municipio": "Santa Rosa do Purus",
+                "cod_municipio_ibge": 1200435,
+                "m_fiscal": 1.001,
+                "tipo_imovel": "IRU"
+            }
+        },
+		
+-----
+
+📄 Dicionário de Dados – SICAR
+
+Nome / Atributo / Tipificação / Tipo de Dado / Descrição
+
+cod_tema
+
+Tipo: texto (público)
+Descrição: Indica o código do tema de uso do solo que compõe o cadastro da propriedade ou posse rural no Sistema Nacional de Cadastro Ambiental Rural (Sicar). Classifica as diferentes áreas da propriedade conforme suas características e regulamentações.
+
+nom_tema
+
+Tipo: texto (público)
+Descrição: Nome do tema ou categoria ambiental de uso do solo no cadastro. Exemplos incluem:
+Área de Preservação Permanente (APP)
+Remanescente de Vegetação Nativa
+Reserva Legal
+Área de Uso Restrito
+Área Rural Consolidada
+Servidão Administrativa
+Vereda
+Hidrografia
+Banhado
+Áreas com altitude > 1800m
+Áreas com declividade > 45°
+Topos de morro
+Bordas de chapada
+Área de pousio
+Manguezal
+Restinga
+
+cod_imovel
+
+Tipo: texto (público)
+Descrição: Número único de inscrição da propriedade ou posse rural no Sicar.
+
+mod_fiscal
+
+Tipo: número (público)
+Descrição: Unidade agrária variável por município, usada para classificar o tamanho da propriedade (pequena, média, grande).
+
+num_area
+
+Tipo: número (público)
+Descrição: Área bruta total do imóvel rural informada no momento do cadastro.
+
+ind_status
+
+Tipo: texto (público)
+Descrição: Situação do cadastro no CAR:
+AT: Ativo
+PE: Pendente
+SU: Suspenso
+CA: Cancelado
+
+ind_tipo
+
+Tipo: texto (público)
+Descrição: Tipo de cadastro:
+IRU: Imóvel Rural
+AST: Assentamento de Reforma Agrária
+PCT: Povos e Comunidades Tradicionais
+
+des_condic
+
+Tipo: texto (público)
+Descrição: Condição atual da análise do cadastro no sistema (etapa de validação).
+
+municipio
+
+Tipo: texto (público)
+Descrição: Município onde a propriedade está localizada.
+
+cod_estado
+
+Tipo: texto (público)
+Descrição: Unidade Federativa (UF) do Brasil.
+
+dat_criaca
+
+Tipo: texto (público)
+Descrição: Data de criação do cadastro no Sicar.
+
+dat_atuali
+
+Tipo: texto (público)
+Descrição: Data da última atualização do cadastro.

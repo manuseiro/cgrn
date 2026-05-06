@@ -1,7 +1,7 @@
 /**
  * @file icmbio.js
  * @description Unidades de Conservação (ICMBio) internas.
- * Arquivo gerado via Mapshaper: limite_ucs_federais_icmbio_geo.json
+ * Arquivo gerado via Mapshaper: limiteucsfederais_a.json
  */
 
 import { state } from '../utils/state.js';
@@ -113,10 +113,10 @@ export async function checkGlebaICMBio(gleba) {
     if (!bboxIntersects(polyBbox, uc.bbox)) continue;  // era bboxOk
     try {
       if (turf.booleanIntersects(gleba.turfPolygon, uc.feature)) {
-        const nome = uc.props.NM_UC ?? uc.props.nm_uc ?? '—';
-        const categoria = uc.props.CATEGORIA_UC ?? uc.props.categoria_uc ?? '—';
-        const grupo = uc.props.GRUPO_UC ?? uc.props.grupo_uc ?? '—';
-        const esfera = uc.props.DS_ESFERA ?? uc.props.ds_esfera ?? '—';
+        const nome = uc.props.NM_UC ?? uc.props.nm_uc ?? uc.props.nome ?? '—';
+        const categoria = uc.props.CATEGORIA_UC ?? uc.props.categoria_uc ?? uc.props.categoria ?? '—';
+        const grupo = uc.props.GRUPO_UC ?? uc.props.grupo_uc ?? uc.props.grupo ?? '—';
+        const esfera = uc.props.DS_ESFERA ?? uc.props.ds_esfera ?? uc.props.esfera ?? '—';
 
         results.push({
           nome,

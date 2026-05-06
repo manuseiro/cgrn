@@ -136,14 +136,14 @@ export async function checkGlebaIbama(gleba) {
     }
 
     results.push({
-      numAI:       props.numero_ai  ?? props.num_ai   ?? '—',
-      cpfCnpj:     props.cpf_cnpj  ?? '—',
-      municipio:   props.municipio ?? '—',
-      uf:          props.uf        ?? '—',
-      nomeUC:      props.nome_uc   ?? '—',
-      situacao:    props.situacao  ?? 'Ativo',
-      dataEmissao: props.data_emissao ?? props.data_tad ?? '—',
-      area:        props.area      ?? '—',
+      numAI:       props.num_ai ?? props.numero_ai ?? props.num_auto_infracao ?? '—',
+      cpfCnpj:     props.cpf_cnpj ?? props.cpf_cnpj_sancionado ?? '—',
+      nome:        props.nome_sancionado ?? props.nome_infrator ?? '—',
+      municipio:   props.municipio ?? props.nom_municipio ?? '—',
+      uf:          props.uf ?? props.sigla_uf ?? '—',
+      situacao:    props.situacao ?? props.sit_embargo ?? 'Ativo',
+      dataEmissao: props.data_emissao ?? props.data_embargo ?? props.data_tad ?? '—',
+      area:        props.area ?? props.area_embargada ?? '—',
     });
   }
   return results;

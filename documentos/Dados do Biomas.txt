@@ -1,0 +1,57 @@
+
+Formato do link para o GEOJSON - WFS dos Biomas(IBGE 2025) é:
+
+
+https://geoservicos.ibge.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=CGMAT:qg_2025_240_bioma&outputFormat=application%2Fjson
+
+Exemplo da estrutura de dados retornado na consulta ao GEOJSON:
+
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "id": "qg_2025_240_bioma.fid-70c6ce35_19dfbf6e812_-778a",
+            "geometry": {
+                "type": "MultiPolygon",
+                "coordinates": [
+                    [
+                        [
+                            [
+                                -60.20961917,
+                                5.26958083
+                            ],
+                            [
+                                -60.20599957,
+                                5.2683969
+                            ],
+                            [
+                                -60.2020156,
+                                5.26648703
+                            ],
+                            [
+                                -60.20189659,
+                                5.26643899
+                            ],
+                            [
+                                -60.19573121,
+                                5.25668413
+                            ]
+                        ]
+                    ]
+                    ]
+                },
+                "geometry_name": "geom",
+                "properties": {
+                    "cd_recorte": "24011",
+                    "quadro": 240,
+                    "cd_bioma": "1",
+                    "nm_bioma": "Amazônia"
+                },
+                "bbox": [
+                    -73.98318216,
+                    -16.6620185,
+                    -43.39931793,
+                    5.26958083
+                ]
+            },

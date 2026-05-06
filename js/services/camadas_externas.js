@@ -124,8 +124,27 @@ export function createBiomaLayer() {
  */
 export async function getBiomaGleba(gleba) {
   const [lon, lat] = gleba.centroid;
-  const url = `https://servicodados.ibge.gov.br/api/v1/localidades/biomas?lat=${lat}&lng=${lon}`;
+  
+  // 1. Tenta via WFS Oficial (Geoserver IBGE) - Mais preciso
+  if (CONFIG.CONFORMIDADE.BIOMA_WFS) {
+    try {
+      const wfsUrl = `${CONFIG.CONFORMIDADE.BIOMA_WFS}&CQL_FILTER=INTERSECTS(geom, POINT(${lon} ${lat}))`;
+      const res = await fetchWithTimeout(wfsUrl, 10000);
+      if (res.ok) {
+        const data = await res.json();
+        const bioma = data.features?.[0]?.properties?.name ?? data.features?.[0]?.properties?.nome;
+        if (bioma) {
+          log(`IBGE WFS: bioma "${bioma}" detectado.`);
+          return bioma;
+        }
+      }
+    } catch (e) {
+      warn('IBGE WFS bioma erro:', e.message);
+    }
+  }
 
+  // 2. Fallback: API de Localidades (Ponto)
+  const url = `https://servicodados.ibge.gov.br/api/v1/localidades/biomas?lat=${lat}&lng=${lon}`;
   try {
     const res = await fetchWithTimeout(url, TIMEOUT);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -395,6 +414,8 @@ async function checkCARporUF(gleba, uf) {
         areaHa: parseFloat(f.properties.num_area ?? f.properties.area ?? 0),
         status: f.properties.ind_status ?? f.properties.status_imovel ?? '—',
         condicao: f.properties.ind_condicao ?? f.properties.condicao ?? '—',
+        areaModulos: parseFloat(f.properties.m_fiscal ?? f.properties.num_modulo_fiscal ?? 0),
+        tipoImovel: f.properties.tipo_imovel ?? f.properties.cod_tipo_imovel ?? '—',
         datCriacao: f.properties.dat_criacao ?? '—',
         datAtualizacao: f.properties.dat_atualizacao ?? '—',
         geometry: f.geometry,
@@ -434,6 +455,8 @@ async function checkCARporUF(gleba, uf) {
         uf: getVal('uf', 'sigla_uf') ?? '—',
         status: rawStatus ?? '—',
         condicao: getVal('ind_condicao', 'condicao') ?? '—',
+        areaModulos: parseFloat(getVal('m_fiscal', 'num_modulo_fiscal') ?? '0'),
+        tipoImovel: getVal('tipo_imovel', 'cod_tipo_imovel') ?? '—',
         areaHa: parseFloat(getVal('area', 'num_area') ?? '0'),
         datCriacao: getVal('dat_criacao') ?? '—',
         datAtualizacao: getVal('dat_atualizacao') ?? '—',
@@ -521,6 +544,8 @@ export async function findCARByCode(codigo) {
       areaHa: parseFloat(f.properties.num_area ?? f.properties.area ?? 0),
       status: f.properties.ind_status ?? f.properties.status_imovel ?? '—',
       condicao: f.properties.ind_condicao ?? f.properties.condicao ?? '—',
+      areaModulos: parseFloat(f.properties.m_fiscal ?? f.properties.num_modulo_fiscal ?? 0),
+      tipoImovel: f.properties.tipo_imovel ?? f.properties.cod_tipo_imovel ?? '—',
       datCriacao: f.properties.dat_criacao ?? '—',
       datAtualizacao: f.properties.dat_atualizacao ?? '',
       geometry: f.geometry,

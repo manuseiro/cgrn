@@ -1,0 +1,194 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.w{padding:1rem 0;font-family:var(--font-sans);color:var(--color-text-primary)}
+.fh{display:flex;align-items:center;gap:8px;padding:.5rem 0 .9rem;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:1rem}
+.fh-title{font-size:14px;font-weight:500;flex:1}
+.badge{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
+.b-ok{background:var(--color-background-success);color:var(--color-text-success)}
+.b-warn{background:var(--color-background-warning);color:var(--color-text-warning)}
+.b-danger{background:var(--color-background-danger);color:var(--color-text-danger)}
+.b-info{background:var(--color-background-info);color:var(--color-text-info)}
+.card{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin-bottom:.85rem;overflow:hidden}
+.card-hd{display:flex;align-items:center;gap:10px;padding:.7rem 1rem;background:var(--color-background-secondary)}
+.card-title{font-size:13px;font-weight:500;flex:1}
+.card-body{padding:.85rem 1rem;background:var(--color-background-primary);border-top:0.5px solid var(--color-border-tertiary)}
+.row{display:flex;gap:10px;padding:.55rem 0;border-bottom:0.5px solid var(--color-border-tertiary);align-items:flex-start}
+.row:last-child{border-bottom:none;padding-bottom:0}
+.dot{font-size:15px;flex-shrink:0;line-height:1.4;width:20px}
+.rb{font-size:12px}
+.rt{font-size:12px;font-weight:500;margin-bottom:3px}
+.rd{font-size:11px;color:var(--color-text-secondary);line-height:1.6}
+.code{font-family:var(--font-mono);font-size:11px;background:var(--color-background-tertiary);padding:2px 5px;border-radius:4px;border:0.5px solid var(--color-border-tertiary)}
+.bc{font-family:var(--font-mono);font-size:11px;padding:8px 12px;border-radius:var(--border-radius-md);display:block;line-height:1.7;white-space:pre;overflow-x:auto;margin:.55rem 0}
+.bc-ok{background:var(--color-background-success);color:var(--color-text-success);border:0.5px solid var(--color-border-success)}
+.bc-warn{background:var(--color-background-warning);color:var(--color-text-warning);border:0.5px solid var(--color-border-warning)}
+.bc-del{background:var(--color-background-danger);color:var(--color-text-danger);border:0.5px solid var(--color-border-danger)}
+.bc-muted{background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary)}
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:.75rem}
+.sc{border-radius:var(--border-radius-md);padding:.65rem .85rem;font-size:12px}
+.sc-ok{background:var(--color-background-success);color:var(--color-text-success);border:0.5px solid var(--color-border-success)}
+.sc-warn{background:var(--color-background-warning);color:var(--color-text-warning);border:0.5px solid var(--color-border-warning)}
+.sc-name{font-weight:500;margin-bottom:2px;font-size:12px}
+.sc-sub{font-size:11px;opacity:.85}
+</style>
+
+<div class="w">
+<div class="fh">
+  <i class="ti ti-file-diff" style="font-size:18px" aria-hidden="true"></i>
+  <span class="fh-title">main.js — análise das alterações</span>
+  <span class="badge b-ok">2 bugs corrigidos</span>
+  <span class="badge b-warn">4 pendências</span>
+</div>
+
+<div class="card">
+  <div class="card-hd">
+    <i class="ti ti-check" style="font-size:16px;color:var(--color-text-success)" aria-hidden="true"></i>
+    <span class="card-title">Listener duplicado do <span class="code">mostrarTI</span> — removido</span>
+    <span class="badge b-ok">✓ corrigido</span>
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="dot">🗑</div>
+      <div class="rb">
+        <div class="rt">Segundo listener eliminado</div>
+        <div class="rd">O bloco duplicado via <span class="code">el.mostrarTI?.addEventListener</span> foi removido. Agora existe apenas o listener registrado por <span class="code">document.getElementById('mostrarTI')</span>. <span class="code">setTerrasIndigenasVisible()</span> é chamada exatamente uma vez por interação, e o painel da legenda não pisca mais.</div>
+        <code class="bc bc-del">// REMOVIDO — era duplicata do listener acima:
+el.mostrarTI?.addEventListener('change', e => {
+  setTerrasIndigenasVisible(e.target.checked);
+  document.getElementById('tiLegendPanel')
+    ?.classList.toggle('d-none', !e.target.checked);
+});</code>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-hd">
+    <i class="ti ti-check" style="font-size:16px;color:var(--color-text-success)" aria-hidden="true"></i>
+    <span class="card-title">Acúmulo de listeners em <span class="code">searchCARByCode</span> — delegação aplicada</span>
+    <span class="badge b-ok">✓ corrigido</span>
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="dot">🔁</div>
+      <div class="rb">
+        <div class="rt">Padrão event delegation + <span class="code">state.lastCarSearch</span></div>
+        <div class="rd">A solução adotada é correta e elegante. Os listeners dos botões "Importar" e "Ver" saíram de dentro de <span class="code">searchCARByCode</span> (onde se acumulavam a cada chamada) e migraram para um único listener delegado no container <span class="code">#carSearchResult</span>, registrado uma só vez em <span class="code">bindEvents()</span>. O dado do CAR é passado via <span class="code">state.lastCarSearch</span>.</div>
+        <code class="bc bc-del">// ANTES — listener adicionado a cada busca (acumulava):
+document.getElementById('btnImportarCAR')
+  ?.addEventListener('click', () => { /* usa closure de `car` */ });</code>
+        <code class="bc bc-ok">// DEPOIS — registrado uma vez em bindEvents():
+document.getElementById('carSearchResult')
+  ?.addEventListener('click', e => {
+    const btnImport = e.target.closest('#btnImportarCAR');
+    if (btnImport) {
+      const carData = state.lastCarSearch; // dado compartilhado via state
+      // ...
+    }
+  });
+
+// Em searchCARByCode():
+state.lastCarSearch = car; // armazena resultado</code>
+      </div>
+    </div>
+    <div class="row">
+      <div class="dot" style="color:var(--color-text-warning)">⚠</div>
+      <div class="rb">
+        <div class="rt"><span class="code">state.lastCarSearch</span> não declarado em <span class="code">state.js</span></div>
+        <div class="rd">A propriedade é adicionada dinamicamente ao objeto <span class="code">state</span>, o que funciona porque ele não é <span class="code">Object.freeze()</span>-ado. Porém, declarar explicitamente em <span class="code">state.js</span> garante documentação, consistência com os demais campos e facilita ferramentas de análise estática.</div>
+        <code class="bc bc-warn">// state.js — adicionar na declaração:
+export const state = {
+  // ...
+  carLayer: null,
+  lastCarSearch: null,  // ← adicionar esta linha
+};</code>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-hd">
+    <i class="ti ti-clock" style="font-size:16px;color:var(--color-text-warning)" aria-hidden="true"></i>
+    <span class="card-title">Pendências da análise anterior não aplicadas</span>
+    <span class="badge b-warn">4 itens</span>
+  </div>
+  <div class="card-body">
+
+    <div class="row">
+      <div class="dot" style="color:var(--color-text-danger)">🔴</div>
+      <div class="rb">
+        <div class="rt">XSS via <span class="code">e.message</span> em <span class="code">innerHTML</span> — ainda presente</div>
+        <div class="rd">Linha de <span class="code">searchCARByCode</span>: <span class="code">resultDiv.innerHTML = `...${e.message}...`</span>. Se a mensagem de erro contiver HTML (pode acontecer com alguns erros de rede ou bibliotecas), ela será renderizada como markup.</div>
+        <code class="bc bc-warn">// Substituir:
+resultDiv.innerHTML = `...Erro: ${e.message}...`;
+
+// Por (usa textContent para parte dinâmica):
+const div = document.createElement('div');
+div.className = 'alert alert-danger py-2 small';
+div.textContent = `Erro na consulta: ${e.message}`;
+resultDiv.replaceChildren(div);</code>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="dot" style="color:var(--color-text-warning)">🟡</div>
+      <div class="rb">
+        <div class="rt">Imports dinâmicos desnecessários de <span class="code">map.js</span> — 2 ocorrências</div>
+        <div class="rd"><span class="code">map.js</span> já é importado estaticamente no topo do arquivo. Os dois <span class="code">import('./components/map.js').then(...)</span> introduzem uma microtask de latência sem necessidade.</div>
+        <code class="bc bc-warn">// Topo do arquivo — adicionar às importações estáticas:
+import {
+  initMap, renderPolygons, ...,
+  renderValidationMarkers,  // ← adicionar
+  renderCARLayer            // ← adicionar
+} from './components/map.js';
+
+// Substituir os dois import() dinâmicos por chamadas diretas:
+renderValidationMarkers(state.glebas);
+renderCARLayer(carItem.dados);
+renderCARLayer([carData]);</code>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="dot" style="color:var(--color-text-warning)">🟡</div>
+      <div class="rb">
+        <div class="rt">Warnings de validação não exibidos em <span class="code">processAndRender</span></div>
+        <div class="rd">Avisos de duplicatas e autointerseções (e agora também sobreposição entre glebas) são retornados por <span class="code">validateCoordinates</span>, mas em <span class="code">processAndRender</span> são silenciosamente descartados. Só aparecem via "Validar". Com a nova detecção de sobreposição, isso se torna mais crítico.</div>
+        <code class="bc bc-warn">// Em processAndRender(), após showMessage() de sucesso:
+if (result.warnings?.length) {
+  showToast(result.warnings, 'warning', 8000);
+}</code>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="dot" style="color:var(--color-text-secondary)">⚪</div>
+      <div class="rb">
+        <div class="rt"><span class="code">Math.max(...array.map())</span> com spread — 2 ocorrências</div>
+        <div class="rd">Baixa prioridade para o contexto atual (poucas glebas). Mas com muitas glebas futuras, o spread pode causar <span class="code">RangeError: Maximum call stack size exceeded</span>.</div>
+        <code class="bc bc-muted">// Substituir as 2 ocorrências por reduce:
+const nextGid = state.glebas.reduce(
+  (max, g) => g.glebaId > max ? g.glebaId : max, 0
+) + 1;</code>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div style="font-size:13px;font-weight:500;margin-bottom:.6rem">Placar geral das correções</div>
+<div class="summary-grid">
+  <div class="sc sc-ok"><div class="sc-name">✓ Listener duplicado mostrarTI</div><div class="sc-sub">Resolvido</div></div>
+  <div class="sc sc-ok"><div class="sc-name">✓ Acúmulo listeners CAR</div><div class="sc-sub">Resolvido com delegação + state</div></div>
+  <div class="sc sc-ok"><div class="sc-name">✓ Sobreposição entre glebas</div><div class="sc-sub">validation.js — implementado</div></div>
+  <div class="sc sc-ok"><div class="sc-name">✓ EXAMPLE_COORDS precisão</div><div class="sc-sub">config.js — corrigido</div></div>
+  <div class="sc sc-warn"><div class="sc-name">⚠ XSS e.message innerHTML</div><div class="sc-sub">Pendente</div></div>
+  <div class="sc sc-warn"><div class="sc-name">⚠ Warnings em processAndRender</div><div class="sc-sub">Pendente — crítico com novo overlap</div></div>
+  <div class="sc sc-warn"><div class="sc-name">⚠ Imports dinâmicos map.js</div><div class="sc-sub">Pendente</div></div>
+  <div class="sc sc-warn"><div class="sc-name">⚠ state.lastCarSearch em state.js</div><div class="sc-sub">Novo — declarar formalmente</div></div>
+</div>
+
+</div>

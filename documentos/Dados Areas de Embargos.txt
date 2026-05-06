@@ -1,0 +1,69 @@
+
+Formato do link para o GEOJSON - WFS das Areas de Embargo (IBAMA) é:
+
+https://siscom.ibama.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=publica:vw_brasil_adm_embargo_a&outputFormat=application%2Fjson
+
+Exemplo de estrutura dos dados retornado no GEOJSON:
+{
+    "type": "FeatureCollection",
+    "totalFeatures": 89713,
+    "features": [
+        {
+            "type": "Feature",
+            "id": "vw_brasil_adm_embargo_a.1",
+            "geometry": {
+                "type": "MultiPolygon",
+                "coordinates": [
+                    [
+                        [
+                            [
+                                -52.87854786,
+                                -12.94749503
+                            ],
+                            [
+                                -52.87854702,
+                                -12.9474966
+                            ],
+                            [
+                                -52.8785465,
+                                -12.9474983
+                            ],
+                            [
+                                -52.87854634,
+                                -12.94750007
+                            ]
+                        ]
+                    ]
+                ]
+            },
+            "geometry_name": "geom",
+            "properties": {
+                "nom_pessoa": "DIRCEU LUIZ ALIEVI",
+                "cpf_cnpj_infrator": "415.594.441-34",
+                "seq_tad": "62627",
+                "numero_tad": "62627",
+                "data_tad": "2004-05-27Z",
+                "num_latitude_tad": "-12.9474999999999998",
+                "num_longitude_tad": "-52.8785555555599984",
+                "processo_tad": "02567000278200439",
+                "sig_uf": "MT",
+                "nom_municipio": "Gaúcha do Norte",
+                "num_auto_infracao": "407251",
+                "ser_auto_infracao": "D",
+                "cod_municipio": "5103858",
+                "cod_uf": "51",
+                "status_tad": "AL",
+                "qtd_area_desmatada": null,
+                "data_cadastro_tad": "2004-05-27T12:30:00Z",
+                "des_infracao": null,
+                "serie_tad": "C",
+                "sit_embarga_poligono": null,
+                "legislacao": null,
+                "artigo_legislacao": null,
+                "artigo": null,
+                "imagem_validacao": null,
+                "respeita_embargo": null,
+                "data_geom": "2004-05-27Z",
+                "orgao": "IBAMA"
+            }
+        },

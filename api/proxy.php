@@ -30,14 +30,18 @@ if (!$targetUrl) {
 $allowedDomains = [
     'manuseiro.github.io',
     'geoservices.icmbio.gov.br',
+    'geoserver.car.gov.br',
+    'geoserver.funai.gov.br',
+    'geoservicos.ibge.gov.br',
+    'car.gov.br',
+    'icmbio.gov.br',
     'ibama.gov.br',
+    'ibge.gov.br',
     'siscom.ibama.gov.br',
     'servicodados.ibge.gov.br',
     'terrabrasilis.dpi.inpe.br',
     'leosil21.github.io',
-    'github.com',
-    'car.gov.br',
-    'geoserver.car.gov.br'
+    'github.com'
 ];
 
 $parsedUrl = parse_url($targetUrl);
@@ -119,7 +123,7 @@ if ($isSuccess && $isDataFormat) {
     if ($cacheExists) {
         header('X-Proxy-Cache: STALE_FALLBACK'); // Avisa que é um dado expirado salvo no sufoco
         header('X-Proxy-Error-Msg: ' . ($error ?: "HTTP $httpCode ou formato invalido ($contentType)"));
-        http_response_code(200); 
+        http_response_code(200);
         echo file_get_contents($cacheFile);
     } else {
         // Falhou e não temos cache velho.

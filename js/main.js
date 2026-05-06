@@ -172,10 +172,6 @@ function bindEvents() {
       setCentroidsVisible(false);
     }
   });
-  el.mostrarTI?.addEventListener('change', e => {
-    setTerrasIndigenasVisible(e.target.checked);
-    document.getElementById('tiLegendPanel')?.classList.toggle('d-none', !e.target.checked);
-  });
   el.mostrarUC?.addEventListener('change', e => setICMBioVisible(e.target.checked));
   el.mostrarIbama?.addEventListener('change', e => setIbamaVisible(e.target.checked));
   el.mostrarBioma?.addEventListener('change', e => toggleExternalLayer('bioma', e.target.checked));
@@ -205,7 +201,7 @@ function bindEvents() {
     const lines = pts.map((ll, i) => `${nextGid} ${i + 1} ${ll.lat.toFixed(COORD_PRECISION)} ${ll.lng.toFixed(COORD_PRECISION)}`);
     // Fecha o polígono
     lines.push(`${nextGid} ${lines.length + 1} ${pts[0].lat.toFixed(COORD_PRECISION)} ${pts[0].lng.toFixed(COORD_PRECISION)}`);
-    
+
     setCoordText(current ? current.trim() + '\n' + lines.join('\n') : lines.join('\n'));
     clearMessage();
     modals.open('adicionarGleba');
@@ -217,10 +213,10 @@ function bindEvents() {
       if (gid === null) return;
       const pts = l.getLatLngs()[0];
       if (!pts || !pts.length) return;
-      
+
       // Leaflet.Draw às vezes retorna array aninhado dependendo do tipo de edição
       const latlngs = Array.isArray(pts[0]) ? pts[0] : pts;
-      
+
       latlngs.forEach((ll, i) => lines.push(
         `${gid} ${i + 1} ${ll.lat.toFixed(COORD_PRECISION)} ${ll.lng.toFixed(COORD_PRECISION)}`
       ));
@@ -282,6 +278,40 @@ function bindEvents() {
     showToast('Cache do SICAR limpo.', 'success');
   });
 
+  // Delegação de eventos para botões dinâmicos do CAR Search
+  document.getElementById('carSearchResult')?.addEventListener('click', e => {
+    const btnImport = e.target.closest('#btnImportarCAR');
+    const btnVer = e.target.closest('#btnVerNoMapaCAR');
+
+    if (btnImport) {
+      const carData = state.lastCarSearch; // Precisamos guardar o resultado no state
+      if (!carData?.geometry) { showToast('Geometria indisponível para este imóvel.', 'warning'); return; }
+
+      const feat = carData.geometry.type === 'MultiPolygon' ? carData.geometry.coordinates[0][0] : carData.geometry.coordinates[0];
+      const nextGid = state.glebas.length > 0 ? Math.max(...state.glebas.map(g => g.glebaId)) + 1 : 1;
+      const lines = feat.map((ll, i) => `${nextGid} ${i + 1} ${ll[1].toFixed(COORD_PRECISION)} ${ll[0].toFixed(COORD_PRECISION)}`);
+
+      const f = feat[0], l = feat[feat.length - 1];
+      if (f[0] !== l[0] || f[1] !== l[1]) {
+        lines.push(`${nextGid} ${lines.length + 1} ${f[1].toFixed(COORD_PRECISION)} ${f[0].toFixed(COORD_PRECISION)}`);
+      }
+      const current = getCoordText();
+      setCoordText(current ? current + '\n' + lines.join('\n') : lines.join('\n'));
+
+      const manualTab = document.getElementById('tab-manual-btn');
+      if (manualTab) bootstrap.Tab.getOrCreateInstance(manualTab).show();
+      showToast(`Imóvel ${carData.codigo} importado com sucesso.`, 'success');
+    }
+
+    if (btnVer) {
+      const carData = state.lastCarSearch;
+      if (!carData?.geometry) { showToast('Geometria indisponível.', 'warning'); return; }
+      import('./components/map.js').then(m => m.renderCARLayer([carData]));
+      modals.close('adicionarGleba');
+      showToast(`Visualizando CAR ${carData.codigo} no mapa.`, 'info');
+    }
+  });
+
   log('Eventos vinculados ✅');
 }
 
@@ -336,20 +366,38 @@ async function processAndRender(opts = {}) {
     if (state.showCentroids) renderCentroids(state.glebas);
     renderResultsTable(state.glebas);
 
-    // Destaca problemas de validação (duplicatas, interseções)
+    // Destaca problemas de validação (duplicatas, interseções e sobreposições)
     if (state.validatePoints) {
       import('./components/map.js').then(m => {
-        m.renderValidationMarkers(state.glebas);
+        m.renderValidationMarkers(state.glebas, result.overlapFeatures);
       });
     }
+
+    // Feedback e Avisos (TI, Sobreposições, etc)
     const tiConflitos = glebas.flatMap(g => g.tiIntersecoes);
-    if (tiConflitos.length) {
-      const nomes = [...new Set(tiConflitos.map(t => t.nome))].join(', ');
-      showMessage(`<i class="bi bi-exclamation-triangle-fill"></i> <strong>Atenção BACEN/SICOR:</strong> ${tiConflitos.length} sobreposição(ões) com Terra(s) Indígenas: ${nomes}.`, 'warning');
-      showToast(`<i class="bi bi-feather me-1"></i> ${tiConflitos.length} sobreposição(ões) com TI detectada(s).`, 'warning', 8000);
+    const warnings = result.warnings || [];
+    const hasIssues = tiConflitos.length > 0 || warnings.length > 0;
+
+    if (hasIssues) {
+      let msgLista = [];
+      if (tiConflitos.length) {
+        const nomes = [...new Set(tiConflitos.map(t => t.nome))].join(', ');
+        msgLista.push(`<i class="bi bi-exclamation-triangle-fill"></i> <strong>Atenção BACEN/SICOR:</strong> ${tiConflitos.length} sobreposição(ões) com Terra(s) Indígenas: ${nomes}.`);
+      }
+      if (warnings.length > 0) msgLista.push(...warnings);
+
+      // Se vai fechar o modal, mostra no Toast para não perder o aviso
+      if (opts.fecharModal) {
+        showToast(['Atenção nas glebas:', ...msgLista], 'warning', 10000);
+      } else {
+        showMessage([`<i class="bi bi-patch-check-fill me-1 text-success"></i> ${glebas.length} gleba(s) processada(s).`, ...msgLista], 'warning', 10000);
+      }
     } else {
       const note = result.fromCache ? ' <em>(cache)</em>' : '';
-      showMessage(`<i class="bi bi-patch-check-fill me-1"></i> ${glebas.length} gleba(s) processada(s).${note}`, 'success', 3500);
+      const msgSucesso = `<i class="bi bi-patch-check-fill me-1"></i> ${glebas.length} gleba(s) processada(s).${note}`;
+
+      if (opts.fecharModal) showToast(msgSucesso, 'success', 3500);
+      else showMessage(msgSucesso, 'success', 3500);
     }
 
     if (opts.fecharModal) modals.close(opts.fecharModal);
@@ -381,6 +429,11 @@ async function validarInline() {
     if (!result.valid) {
       showMessage(result.errors, 'danger');
       return;
+    }
+
+    // Atualiza marcadores de erro no mapa mesmo no modo apenas validação
+    if (state.validatePoints) {
+      import('./components/map.js').then(m => m.renderValidationMarkers(result.data, result.overlapFeatures));
     }
 
     // Feedback de sucesso + todos os warnings
@@ -608,10 +661,10 @@ function buildCARPanel(item, glebaId) {
     const cov = d.coverageIndividual ?? 0;
     const isPrincipal = idx === 0 && nCARs > 1; // melhor match quando há múltiplos
     const linkSICAR = d.codigo && d.codigo !== '—'
-      ? `<a href="https://www.car.gov.br/publico/imoveis/index?cod_imovel=${encodeURIComponent(d.codigo)}"
+      ? `<a href="https://car.gov.br/#/consultar/${encodeURIComponent(d.codigo)}"
             target="_blank" rel="noopener noreferrer"
             class="btn btn-outline-primary btn-sm py-0 px-1 ms-1"
-            title="Acessar imóvel no SICAR (site oficial)">
+            title="Consultar demonstrativo do CAR (site oficial)">
            <i class="bi bi-box-arrow-up-right" style="font-size:0.7rem"></i> SICAR
          </a>`
       : '';
@@ -624,8 +677,9 @@ function buildCARPanel(item, glebaId) {
           ${linkSICAR}
         </div>
         <div class="text-muted" style="font-size:0.72rem">
-          ${d.municipio}
+          ${d.municipio} · <span class="badge bg-light text-dark border-0 p-0 fw-normal">${d.tipoImovel}</span>
           ${d.areaHa ? ` · ${Number(d.areaHa).toFixed(2)} ha` : ''}
+          ${d.areaModulos ? ` · <strong>${Number(d.areaModulos).toFixed(2)} MF</strong>` : ''}
           ${d.status ? ` · <em>${d.status}</em>` : ''}
         </div>
         ${nCARs > 1 && cov > 0 ? `
@@ -688,6 +742,8 @@ async function searchCARByCode() {
       return;
     }
 
+    state.lastCarSearch = car; // Armazena no state para a delegação de eventos
+
     resultDiv.innerHTML = `
       <div class="card card-body border-primary bg-primary bg-opacity-10 p-2 small">
         <div class="fw-bold text-primary mb-1">${car.codigo}</div>
@@ -701,35 +757,6 @@ async function searchCARByCode() {
           </button>
         </div>
       </div>`;
-
-    document.getElementById('btnImportarCAR')?.addEventListener('click', () => {
-      if (!car.geometry) { showToast('Geometria indisponível para este imóvel.', 'warning'); return; }
-
-      // Converte geometria para o formato de coordenadas do sistema
-      const feat = car.geometry.type === 'MultiPolygon' ? car.geometry.coordinates[0][0] : car.geometry.coordinates[0];
-      const nextGid = state.glebas.length > 0 ? Math.max(...state.glebas.map(g => g.glebaId)) + 1 : 1;
-      const lines = feat.map((ll, i) => `${nextGid} ${i + 1} ${ll[1].toFixed(COORD_PRECISION)} ${ll[0].toFixed(COORD_PRECISION)}`);
-      //ADICIONAR ESTAS 4 LINHAS — fecha o anel se necessário
-      const f = feat[0], l = feat[feat.length - 1];
-      if (f[0] !== l[0] || f[1] !== l[1]) {
-        lines.push(`${nextGid} ${lines.length + 1} ${f[1].toFixed(COORD_PRECISION)} ${f[0].toFixed(COORD_PRECISION)}`);
-      }
-      const current = getCoordText();
-      setCoordText(current ? current + '\n' + lines.join('\n') : lines.join('\n'));
-
-      // Muda para a aba manual
-      const manualTab = document.getElementById('tab-manual-btn');
-      if (manualTab) bootstrap.Tab.getOrCreateInstance(manualTab).show();
-
-      showToast(`Imóvel ${car.codigo} importado com sucesso.`, 'success');
-    });
-
-    document.getElementById('btnVerNoMapaCAR')?.addEventListener('click', () => {
-      if (!car.geometry) { showToast('Geometria indisponível.', 'warning'); return; }
-      import('./components/map.js').then(m => m.renderCARLayer([car]));
-      modals.close('adicionarGleba');
-      showToast(`Visualizando CAR ${car.codigo} no mapa.`, 'info');
-    });
 
   } catch (e) {
     resultDiv.innerHTML = `<div class="alert alert-danger py-2 small">Erro na consulta: ${e.message}</div>`;

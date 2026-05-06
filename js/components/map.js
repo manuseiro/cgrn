@@ -55,6 +55,12 @@ export function initMap() {
   state.map = map;
   state.drawnItems = drawnItems;
   state.drawControl = drawControl;
+
+  // Cria um painel (pane) exclusivo para validações, garantindo que fiquem SEMPRE no topo
+  const vPane = map.createPane('validationPane');
+  vPane.style.zIndex = 650;
+  vPane.style.pointerEvents = 'none';
+
   log('Mapa inicializado');
   return map;
 }
@@ -89,7 +95,7 @@ export function renderPolygons(glebas) {
       this.bringToFront();
     });
     polygon.on('mouseout', function () {
-      this.setStyle({ weight: 2.5, fillOpacity: 0.8 });
+      this.setStyle({ weight: 2.5, fillOpacity: 0.5 }); // Corrigido: era 0.8
     });
     polygon.on('click', e => { e.originalEvent._glebaClicked = true; });
     polygon._glebaId = g.glebaId;
@@ -141,10 +147,10 @@ export function renderCentroids(glebas) {
 }
 /**
  * Renderiza marcadores destacando problemas de validação 
- * (pontos duplicados e autointerseções)
+ * (pontos duplicados, autointerseções e sobreposições entre glebas)
  * Só é chamado quando "Validar Pontos" está marcado.
  */
-export function renderValidationMarkers(glebas) {
+export function renderValidationMarkers(glebas, overlapFeatures = []) {
   // Remove marcadores antigos de validação
   if (state.validationMarkerLayers) {
     state.validationMarkerLayers.forEach(m => m && state.map.removeLayer(m));
@@ -174,7 +180,8 @@ export function renderValidationMarkers(glebas) {
         weight: 3,
         fillColor: '#dc3545',
         fillOpacity: 0.95,
-        zIndexOffset: 1000
+        zIndexOffset: 1000,
+        pane: 'validationPane'
       }).bindPopup(`<strong style="color:#dc3545"><i class="bi bi-exclamation-triangle-fill"></i> Ponto Duplicado</strong><br>
         Gleba ${gleba.glebaId} — Ponto ${idx + 1}<br>
         Lat: ${coord[0].toFixed(COORD_PRECISION)}<br>Lon: ${coord[1].toFixed(COORD_PRECISION)}`);
@@ -195,7 +202,8 @@ export function renderValidationMarkers(glebas) {
             weight: 3,
             fillColor: '#f59e0b', // Laranja ambar
             fillOpacity: 0.95,
-            zIndexOffset: 1100
+            zIndexOffset: 1100,
+            pane: 'validationPane'
           }).bindPopup(`<strong style="color:#d97706"><i class="bi bi-intersect"></i> Autointerseção</strong><br>
             Gleba ${gleba.glebaId}<br>
             Cruzamento de linhas detectado neste ponto.<br>
@@ -207,6 +215,51 @@ export function renderValidationMarkers(glebas) {
       } catch (e) {
         console.warn(`Gleba ${gleba.glebaId}: Erro ao processar autointerseções para o mapa.`, e);
       }
+    }
+  });
+
+  // Renderiza sobreposições entre glebas (interseções)
+  overlapFeatures.forEach(feat => {
+    try {
+      const layer = L.geoJSON(feat, {
+        style: {
+          color: '#dc2626',
+          weight: 3,
+          fillColor: '#ef4444',
+          fillOpacity: 0.6,
+          dashArray: '4, 4',
+          pane: 'validationPane'
+        }
+      }).bindPopup(`
+        <div class="small">
+          <strong class="text-danger"><i class="bi bi-intersect"></i> Sobreposição Detectada</strong><br>
+          Gleba ${feat.properties.gleba1} ↔ Gleba ${feat.properties.gleba2}<br>
+          Área afetada: <strong>${feat.properties.area.toFixed(4)} ha</strong>
+        </div>
+      `);
+
+      layer.addTo(state.map);
+      state.validationMarkerLayers.push(layer);
+
+      // NOVO: Adiciona marcadores nos pontos de "encontro" da sobreposição
+      try {
+        const points = turf.explode(feat);
+        points.features.forEach(pt => {
+          const coord = [pt.geometry.coordinates[1], pt.geometry.coordinates[0]];
+          const m = L.circleMarker(coord, {
+            radius: 4,
+            color: '#dc2626',
+            fillColor: '#fff',
+            fillOpacity: 1,
+            weight: 2,
+            pane: 'validationPane'
+          });
+          m.addTo(state.map);
+          state.validationMarkerLayers.push(m);
+        });
+      } catch (err) { /* explode falhou para geometria simples */ }
+    } catch (e) {
+      console.warn('Erro ao renderizar polígono de sobreposição:', e);
     }
   });
 
@@ -248,6 +301,8 @@ export function renderCARLayer(imoveis) {
           area: i.areaHa,
           status: i.status,
           condicao: i.condicao,
+          areaModulos: i.areaModulos,
+          tipoImovel: i.tipoImovel,
           datCriacao: i.datCriacao,
           datAtualizacao: i.datAtualizacao
         }
@@ -299,6 +354,10 @@ export function renderCARLayer(imoveis) {
                 <td><strong>${p.municipio} - ${String(p.uf).toUpperCase()}</strong></td></tr>
             <tr><td style="color:#666;padding:2px 0">Área</td>
                 <td>${Number(p.area).toFixed(2).replace('.', ',')} ha</td></tr>
+            <tr><td style="color:#666;padding:2px 0">Tipo</td>
+                <td><span class="badge bg-light text-dark border py-0" style="font-size:0.7rem">${p.tipoImovel}</span></td></tr>
+            <tr><td style="color:#666;padding:2px 0">Mód. Fiscais</td>
+                <td><strong>${Number(p.areaModulos || 0).toFixed(3).replace('.', ',')}</strong></td></tr>
             <tr><td style="color:#666;padding:2px 0">Situação</td>
                 <td><span style="color:${p.status === 'AT' ? '#2e7d32' : '#666'}">●</span> ${statusLabel}</td></tr>
             <tr><td style="color:#666;padding:2px 0">Condição</td>
