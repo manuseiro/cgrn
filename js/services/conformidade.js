@@ -27,12 +27,11 @@ import { state } from '../utils/state.js';
 import { CONFIG } from '../utils/config.js';
 import { log, warn } from '../components/ui.js';
 import {
-  getBiomaGleba,
   checkDesmatamento,
   checkCAR,
-  BIOMA_REGULACAO,
   UC_PROTECAO_INTEGRAL,
 } from './camadas_externas.js';
+import { getBiomaGleba, BIOMA_REGULACAO } from './bioma.js';
 import { checkGlebaICMBio } from './icmbio.js';
 import { checkGlebaIbama } from './ibama.js';
 import { analyzeGlebaInCAR } from './spatial_analysis.js';
@@ -188,9 +187,16 @@ function checkTI(g) {
   if (!hits.length) {
     return { ...CHECKS.TI, status: 'ok', mensagem: 'Sem sobreposição com Terras Indígenas.', dados: [] };
   }
+
+  const FASES_BLOQUEIO = ['Regularizada', 'Homologada'];
+  const temBloqueio = hits.some(ti => FASES_BLOQUEIO.includes(ti.fase));
+
+  const detalhes = hits.map(ti => `${ti.nome} (${ti.fase || 'fase não informada'})`).join(', ');
+
   return {
-    ...CHECKS.TI, status: 'bloqueio',
-    mensagem: `Sobreposição com ${hits.length} Terra(s) Indígena(s): ${hits.map(t => t.nome).join(', ')}.`,
+    ...CHECKS.TI, 
+    status: temBloqueio ? 'bloqueio' : 'alerta',
+    mensagem: `Sobreposição com ${hits.length} Terra(s) Indígena(s): ${detalhes}. ${temBloqueio ? 'BLOQUEIO BACEN/SICOR' : 'Em processo — verificar com jurídico'}`,
     dados: hits
   };
 }

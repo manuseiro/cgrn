@@ -1,7 +1,7 @@
 /**
  * @file ibama.js
  * @description Áreas Embargadas (IBAMA) internas.
- * Arquivo: are_embargo_ibama.json
+ * Arquivo: local: vw_brasil_adm_embargo_a.json
  */
 
 import { state } from '../utils/state.js';
@@ -154,14 +154,16 @@ export async function checkGlebaIbama(gleba) {
 // ─── Utilitários ──────────────────────────────────────────────────────────
 
 function buildIbamaPopup(p) {
-  const numAI = p?.numero_ai ?? p?.num_ai ?? 'Área Embargada';
-  const municipio = p?.municipio ?? '—';
-  const uf = p?.uf ?? '';
-  const cpfCnpj = p?.cpf_cnpj ?? '—';
-  const situacao = p?.situacao ?? 'Ativo';
-  const dataEmissao = p?.data_emissao ?? p?.data_tad ?? '—';
-  const nomeUC = p?.nome_uc ?? '—';
-  const area = p?.area && p.area !== '0' ? p.area + ' ha' : '—';
+  const numAI = p?.num_auto_infracao ?? p?.numero_ai ?? p?.num_ai ?? 'Área Embargada';
+  const municipio = p?.nom_municipio ?? p?.municipio ?? '—';
+  const uf = p?.sig_uf ?? p?.uf ?? '';
+  const cpfCnpj = p?.cpf_cnpj_infrator ?? p?.cpf_cnpj ?? '—';
+  const nome = p?.nom_pessoa ?? '—';
+  const situacao = p?.status_tad ?? p?.situacao ?? 'Ativo';
+  const dataEmissao = p?.data_tad ?? p?.data_emissao ?? '—';
+  const infracao = p?.des_infracao ?? p?.infracao ?? '—';
+  const processo = p?.processo_tad ?? p?.processo ?? '—';
+  const area = p?.qtd_area_desmatada ? p.qtd_area_desmatada + ' ha' : (p?.area && p.area !== '0' ? p.area + ' ha' : '—');
 
   return `<div class="cgrn-popup" style="min-width:220px">
     <div class="d-flex align-items-start gap-2 mb-2">
@@ -173,9 +175,11 @@ function buildIbamaPopup(p) {
       <tr><td>Nº do AI</td><td>${numAI}</td></tr>
       <tr><td>CPF/CNPJ</td><td>${cpfCnpj}</td></tr>
       <tr><td>Município</td><td>${municipio} — ${uf}</td></tr>
-      <tr><td>UC</td><td>${nomeUC}</td></tr>
+      <tr><td>Infrator</td><td>${nome}</td></tr>
       <tr><td>Área</td><td>${area}</td></tr>
       <tr><td>Data</td><td>${dataEmissao}</td></tr>
+      <tr><td>Infração</td><td>${infracao}</td></tr>
+      <tr><td>Processo</td><td>${processo}</td></tr>
     </table>
   </div>`;
 }

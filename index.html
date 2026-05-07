@@ -115,82 +115,82 @@
 
   <!-- Mapa -->
   <div id="map" role="main" aria-label="Mapa interativo de glebas"></div>
-<!-- ── Painel flutuante de camadas (lado direito do mapa) ──────── -->
-<div id="layerControlPanel">
-  <div class="lcp-header" id="btnToggleLayerPanel">
-    <i class="bi bi-layers-fill me-1"></i>
-    <span>Camadas</span>
-    <i class="bi bi-chevron-up ms-auto" id="layerPanelIcon"></i>
+  <!-- ── Painel flutuante de camadas (lado direito do mapa) ──────── -->
+  <div id="layerControlPanel">
+    <div class="lcp-header" id="btnToggleLayerPanel">
+      <i class="bi bi-layers-fill me-1"></i>
+      <span>Camadas</span>
+      <i class="bi bi-chevron-up ms-auto" id="layerPanelIcon"></i>
+    </div>
+    <div id="layerPanelBody">
+
+      <div class="lcp-section-title">Análise</div>
+
+      <label class="lcp-item">
+        <div class="lcp-swatch" style="background:#e63946;border-color:#c1121f"></div>
+        <span>Embargos IBAMA</span>
+        <div class="form-check form-switch ms-auto mb-0">
+          <input class="form-check-input lcp-switch" type="checkbox" id="mostrarIbama" role="switch">
+        </div>
+      </label>
+
+      <label class="lcp-item">
+        <div class="lcp-swatch" style="background:#2d6a4f;border-color:#1b4332"></div>
+        <span>Unid. Conservação</span>
+        <div class="form-check form-switch ms-auto mb-0">
+          <input class="form-check-input lcp-switch" type="checkbox" id="mostrarUC" role="switch">
+        </div>
+      </label>
+
+      <label class="lcp-item">
+        <div class="lcp-swatch" style="background:#e9c46a;border-color:#b5843a"></div>
+        <span>Terras Indígenas</span>
+        <div class="form-check form-switch ms-auto mb-0">
+          <input class="form-check-input lcp-switch" type="checkbox" id="mostrarTI" role="switch">
+        </div>
+      </label>
+
+      <label class="lcp-item">
+        <div class="lcp-swatch" style="background:#457b9d;border-color:#1d3557"></div>
+        <span>Bioma</span>
+        <div class="form-check form-switch ms-auto mb-0">
+          <input class="form-check-input lcp-switch" type="checkbox" id="mostrarBioma" role="switch">
+        </div>
+      </label>
+
+      <div class="lcp-divider"></div>
+      <div class="lcp-section-title">Exibição</div>
+
+      <label class="lcp-item">
+        <i class="bi bi-geo-alt-fill me-1 opacity-50" style="width:14px"></i>
+        <span>Marcadores</span>
+        <div class="form-check form-switch ms-auto mb-0">
+          <input class="form-check-input lcp-switch" type="checkbox" id="mostrarMarcadores" checked role="switch">
+        </div>
+      </label>
+
+      <label class="lcp-item">
+        <i class="bi bi-crosshair me-1 opacity-50" style="width:14px"></i>
+        <span>Centroides</span>
+        <div class="form-check form-switch ms-auto mb-0">
+          <input class="form-check-input lcp-switch" type="checkbox" id="mostrarCentroids" checked role="switch">
+        </div>
+      </label>
+
+      <div class="lcp-divider"></div>
+      <div class="lcp-section-title">Validação</div>
+
+      <label class="lcp-item">
+        <i class="bi bi-shield-check me-1 opacity-50" style="width:14px"></i>
+        <span>Validar Pontos</span>
+        <div class="form-check form-switch ms-auto mb-0">
+          <input class="form-check-input lcp-switch" type="checkbox" id="validarRegras" checked role="switch">
+        </div>
+      </label>
+
+    </div>
   </div>
-  <div id="layerPanelBody">
-
-    <div class="lcp-section-title">Análise</div>
-
-    <label class="lcp-item">
-      <div class="lcp-swatch" style="background:#e63946;border-color:#c1121f"></div>
-      <span>Embargos IBAMA</span>
-      <div class="form-check form-switch ms-auto mb-0">
-        <input class="form-check-input lcp-switch" type="checkbox" id="mostrarIbama" role="switch">
-      </div>
-    </label>
-
-    <label class="lcp-item">
-      <div class="lcp-swatch" style="background:#2d6a4f;border-color:#1b4332"></div>
-      <span>Unid. Conservação</span>
-      <div class="form-check form-switch ms-auto mb-0">
-        <input class="form-check-input lcp-switch" type="checkbox" id="mostrarUC" role="switch">
-      </div>
-    </label>
-
-    <label class="lcp-item">
-      <div class="lcp-swatch" style="background:#e9c46a;border-color:#b5843a"></div>
-      <span>Terras Indígenas</span>
-      <div class="form-check form-switch ms-auto mb-0">
-        <input class="form-check-input lcp-switch" type="checkbox" id="mostrarTI" role="switch">
-      </div>
-    </label>
-
-    <label class="lcp-item">
-      <div class="lcp-swatch" style="background:#457b9d;border-color:#1d3557"></div>
-      <span>Bioma</span>
-      <div class="form-check form-switch ms-auto mb-0">
-        <input class="form-check-input lcp-switch" type="checkbox" id="mostrarBioma" role="switch">
-      </div>
-    </label>
-
-    <div class="lcp-divider"></div>
-    <div class="lcp-section-title">Exibição</div>
-
-    <label class="lcp-item">
-      <i class="bi bi-geo-alt-fill me-1 opacity-50" style="width:14px"></i>
-      <span>Marcadores</span>
-      <div class="form-check form-switch ms-auto mb-0">
-        <input class="form-check-input lcp-switch" type="checkbox" id="mostrarMarcadores" checked role="switch">
-      </div>
-    </label>
-
-    <label class="lcp-item">
-      <i class="bi bi-crosshair me-1 opacity-50" style="width:14px"></i>
-      <span>Centroides</span>
-      <div class="form-check form-switch ms-auto mb-0">
-        <input class="form-check-input lcp-switch" type="checkbox" id="mostrarCentroids" checked role="switch">
-      </div>
-    </label>
-
-    <div class="lcp-divider"></div>
-    <div class="lcp-section-title">Validação</div>
-
-    <label class="lcp-item">
-      <i class="bi bi-shield-check me-1 opacity-50" style="width:14px"></i>
-      <span>Validar Pontos</span>
-      <div class="form-check form-switch ms-auto mb-0">
-        <input class="form-check-input lcp-switch" type="checkbox" id="validarRegras" checked role="switch">
-      </div>
-    </label>
-
-  </div>
-</div>
-<!-- ── fim painel flutuante ────────────────────────────────────── -->
+  <!-- ── fim painel flutuante ────────────────────────────────────── -->
   <!-- Painel legenda TI -->
   <div id="tiLegendPanel" class="d-none">
     <div class="ti-legend-header" id="btnToggleLegenda">
@@ -211,11 +211,15 @@
       <span class="status-divider"></span>
       <span id="statusArea" class="status-item">—</span>
       <span class="status-divider d-none d-md-inline-block"></span>
-      <span class="status-item d-none d-md-inline text-muted opacity-50">CGRN v3.6.0 • SIRGAS 2000</span>
+      <span class="status-item d-none d-md-inline text-muted opacity-50">CGRN v3.6.3 • SIRGAS 2000</span>
     </div>
 
     <div class="ms-auto d-flex align-items-center gap-3">
       <!-- Adicionar ao grupo de status de camadas -->
+      <span id="biomaStatus" class="status-item small text-secondary">
+        <i class="bi bi-tree me-1"></i>Bioma
+      </span>
+      <span class="status-divider"></span>
       <span id="ibamaStatus" class="status-item small text-secondary">
         <i class="bi bi-hourglass-split"></i> IBAMA
       </span>
@@ -591,7 +595,7 @@
               <circle cx="12" cy="12" r="3" />
             </svg>
             <h5 class="fw-bold mt-3 mb-1">GlebasNord <span class="badge bg-primary ms-1"
-                style="font-size: 0.6rem">v3.5</span></h5>
+                style="font-size: 0.6rem">v3.6.3</span></h5>
             <p class="text-muted small">Cálculo e análise de glebas rurais no Nordeste</p>
           </div>
 
@@ -608,6 +612,7 @@
                 (SUDENE 2021)</div>
               <div class="d-flex align-items-center gap-2"><i class="bi bi-check-circle text-success"></i> Cadastro
                 Ambiental Rural (CAR)</div>
+              <div class="d-flex align-items-center gap-2"><i class="bi bi-check-circle text-success"></i> Biomas (IBGE)</div>
             </div>
           </div>
 
