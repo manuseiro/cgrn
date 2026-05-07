@@ -28,20 +28,19 @@ if (!$targetUrl) {
 
 // Lista de domínios permitidos (White-list por segurança)
 $allowedDomains = [
-    'manuseiro.github.io',
-    'geoservices.icmbio.gov.br',
-    'geoserver.car.gov.br',
-    'geoserver.funai.gov.br',
-    'geoservicos.ibge.gov.br',
     'car.gov.br',
-    'icmbio.gov.br',
     'ibama.gov.br',
     'ibge.gov.br',
     'siscom.ibama.gov.br',
+    'geoservicos.inde.gov.br',
+    'geoservices.icmbio.gov.br',
+    'geoservicos.inde.gov.br',
+    'geoserver.car.gov.br',
+    'geoserver.funai.gov.br',
+    'geoservicos.ibge.gov.br',
     'servicodados.ibge.gov.br',
     'terrabrasilis.dpi.inpe.br',
-    'leosil21.github.io',
-    'github.com'
+    'manuseiro.github.io',
 ];
 
 $parsedUrl = parse_url($targetUrl);

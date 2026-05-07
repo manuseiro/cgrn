@@ -1,7 +1,7 @@
 /**
  * @file icmbio.js
  * @description Unidades de Conservação (ICMBio) internas.
- * Arquivo gerado via Mapshaper: limiteucsfederais_a.json
+ * Arquivo local gerado via Mapshaper: limiteucsfederais_a.json
  */
 
 import { state } from '../utils/state.js';
@@ -62,13 +62,13 @@ function buildUCMapLayer(features) {
   const group = L.featureGroup();
   const geoLayer = L.geoJSON({ type: 'FeatureCollection', features }, {
     style(feat) {
-      const cat = feat.properties?.CATEGORIA_UC ?? feat.properties?.categoria_uc ?? '';
+      const cat = feat.properties?.siglacateg ?? feat.properties?.categoria_uc ?? '';
       const isIntegral = UC_PROTECAO_INTEGRAL.has(cat);
       const isSustentavel = UC_USO_SUSTENTAVEL.has(cat);
-      
+
       let color = '#3b82f6'; // default blue
       let fill = '#93c5fd';
-      
+
       if (isIntegral) {
         color = '#dc2626'; // red
         fill = '#f87171';
@@ -113,10 +113,10 @@ export async function checkGlebaICMBio(gleba) {
     if (!bboxIntersects(polyBbox, uc.bbox)) continue;  // era bboxOk
     try {
       if (turf.booleanIntersects(gleba.turfPolygon, uc.feature)) {
-        const nome = uc.props.NM_UC ?? uc.props.nm_uc ?? uc.props.nome ?? '—';
-        const categoria = uc.props.CATEGORIA_UC ?? uc.props.categoria_uc ?? uc.props.categoria ?? '—';
-        const grupo = uc.props.GRUPO_UC ?? uc.props.grupo_uc ?? uc.props.grupo ?? '—';
-        const esfera = uc.props.DS_ESFERA ?? uc.props.ds_esfera ?? uc.props.esfera ?? '—';
+        const nome = uc.props.nomeuc ?? uc.props.nm_uc ?? uc.props.nome ?? '—';
+        const categoria = uc.props.siglacateg ?? uc.props.categoria_uc ?? uc.props.categoria ?? '—';
+        const grupo = uc.props.grupouc ?? uc.props.grupo_uc ?? uc.props.grupo ?? '—';
+        const esfera = uc.props.esferaadm ?? uc.props.ds_esfera ?? uc.props.esfera ?? '—';
 
         results.push({
           nome,
@@ -134,11 +134,15 @@ export async function checkGlebaICMBio(gleba) {
 // ─── Utilitários ──────────────────────────────────────────────────────────
 
 function buildUCPopup(p) {
-  const nome = p?.NM_UC ?? p?.nm_uc ?? 'Unidade de Conservação';
-  const categoria = p?.CATEGORIA_UC ?? p?.categoria_uc ?? '—';
-  const grupo = p?.GRUPO_UC ?? p?.grupo_uc ?? '—';
-  const esfera = p?.DS_ESFERA ?? p?.ds_esfera ?? '—';
-  const ano = p?.ANO_CRIACAO ?? p?.ano_criacao ?? '—';
+  // mapeamento corrigido:
+  const nome = p.nomeuc ?? '—';
+  const categoria = p.siglacateg ?? '—';
+  const grupo = p.grupouc ?? '—';
+  const esfera = p.esferaadm ?? '—';
+  // Campos adicionais disponíveis:
+  const cnuc = p.cnuc ?? '—';
+  const biomas = p.biomas ?? '—';
+  const demarcacao = p.demarcacao ?? '—';
 
   return `<div class="cgrn-popup" style="min-width:210px">
     <div class="d-flex align-items-start gap-2 mb-2">

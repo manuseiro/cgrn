@@ -124,7 +124,7 @@ export function createBiomaLayer() {
  */
 export async function getBiomaGleba(gleba) {
   const [lon, lat] = gleba.centroid;
-  
+
   // 1. Tenta via WFS Oficial (Geoserver IBGE) - Mais preciso
   if (CONFIG.CONFORMIDADE.BIOMA_WFS) {
     try {
@@ -132,7 +132,7 @@ export async function getBiomaGleba(gleba) {
       const res = await fetchWithTimeout(wfsUrl, 10000);
       if (res.ok) {
         const data = await res.json();
-        const bioma = data.features?.[0]?.properties?.name ?? data.features?.[0]?.properties?.nome;
+        const bioma = data.features?.[0]?.properties?.nm_bioma;
         if (bioma) {
           log(`IBGE WFS: bioma "${bioma}" detectado.`);
           return bioma;
@@ -456,10 +456,10 @@ async function checkCARporUF(gleba, uf) {
         status: rawStatus ?? '—',
         condicao: getVal('ind_condicao', 'condicao') ?? '—',
         areaModulos: parseFloat(getVal('m_fiscal', 'num_modulo_fiscal') ?? '0'),
-        tipoImovel: getVal('tipo_imovel', 'cod_tipo_imovel') ?? '—',
+        tipoImovel: getVal('tipo_imovel', 'cod_tipo_imovel') ?? '-',
         areaHa: parseFloat(getVal('area', 'num_area') ?? '0'),
-        datCriacao: getVal('dat_criacao') ?? '—',
-        datAtualizacao: getVal('dat_atualizacao') ?? '—',
+        datCriacao: getVal('dat_criacao') ?? '-',
+        datAtualizacao: getVal('dat_atualizacao') ?? '-',
         geometry: null,
       });
     }

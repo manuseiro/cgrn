@@ -62,8 +62,8 @@ export const CONFIG = Object.freeze({
    * IBAMA — Áreas Embargadas (Arquivo Interno)
    */
   IBAMA: Object.freeze({
-    URL_PRIMARIA: 'https://siscom.ibama.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=siscom:areas_embargadas&outputFormat=application/json&CQL_FILTER=uf+IN+(\'MA\',\'PI\',\'CE\',\'RN\',\'PB\',\'PE\',\'AL\',\'SE\',\'BA\')',
-    URL_FALLBACK: 'api/are_embargo_ibama.json',
+    URL_PRIMARIA: 'https://siscom.ibama.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=publica:vw_brasil_adm_embargo_a&outputFormat=application/json&CQL_FILTER=uf+IN+(\'MA\',\'PI\',\'CE\',\'RN\',\'PB\',\'PE\',\'AL\',\'SE\',\'BA\')',
+    URL_FALLBACK: 'api/vw_brasil_adm_embargo_a.json',
   }),
 
   /**
@@ -84,7 +84,7 @@ export const CONFIG = Object.freeze({
      */
     PRODES_API: 'https://terrabrasilis.dpi.inpe.br/app/api/v1/',
     DETER_WMS: 'https://terrabrasilis.dpi.inpe.br/geoserver/deter-amz/wms',
-    BIOMA_WFS: 'https://geoservicos.ibge.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=CGEO:bioma_250k&outputFormat=application/json',
+    BIOMA_WFS: 'https://geoservicos.ibge.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=CGMAT:qg_2025_240_bioma&outputFormat=application/json',
 
     /**
      * MapBiomas Alerta — desmatamento ilegal pós-marco legal

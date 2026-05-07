@@ -81,8 +81,8 @@ function buildIbamaMapLayer(features) {
     style() {
       return {
         color: '#dc2626', // red
-        weight: 1.5, opacity: 0.9, 
-        fillColor: '#ef4444', fillOpacity: 0.5, 
+        weight: 1.5, opacity: 0.9,
+        fillColor: '#ef4444', fillOpacity: 0.5,
         dashArray: '3 3'
       };
     },
@@ -134,16 +134,18 @@ export async function checkGlebaIbama(gleba) {
       if (!glebaUFs.size) continue;
       if (!glebaUFs.has(props.uf)) continue;
     }
-
+    // mapeamento corrigido:
     results.push({
-      numAI:       props.num_ai ?? props.numero_ai ?? props.num_auto_infracao ?? '—',
-      cpfCnpj:     props.cpf_cnpj ?? props.cpf_cnpj_sancionado ?? '—',
-      nome:        props.nome_sancionado ?? props.nome_infrator ?? '—',
-      municipio:   props.municipio ?? props.nom_municipio ?? '—',
-      uf:          props.uf ?? props.sigla_uf ?? '—',
-      situacao:    props.situacao ?? props.sit_embargo ?? 'Ativo',
-      dataEmissao: props.data_emissao ?? props.data_embargo ?? props.data_tad ?? '—',
-      area:        props.area ?? props.area_embargada ?? '—',
+      numAI: props.num_auto_infracao ?? '—',
+      cpfCnpj: props.cpf_cnpj_infrator ?? '—',
+      nome: props.nom_pessoa ?? '—',
+      municipio: props.nom_municipio ?? '—',
+      uf: props.sig_uf ?? '—',
+      situacao: props.status_tad ?? 'Ativo',
+      dataEmissao: props.data_tad ?? '—',
+      infracao: props.des_infracao ?? '—',   // ← novo
+      processo: props.processo_tad ?? '—',   // ← novo
+      area: props.qtd_area_desmatada ?? '—',
     });
   }
   return results;
@@ -152,14 +154,14 @@ export async function checkGlebaIbama(gleba) {
 // ─── Utilitários ──────────────────────────────────────────────────────────
 
 function buildIbamaPopup(p) {
-  const numAI      = p?.numero_ai  ?? p?.num_ai    ?? 'Área Embargada';
-  const municipio  = p?.municipio  ?? '—';
-  const uf         = p?.uf         ?? '';
-  const cpfCnpj   = p?.cpf_cnpj   ?? '—';
-  const situacao   = p?.situacao   ?? 'Ativo';
+  const numAI = p?.numero_ai ?? p?.num_ai ?? 'Área Embargada';
+  const municipio = p?.municipio ?? '—';
+  const uf = p?.uf ?? '';
+  const cpfCnpj = p?.cpf_cnpj ?? '—';
+  const situacao = p?.situacao ?? 'Ativo';
   const dataEmissao = p?.data_emissao ?? p?.data_tad ?? '—';
-  const nomeUC     = p?.nome_uc    ?? '—';
-  const area       = p?.area && p.area !== '0' ? p.area + ' ha' : '—';
+  const nomeUC = p?.nome_uc ?? '—';
+  const area = p?.area && p.area !== '0' ? p.area + ' ha' : '—';
 
   return `<div class="cgrn-popup" style="min-width:220px">
     <div class="d-flex align-items-start gap-2 mb-2">
@@ -183,8 +185,8 @@ function updateIbamaStatus(status) {
   if (!el) return;
   const m = {
     loading: { cls: 'text-warning', icon: 'spinner-border spinner-border-sm', txt: 'IBAMA...' },
-    ok:      { cls: 'text-success', icon: 'bi bi-check-circle-fill',           txt: 'IBAMA' },
-    error:   { cls: 'text-warning', icon: 'bi bi-exclamation-triangle-fill',   txt: 'IBAMA OFF' },
+    ok: { cls: 'text-success', icon: 'bi bi-check-circle-fill', txt: 'IBAMA' },
+    error: { cls: 'text-warning', icon: 'bi bi-exclamation-triangle-fill', txt: 'IBAMA OFF' },
   };
   const { cls, icon, txt } = m[status] ?? m.loading;
   const iconHtml = status === 'loading'

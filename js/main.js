@@ -9,7 +9,8 @@ import { state } from './utils/state.js';
 import {
   initMap, renderPolygons, renderMarkers, renderCentroids,
   clearMapLayers, zoomToGleba,
-  setGlebasVisible, setMarkersVisible, setCentroidsVisible
+  setGlebasVisible, setMarkersVisible, setCentroidsVisible,
+  renderValidationMarkers, renderCARLayer
 } from './components/map.js';
 
 import { validateCoordinates } from './services/validation.js';
@@ -143,8 +144,15 @@ function bindEvents() {
     const collapsed = body.classList.toggle('collapsed');
     panel.classList.toggle('expanded', !collapsed);
     if (icon) icon.className = collapsed ? 'bi bi-chevron-down ms-auto' : 'bi bi-chevron-up ms-auto';
+    localStorage.setItem('cgrn_layer_panel_collapsed', collapsed ? '1' : '0');
   });
-
+  const panelWasCollapsed = localStorage.getItem('cgrn_layer_panel_collapsed') === '1';
+  if (panelWasCollapsed) {
+    document.getElementById('layerPanelBody')?.classList.add('collapsed');
+    document.getElementById('layerControlPanel')?.classList.remove('expanded');
+    const icon = document.getElementById('layerPanelIcon');
+    if (icon) icon.className = 'bi bi-chevron-down ms-auto';
+  }
   // Sincroniza o painel flutuante com o mostrarTI (que também controla a legenda)
   document.getElementById('mostrarTI')?.addEventListener('change', e => {
     setTerrasIndigenasVisible(e.target.checked);
@@ -197,7 +205,7 @@ function bindEvents() {
     const pts = e.layer.getLatLngs()[0];
     if (!pts || !pts.length) return;
 
-    const nextGid = state.glebas.length > 0 ? Math.max(...state.glebas.map(g => g.glebaId)) + 1 : 1;
+    const nextGid = state.glebas.reduce((max, g) => g.glebaId > max ? g.glebaId : max, 0) + 1;
     const lines = pts.map((ll, i) => `${nextGid} ${i + 1} ${ll.lat.toFixed(COORD_PRECISION)} ${ll.lng.toFixed(COORD_PRECISION)}`);
     // Fecha o polígono
     lines.push(`${nextGid} ${lines.length + 1} ${pts[0].lat.toFixed(COORD_PRECISION)} ${pts[0].lng.toFixed(COORD_PRECISION)}`);
@@ -249,7 +257,7 @@ function bindEvents() {
     if (carItem?.dados?.length) {
       modals.close('conformidadeModal');
       modals.close('resultadosModal');
-      import('./components/map.js').then(m => m.renderCARLayer(carItem.dados));
+      renderCARLayer(carItem.dados);
     }
   });
 
@@ -288,7 +296,7 @@ function bindEvents() {
       if (!carData?.geometry) { showToast('Geometria indisponível para este imóvel.', 'warning'); return; }
 
       const feat = carData.geometry.type === 'MultiPolygon' ? carData.geometry.coordinates[0][0] : carData.geometry.coordinates[0];
-      const nextGid = state.glebas.length > 0 ? Math.max(...state.glebas.map(g => g.glebaId)) + 1 : 1;
+      const nextGid = state.glebas.reduce((max, g) => g.glebaId > max ? g.glebaId : max, 0) + 1;
       const lines = feat.map((ll, i) => `${nextGid} ${i + 1} ${ll[1].toFixed(COORD_PRECISION)} ${ll[0].toFixed(COORD_PRECISION)}`);
 
       const f = feat[0], l = feat[feat.length - 1];
@@ -306,7 +314,7 @@ function bindEvents() {
     if (btnVer) {
       const carData = state.lastCarSearch;
       if (!carData?.geometry) { showToast('Geometria indisponível.', 'warning'); return; }
-      import('./components/map.js').then(m => m.renderCARLayer([carData]));
+      renderCARLayer([carData]);
       modals.close('adicionarGleba');
       showToast(`Visualizando CAR ${carData.codigo} no mapa.`, 'info');
     }
@@ -366,11 +374,8 @@ async function processAndRender(opts = {}) {
     if (state.showCentroids) renderCentroids(state.glebas);
     renderResultsTable(state.glebas);
 
-    // Destaca problemas de validação (duplicatas, interseções e sobreposições)
     if (state.validatePoints) {
-      import('./components/map.js').then(m => {
-        m.renderValidationMarkers(state.glebas, result.overlapFeatures);
-      });
+      renderValidationMarkers(state.glebas, result.overlapFeatures);
     }
 
     // Feedback e Avisos (TI, Sobreposições, etc)
@@ -433,7 +438,7 @@ async function validarInline() {
 
     // Atualiza marcadores de erro no mapa mesmo no modo apenas validação
     if (state.validatePoints) {
-      import('./components/map.js').then(m => m.renderValidationMarkers(result.data, result.overlapFeatures));
+      renderValidationMarkers(result.data, result.overlapFeatures);
     }
 
     // Feedback de sucesso + todos os warnings

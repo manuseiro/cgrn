@@ -286,6 +286,7 @@ body {
   background: #1f2937 !important;
   color: #e5e7eb !important;
 }
+
 /* ─── Painel flutuante de camadas (direita) ─────────────────── */
 #layerControlPanel {
   position: fixed;
@@ -319,13 +320,21 @@ body {
   border-bottom: 1px solid var(--bs-border-color, #dee2e6);
 }
 
-.lcp-header:hover { background: rgba(0, 0, 0, .06); }
+.lcp-header:hover {
+  background: rgba(0, 0, 0, .06);
+}
 
-[data-bs-theme="dark"] .lcp-header { background: rgba(255,255,255,.04); }
+[data-bs-theme="dark"] .lcp-header {
+  background: rgba(255, 255, 255, .04);
+}
 
-#layerPanelBody { padding: .4rem 0 .5rem; }
+#layerPanelBody {
+  padding: .4rem 0 .5rem;
+}
 
-#layerPanelBody.collapsed { display: none; }
+#layerPanelBody.collapsed {
+  display: none;
+}
 
 .lcp-section-title {
   font-size: .65rem;
@@ -346,8 +355,21 @@ body {
   transition: background .12s;
 }
 
-.lcp-item:hover { background: rgba(0,0,0,.04); }
-[data-bs-theme="dark"] .lcp-item:hover { background: rgba(255,255,255,.06); }
+.lcp-item:hover {
+  background: rgba(0, 0, 0, .04);
+}
+
+[data-bs-theme="dark"] .lcp-item:hover {
+  background: rgba(255, 255, 255, .06);
+}
+
+.lcp-item>span {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .lcp-swatch {
   width: 13px;
@@ -357,7 +379,9 @@ body {
   flex-shrink: 0;
 }
 
-.lcp-switch { cursor: pointer; }
+.lcp-switch {
+  cursor: pointer;
+}
 
 .lcp-divider {
   margin: .35rem .75rem;
@@ -365,7 +389,7 @@ body {
 }
 
 /* Recua o painel quando a legenda TI está visível */
-#tiLegendPanel:not(.d-none) ~ #layerControlPanel {
+#tiLegendPanel:not(.d-none)~#layerControlPanel {
   /* Não há conflito pois TI fica à esquerda e este à direita */
 }
 
@@ -375,9 +399,16 @@ body {
     right: 6px;
     min-width: 180px;
   }
-  #layerPanelBody { display: none; }
-  #layerControlPanel.expanded #layerPanelBody { display: block; }
+
+  #layerPanelBody {
+    display: none;
+  }
+
+  #layerControlPanel.expanded #layerPanelBody {
+    display: block;
+  }
 }
+
 /* ─── Painel de legenda TI ───────────────────────────────────── */
 #tiLegendPanel {
   position: fixed;
@@ -471,7 +502,8 @@ body {
 }
 
 #adicionarGleba .nav.nav-pills .nav-item {
-  margin-bottom: -2px; /* sobrepõe a borda inferior do container */
+  margin-bottom: -2px;
+  /* sobrepõe a borda inferior do container */
 }
 
 #adicionarGleba .nav.nav-pills .nav-link {

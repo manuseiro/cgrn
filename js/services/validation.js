@@ -18,6 +18,7 @@ import { CONFIG } from '../utils/config.js';
 import { state } from '../utils/state.js';
 import { log } from '../components/ui.js';
 import { warn } from '../components/ui.js';
+import { bboxIntersects } from '../utils/geo.js';
 
 const { NORDESTE, MIN_POINTS, MAX_MUNICIPIOS, COORD_PRECISION } = CONFIG.VALIDATION;
 
@@ -34,14 +35,6 @@ function djb2(str) {
 }
 
 // ─── Índice espacial ──────────────────────────────────────────────────────
-
-/**
- * Testa interseção entre dois bounding boxes [minLng, minLat, maxLng, maxLat].
- * Complexidade O(1) — pré-filtro antes de booleanPointInPolygon.
- */
-function bboxIntersects([ax0, ay0, ax1, ay1], [bx0, by0, bx1, by1]) {
-  return !(ax1 < bx0 || ax0 > bx1 || ay1 < by0 || ay0 > by1);
-}
 
 /**
  * Encontra os municípios que contêm os pontos de uma gleba.
@@ -238,6 +231,7 @@ function validateSingleGleba(glebaId, points, validarPontos, allWarnings) {
 function checkOverlaps(newGlebas, allWarnings, overlapFeatures) {
   const existingGlebas = state.glebas || [];
   const all = [...existingGlebas, ...newGlebas];
+  const reportedPairs = new Set();
 
   for (let i = 0; i < newGlebas.length; i++) {
     const g1 = newGlebas[i];
@@ -248,6 +242,9 @@ function checkOverlaps(newGlebas, allWarnings, overlapFeatures) {
       const g2 = all[j];
       if (g1.glebaId === g2.glebaId) continue;
 
+      const pairKey = [g1.glebaId, g2.glebaId].sort().join('-');
+      if (reportedPairs.has(pairKey)) continue;
+
       const bbox2 = turf.bbox(g2.turfPolygon);
       if (!bboxIntersects(bbox1, bbox2)) continue;
 
@@ -256,6 +253,7 @@ function checkOverlaps(newGlebas, allWarnings, overlapFeatures) {
         if (intersection) {
           const areaOverlap = turf.area(intersection) / 10000;
           if (areaOverlap > 0.0001) { // ignora toques de borda/precisão
+            reportedPairs.add(pairKey);
             allWarnings.push(
               `<i class="bi bi-intersect text-warning"></i> Sobreposição detectada: Gleba ${g1.glebaId} intersecta com Gleba ${g2.glebaId} (~${areaOverlap.toFixed(4)} ha).`
             );

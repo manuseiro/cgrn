@@ -1,0 +1,447 @@
+
+<!DOCTYPE html>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);color:var(--color-text-primary);background:transparent;padding:1rem 0}
+.fh{display:flex;align-items:center;gap:8px;padding-bottom:.9rem;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:1.1rem}
+.fh-t{font-size:14px;font-weight:600;flex:1}
+.badge{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
+.b-ok{background:var(--color-background-success);color:var(--color-text-success)}
+.b-w{background:var(--color-background-warning);color:var(--color-text-warning)}
+.b-d{background:var(--color-background-danger);color:var(--color-text-danger)}
+.b-i{background:var(--color-background-info);color:var(--color-text-info)}
+.tabs{display:flex;gap:2px;margin-bottom:1rem;border-bottom:0.5px solid var(--color-border-tertiary);padding-bottom:0}
+.tab{font-size:12px;font-weight:500;padding:.45rem .9rem;border-radius:var(--border-radius-md) var(--border-radius-md) 0 0;cursor:pointer;color:var(--color-text-secondary);border:0.5px solid transparent;border-bottom:none;margin-bottom:-0.5px}
+.tab.act{background:var(--color-background-primary);color:var(--color-text-primary);border-color:var(--color-border-tertiary);border-bottom-color:var(--color-background-primary)}
+.pane{display:none}.pane.act{display:block}
+.card{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin-bottom:.85rem;overflow:hidden}
+.ch{display:flex;align-items:center;gap:9px;padding:.7rem 1rem;background:var(--color-background-secondary);cursor:pointer}
+.ch:hover{background:var(--color-background-tertiary)}
+.ct{font-size:13px;font-weight:500;flex:1}
+.cb{padding:.85rem 1rem;background:var(--color-background-primary);border-top:0.5px solid var(--color-border-tertiary);display:none}
+.cb.open{display:block}
+.chv{font-size:12px;color:var(--color-text-tertiary);transition:transform .2s}
+.chv.open{transform:rotate(180deg)}
+.row{display:flex;gap:10px;padding:.55rem 0;border-bottom:0.5px solid var(--color-border-tertiary);align-items:flex-start}
+.row:last-child{border-bottom:none;padding-bottom:0}
+.dot{font-size:14px;flex-shrink:0;line-height:1.4;width:22px}
+.rt{font-size:12px;font-weight:500;margin-bottom:2px}
+.rd{font-size:11px;color:var(--color-text-secondary);line-height:1.6}
+.code{font-family:var(--font-mono);font-size:11px;background:var(--color-background-tertiary);padding:1px 5px;border-radius:4px;border:0.5px solid var(--color-border-tertiary)}
+.bc{font-family:var(--font-mono);font-size:11px;padding:8px 11px;border-radius:var(--border-radius-md);display:block;line-height:1.7;white-space:pre;overflow-x:auto;margin:.5rem 0}
+.bc-ok{background:var(--color-background-success);color:var(--color-text-success);border:0.5px solid var(--color-border-success)}
+.bc-w{background:var(--color-background-warning);color:var(--color-text-warning);border:0.5px solid var(--color-border-warning)}
+.bc-d{background:var(--color-background-danger);color:var(--color-text-danger);border:0.5px solid var(--color-border-danger)}
+.bc-m{background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:.75rem}
+.gc{border-radius:var(--border-radius-md);padding:.65rem .85rem}
+.gc-ok{background:var(--color-background-success);color:var(--color-text-success);border:0.5px solid var(--color-border-success)}
+.gc-w{background:var(--color-background-warning);color:var(--color-text-warning);border:0.5px solid var(--color-border-warning)}
+.gc-d{background:var(--color-background-danger);color:var(--color-text-danger);border:0.5px solid var(--color-border-danger)}
+.gn{font-weight:500;font-size:12px;margin-bottom:2px}
+.gs{font-size:11px;opacity:.85}
+.table{width:100%;border-collapse:collapse;font-size:11px;margin:.6rem 0}
+.table th{text-align:left;padding:5px 8px;background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary);font-weight:500}
+.table td{padding:5px 8px;border-bottom:0.5px solid var(--color-border-tertiary);vertical-align:top}
+.table tr:last-child td{border-bottom:none}
+.tag-ok{color:var(--color-text-success);font-weight:500}
+.tag-d{color:var(--color-text-danger);font-weight:500}
+.tag-w{color:var(--color-text-warning);font-weight:500}
+</style>
+
+<div class="fh">
+  <i class="ti ti-git-compare" style="font-size:18px"></i>
+  <span class="fh-t">CGRN v3.6.1 — Análise completa</span>
+  <span class="badge b-ok">15 corrigidos</span>
+  <span class="badge b-d" style="display:none">0 bugs</span>
+  <span class="badge b-w" style="display:none">0 pendências</span>
+</div>
+
+<div class="tabs">
+  <div class="tab act" onclick="sw(0)">✅ Correções (15)</div>
+  <div class="tab" style="display:none" onclick="sw(1)">🔴 Bugs (0)</div>
+  <div class="tab" style="display:none" onclick="sw(2)">⚠️ Pendências (0)</div>
+  <div class="tab" onclick="sw(3)">💡 Oportunidades APIs</div>
+</div>
+
+<div class="pane act" id="p0">
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">state.js — <span class="code">lastCarSearch</span> formalizado</span>
+      <span class="badge b-ok">✓</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Propriedade declarada explicitamente</div>
+        <div class="rd">A pendência apontada na análise anterior foi resolvida. <span class="code">lastCarSearch: null</span> agora está no corpo de <span class="code">state</span> com JSDoc, eliminando a atribuição dinâmica implícita.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">main.js — Warnings de validação exibidos em <span class="code">processAndRender</span></span>
+      <span class="badge b-ok">✓</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Warnings de sobreposição, duplicatas e interseções agora chegam ao usuário</div>
+        <div class="rd">O fluxo principal agora agrega TI + <span class="code">result.warnings</span> e decide se usa <span class="code">showToast</span> (quando fecha modal) ou <span class="code">showMessage</span> (inline). Lógica contextual bem feita.</div>
+      </div></div>
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt"><span class="code">overlapFeatures</span> passado para <span class="code">renderValidationMarkers</span></div>
+        <div class="rd">O polígono de sobreposição gerado em <span class="code">checkOverlaps</span> agora é transportado corretamente de <span class="code">validateCoordinates → processAndRender → renderValidationMarkers</span>, fechando o ciclo completo de detecção → visualização.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">map.js — <span class="code">validationPane</span> + sobreposições renderizadas no mapa</span>
+      <span class="badge b-ok">✓</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Painel exclusivo com z-index 650 e <span class="code">pointerEvents: none</span></div>
+        <div class="rd">Marcadores de validação ficam sempre sobre os polígonos sem bloquear cliques. Solução elegante usando o sistema de panes do Leaflet.</div>
+      </div></div>
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Polígono de sobreposição renderizado com hachura + vértices</div>
+        <div class="rd">Áreas sobrepostas aparecem em vermelho tracejado. O uso de <span class="code">turf.explode()</span> para marcar os vértices da interseção adiciona precisão visual excelente.</div>
+      </div></div>
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt"><span class="code">fillOpacity</span> no mouseout corrigido de 0.8 → 0.5</div>
+        <div class="rd">Polígonos não ficam mais "pesados" visualmente após o hover.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">proxy.php — <span class="code">github.com</span> removido da whitelist</span>
+      <span class="badge b-ok">✓ segurança</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Risco de SSRF eliminado</div>
+        <div class="rd">O domínio genérico <span class="code">github.com</span> foi removido. Os domínios governamentais foram granularizados: <span class="code">geoserver.funai.gov.br</span>, <span class="code">geoservicos.ibge.gov.br</span>, <span class="code">icmbio.gov.br</span>, <span class="code">ibge.gov.br</span>. Melhoria de segurança direta.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">services — Endpoints WFS oficiais + mapeamento de campos expandido</span>
+      <span class="badge b-ok">✓</span><span class="chev">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">FUNAI, ICMBio, IBAMA migrados para GeoServers oficiais</div>
+        <div class="rd">As três fontes primárias agora apontam para os servidores institucionais com filtros CQL por UF do Nordeste. Reduz dependência do GitHub Pages como intermediário.</div>
+      </div></div>
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">IBAMA — campos expandidos com fallbacks documentados</div>
+        <div class="rd"><span class="code">ibama.js</span> agora inclui <span class="code">nome_sancionado</span>, <span class="code">nome_infrator</span>, <span class="code">cpf_cnpj_sancionado</span>, <span class="code">nom_municipio</span>, <span class="code">sigla_uf</span>, <span class="code">sit_embargo</span>, <span class="code">data_embargo</span>. Melhor cobertura de variações de schema.</div>
+      </div></div>
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">CAR — <span class="code">areaModulos</span> e <span class="code">tipoImovel</span> adicionados</div>
+        <div class="rd">Os campos <span class="code">m_fiscal</span> / <span class="code">num_modulo_fiscal</span> e <span class="code">tipo_imovel</span> agora são extraídos e exibidos no painel do modal de conformidade e no popup do mapa.</div>
+      </div></div>
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt"><span class="code">normalizeTISource</span> refatorado — suporta FeatureCollection e Array uniformemente</div>
+        <div class="rd">A normalização de Terras Indígenas ficou mais simples e cobre ambos os formatos (API FUNAI direta e GitHub Pages) com a mesma lógica de resolução de propriedades.</div>
+      </div></div>
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Bioma: WFS IBGE como fonte primária, API localidades como fallback</div>
+        <div class="rd">Quando disponível, a detecção por interseção geométrica (WFS) é mais precisa do que consultar o ponto via API de localidades.</div>
+      </div></div>
+    </div>
+  </div>
+
+
+
+<div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">IBAMA — typeName errado: não vai retornar dados do WFS</span>
+      <span class="badge b-ok">✓ corrigido</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">config.js usa <span class="code">siscom:areas_embargadas</span> mas a documentação mostra <span class="code">publica:vw_brasil_adm_embargo_a</span></div>
+        <div class="rd">O WFS retornará erro 404/InvalidParameter ou FeatureCollection vazia. O fallback local será acionado silenciosamente. A aplicação continuará funcionando com dados desatualizados sem avisar o usuário.</div>
+        <code class="bc bc-d">// config.js — ATUAL (errado):
+URL_PRIMARIA: 'https://siscom.ibama.gov.br/geoserver/ows?...
+  &typeName=siscom:areas_embargadas...'
+
+// CORRIGIDO (conforme documentação):
+URL_PRIMARIA: 'https://siscom.ibama.gov.br/geoserver/ows?...
+  &typeName=publica:vw_brasil_adm_embargo_a...'</code>
+        <div class="rd" style="margin-top:6px">Além disso, os campos do schema real diferem. A documentação mostra os campos corretos para mapear em <span class="code">ibama.js</span>:</div>
+        <table class="table">
+          <tr><th>Campo real (WFS)</th><th>Campo atual no código</th><th>Status</th></tr>
+          <tr><td><span class="code">nom_pessoa</span></td><td><span class="code">nome_sancionado / nome_infrator</span></td><td class="tag-d">✗ não mapeado</td></tr>
+          <tr><td><span class="code">cpf_cnpj_infrator</span></td><td><span class="code">cpf_cnpj_sancionado</span></td><td class="tag-d">✗ nome diferente</td></tr>
+          <tr><td><span class="code">num_auto_infracao</span></td><td><span class="code">num_auto_infracao</span></td><td class="tag-ok">✓</td></tr>
+          <tr><td><span class="code">nom_municipio</span></td><td><span class="code">nom_municipio</span></td><td class="tag-ok">✓</td></tr>
+          <tr><td><span class="code">sig_uf</span></td><td><span class="code">sigla_uf</span></td><td class="tag-d">✗ nome diferente</td></tr>
+          <tr><td><span class="code">data_tad</span></td><td><span class="code">data_tad</span></td><td class="tag-ok">✓</td></tr>
+          <tr><td><span class="code">status_tad</span></td><td><span class="code">sit_embargo</span></td><td class="tag-d">✗ nome diferente</td></tr>
+          <tr><td><span class="code">des_infracao</span></td><td>—</td><td class="tag-w">não coletado</td></tr>
+          <tr><td><span class="code">processo_tad</span></td><td>—</td><td class="tag-w">não coletado</td></tr>
+        </table>
+        <code class="bc bc-ok">// ibama.js — mapeamento corrigido:
+results.push({
+  numAI:       props.num_auto_infracao ?? '—',
+  cpfCnpj:     props.cpf_cnpj_infrator ?? '—',
+  nome:        props.nom_pessoa ?? '—',
+  municipio:   props.nom_municipio ?? '—',
+  uf:          props.sig_uf ?? '—',
+  situacao:    props.status_tad ?? 'Ativo',
+  dataEmissao: props.data_tad ?? '—',
+  infracao:    props.des_infracao ?? '—',   // ← novo
+  processo:    props.processo_tad ?? '—',   // ← novo
+  area:        props.qtd_area_desmatada ?? '—',
+});</code>
+      </div></div>
+    </div>
+
+<div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">ICMBio — campo <span class="code">nomeuc</span> não mapeado: UC sem nome no modal</span>
+      <span class="badge b-ok">✓ corrigido</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Todos os campos do novo arquivo <span class="code">limiteucsfederais_a.json</span> têm nomes diferentes</div>
+        <div class="rd">O código em <span class="code">icmbio.js</span> tenta <span class="code">NM_UC / nm_uc / nome</span> — mas a documentação mostra que o campo real é <span class="code">nomeuc</span> (sem underscore, sem maiúsculas). Todas as UCs aparecerão como <strong>"—"</strong> no modal de conformidade.</div>
+        <table class="table">
+          <tr><th>Campo real (WFS INDE)</th><th>Campo atual no código</th><th>Status</th></tr>
+          <tr><td><span class="code">nomeuc</span></td><td><span class="code">NM_UC / nm_uc / nome</span></td><td class="tag-d">✗ todos errados</td></tr>
+          <tr><td><span class="code">siglacateg</span></td><td><span class="code">CATEGORIA_UC / categoria_uc / categoria</span></td><td class="tag-d">✗ todos errados</td></tr>
+          <tr><td><span class="code">grupouc</span></td><td><span class="code">GRUPO_UC / grupo_uc / grupo</span></td><td class="tag-d">✗ todos errados</td></tr>
+          <tr><td><span class="code">esferaadm</span></td><td><span class="code">DS_ESFERA / ds_esfera / esfera</span></td><td class="tag-d">✗ todos errados</td></tr>
+          <tr><td><span class="code">cnuc</span></td><td>—</td><td class="tag-w">não coletado</td></tr>
+          <tr><td><span class="code">biomas</span></td><td>—</td><td class="tag-w">não coletado</td></tr>
+          <tr><td><span class="code">demarcacao</span></td><td>—</td><td class="tag-w">não coletado</td></tr>
+        </table>
+        <code class="bc bc-ok">// icmbio.js — mapeamento corrigido:
+const nome      = uc.props.nomeuc      ?? '—';
+const categoria = uc.props.siglacateg  ?? '—';
+const grupo     = uc.props.grupouc     ?? '—';
+const esfera    = uc.props.esferaadm   ?? '—';
+// Campos adicionais disponíveis:
+const cnuc      = uc.props.cnuc        ?? '—';
+const biomas    = uc.props.biomas      ?? '—';
+const demarcacao = uc.props.demarcacao ?? '—';</code>
+      </div></div>
+    </div>
+
+<div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">Bioma IBGE WFS — typeName e campo errados: detecção primária sempre falha</span>
+      <span class="badge b-ok">✓ corrigido</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Dois erros simultâneos: typeName errado e campo de nome errado</div>
+        <div class="rd"><strong>1)</strong> O <span class="code">config.js</span> define <span class="code">BIOMA_WFS</span> com <span class="code">typeName=CGEO:bioma_250k</span>, mas a documentação mostra que o typeName correto é <span class="code">CGMAT:qg_2025_240_bioma</span>.<br><strong>2)</strong> O código em <span class="code">getBiomaGleba</span> lê <span class="code">properties?.name ?? properties?.nome</span>, mas o campo real é <span class="code">nm_bioma</span>.<br>Resultado: a requisição WFS retorna erro ou FeatureCollection vazia → cai no fallback → bioma sempre via API de localidades.</div>
+        <code class="bc bc-d">// config.js — ATUAL (errado):
+BIOMA_WFS: 'https://geoservicos.ibge.gov.br/geoserver/ows?...
+  &typeName=CGEO:bioma_250k'
+
+// camadas_externas.js — ATUAL (campo errado):
+const bioma = data.features?.[0]?.properties?.name 
+           ?? data.features?.[0]?.properties?.nome;</code>
+        <code class="bc bc-ok">// config.js — CORRIGIDO:
+BIOMA_WFS: 'https://geoservicos.ibge.gov.br/geoserver/ows?
+  service=WFS&version=1.0.0&request=GetFeature
+  &typeName=CGMAT:qg_2025_240_bioma
+  &outputFormat=application/json'
+
+// camadas_externas.js — CORRIGIDO:
+const bioma = data.features?.[0]?.properties?.nm_bioma;</code>
+      </div></div>
+    </div>
+
+<div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct"><span class="code">checkOverlaps</span> — par A↔B ainda reportado duas vezes</span>
+      <span class="badge b-ok">✓ corrigido</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Apontado na análise anterior — Set de pares ainda não foi adicionado</div>
+        <div class="rd">Com 3 glebas sobrepostas entre si, o usuário verá 6 avisos no toast em vez de 3. O <span class="code">overlapFeatures</span> também recebe geometrias duplicadas, renderizando o mesmo polígono duas vezes no mapa com opacidade dobrada.</div>
+        <code class="bc bc-ok">// validation.js — em checkOverlaps():
+const reportedPairs = new Set();
+// ... dentro do inner loop, antes do turf.intersect:
+const pairKey = [g1.glebaId, g2.glebaId].sort().join('-');
+if (reportedPairs.has(pairKey)) continue;
+// ... após confirmar sobreposição:
+reportedPairs.add(pairKey);</code>
+      </div></div>
+    </div>
+
+<div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">Import dinâmico de <span class="code">map.js</span> — 2 ocorrências restantes</span>
+      <span class="badge b-ok">✓ otimizado</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Ainda presentes em <span class="code">processAndRender</span> e no listener do CAR</div>
+        <div class="rd"><span class="code">import('./components/map.js').then(m => m.renderValidationMarkers(...))</span> e <span class="code">import('./components/map.js').then(m => m.renderCARLayer(...))</span> — ambos em contextos onde o módulo já foi carregado estaticamente no topo.</div>
+        <code class="bc bc-ok">// main.js — adicionar às importações estáticas no topo:
+import {
+  initMap, renderPolygons, renderMarkers, renderCentroids,
+  clearMapLayers, zoomToGleba, setGlebasVisible,
+  setMarkersVisible, setCentroidsVisible,
+  renderValidationMarkers,   // ← adicionar
+  renderCARLayer             // ← adicionar
+} from './components/map.js';
+
+// Substituir os dois import() dinâmicos por:
+renderValidationMarkers(state.glebas, result.overlapFeatures);
+renderCARLayer([carData]);</code>
+      </div></div>
+    </div>
+
+<div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct"><span class="code">Math.max(...array.map())</span> com spread — 2 ocorrências</span>
+      <span class="badge b-ok">✓ melhorado</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Pode causar <span class="code">RangeError</span> com muitas glebas</div>
+        <div class="rd">Em <span class="code">main.js</span>: <span class="code">Math.max(...state.glebas.map(g => g.glebaId))</span> aparece na delegação de eventos do CAR e no handler do <span class="code">draw:created</span>. O operador spread empilha todos os IDs na call stack.</div>
+        <code class="bc bc-ok">// Substituir nas 2 ocorrências:
+const nextGid = state.glebas.reduce(
+  (max, g) => g.glebaId > max ? g.glebaId : max, 0
+) + 1;</code>
+      </div></div>
+    </div>
+
+<div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct"><span class="code">bboxIntersects</span> ainda definida localmente em <span class="code">validation.js</span></span>
+      <span class="badge b-ok">✓ refatorado</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Terceira análise consecutiva — a função local persiste</div>
+        <div class="rd">A cópia local em <span class="code">validation.js</span> é funcionalmente idêntica à exportada por <span class="code">geo.js</span>, que já é importada corretamente por <span class="code">ibama.js</span>, <span class="code">icmbio.js</span> e <span class="code">terras_indigenas.js</span>.</div>
+        <code class="bc bc-ok">// validation.js — linha 1, adicionar:
+import { bboxIntersects } from '../utils/geo.js';
+// Remover a definição local da função bboxIntersects</code>
+      </div></div>
+    </div>
+</div>
+
+<div class="pane" id="p1">
+</div>
+
+<div class="pane" id="p2">
+</div>
+
+<div class="pane" id="p3">
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">IBAMA — Campos extras disponíveis no WFS não coletados</span>
+      <span class="badge b-i">incremento</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">💡</div><div>
+        <div class="rt">Campos úteis para conformidade BACEN/SICOR identificados na documentação</div>
+        <div class="rd">O WFS <span class="code">publica:vw_brasil_adm_embargo_a</span> expõe dados ricos que poderiam enriquecer o modal de conformidade:</div>
+        <table class="table">
+          <tr><th>Campo</th><th>Valor de uso</th></tr>
+          <tr><td><span class="code">des_infracao</span></td><td>Descrição da infração — contexto do embargo</td></tr>
+          <tr><td><span class="code">processo_tad</span></td><td>Número do processo administrativo — rastreabilidade</td></tr>
+          <tr><td><span class="code">legislacao + artigo</span></td><td>Base legal do embargo — relevante para laudo</td></tr>
+          <tr><td><span class="code">data_cadastro_tad</span></td><td>Data de cadastro separada da data de emissão</td></tr>
+          <tr><td><span class="code">respeita_embargo</span></td><td>Indica reincidência — alerta de risco ampliado</td></tr>
+        </table>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">ICMBio — Campos <span class="code">cnuc</span>, <span class="code">biomas</span> e <span class="code">demarcacao</span> disponíveis</span>
+      <span class="badge b-i">incremento</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">💡</div><div>
+        <div class="rt">O arquivo <span class="code">limiteucsfederais_a.json</span> traz campos ausentes na versão anterior</div>
+        <div class="rd">Após corrigir o mapeamento de campos, os seguintes dados adicionais estarão disponíveis:</div>
+        <table class="table">
+          <tr><th>Campo</th><th>Valor de uso</th></tr>
+          <tr><td><span class="code">cnuc</span></td><td>Código nacional único da UC — link para consulta no CNUC/MMA</td></tr>
+          <tr><td><span class="code">biomas</span></td><td>Bioma(s) abrangidos — informação cruzada com detecção de bioma da gleba</td></tr>
+          <tr><td><span class="code">demarcacao</span></td><td>"Não demarcada" indica UC sem limite definitivo — risco menor de bloqueio BACEN</td></tr>
+          <tr><td><span class="code">criacaoato + criacaoano</span></td><td>Ato legal de criação + ano — informação para laudo técnico</td></tr>
+          <tr><td><span class="code">areahaalb</span></td><td>Área em ha — para mostrar o tamanho da UC no modal</td></tr>
+        </table>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">SICAR — Campo <span class="code">ind_tipo</span> expandido com valores do dicionário</span>
+      <span class="badge b-i">incremento</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">💡</div><div>
+        <div class="rt">O dicionário SICAR documenta os valores possíveis de <span class="code">tipo_imovel</span></div>
+        <div class="rd">Atualmente o campo é exibido bruto (<span class="code">IRU</span>, <span class="code">AST</span>, <span class="code">PCT</span>). Com o dicionário, pode-se exibir o rótulo completo:</div>
+        <code class="bc bc-ok">// camadas_externas.js — expandir tipoImovel para label:
+const TIPO_IMOVEL = {
+  IRU: 'Imóvel Rural',
+  AST: 'Assentamento de Reforma Agrária',
+  PCT: 'Povos e Comunidades Tradicionais',
+};
+tipoImovel: TIPO_IMOVEL[props.tipo_imovel] ?? props.tipo_imovel ?? '—',</code>
+        <div class="rd" style="margin-top:6px">O campo <span class="code">nom_tema</span> também pode ser coletado para detalhar as áreas cadastradas (APP, Reserva Legal, Vegetação Nativa, etc.).</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">FUNAI — Campos <span class="code">faixa_fronteira</span> e <span class="code">fase_ti</span> com semântica BACEN</span>
+      <span class="badge b-i">incremento</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">💡</div><div>
+        <div class="rt">Dados já coletados mas não usados na lógica de conformidade</div>
+        <div class="rd">O campo <span class="code">fase_ti</span> ("Regularizada", "Homologada", "Delimitada", "Em estudo") tem impacto direto no nível de restrição BACEN/SICOR. TI "Em estudo" pode não bloquear, enquanto "Regularizada" sempre bloqueia. A fase poderia graduar o status do item (<span class="code">bloqueio</span> vs <span class="code">alerta</span>) em <span class="code">conformidade.js</span>.</div>
+        <code class="bc bc-ok">// conformidade.js — checkTI() com graduação por fase:
+const fase = ti.fase ?? '';
+const bloqueio = ['Regularizada','Homologada'].includes(fase);
+return {
+  status: bloqueio ? 'bloqueio' : 'alerta',
+  mensagem: `${ti.nome} (${fase}) — ${bloqueio
+    ? 'BLOQUEIO BACEN' : 'Em processo de regularização'}`,
+};</code>
+      </div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function sw(i){
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('act',i===j));
+  document.querySelectorAll('.pane').forEach((p,j)=>p.classList.toggle('act',i===j));
+}
+function tog(hd){
+  const cb=hd.nextElementSibling;
+  const chv=hd.querySelector('.chv');
+  cb.classList.toggle('open');
+  chv.classList.toggle('open');
+}
+</script>
