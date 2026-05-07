@@ -140,6 +140,7 @@ function buildUCPopup(p) {
   const grupo = p.grupouc ?? '—';
   const esfera = p.esferaadm ?? '—';
   // Campos adicionais disponíveis:
+  const ano = p.criacaoano ?? '—';
   const cnuc = p.cnuc ?? '—';
   const biomas = p.biomas ?? '—';
   const demarcacao = p.demarcacao ?? '—';
@@ -154,6 +155,9 @@ function buildUCPopup(p) {
       <tr><td>Grupo</td><td>${grupo}</td></tr>
       <tr><td>Esfera</td><td>${esfera}</td></tr>
       <tr><td>Ano Criação</td><td>${ano}</td></tr>
+      <tr><td>CNUC</td><td>${cnuc}</td></tr>
+      <tr><td>Biomas</td><td>${biomas}</td></tr>
+      <tr><td>Demarcação</td><td>${demarcacao}</td></tr>
     </table>
   </div>`;
 }

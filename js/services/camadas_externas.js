@@ -66,12 +66,6 @@ const UC_USO_SUSTENTAVEL = new Set([
   'Reserva Particular do Patrimônio Natural',
 ]);
 
-/** Biomas do Nordeste e sua regulação no BACEN/SICOR */
-const BIOMA_REGULACAO = Object.freeze({
-  'Caatinga': { reservaLegalPct: 20, marcoCorteLegal: null, bacenCritico: false },
-  'Cerrado': { reservaLegalPct: 20, marcoCorteLegal: '2008-07-22', bacenCritico: true },
-  'Mata Atlântica': { reservaLegalPct: 20, marcoCorteLegal: null, bacenCritico: true },
-  'Amazônia': { reservaLegalPct: 80, marcoCorteLegal: '2008-07-22', bacenCritico: true },
 });
 
 /**
@@ -90,25 +84,6 @@ const IBGE_PREFIX_TO_UF = Object.freeze({
 
 // ─── WMS — Camadas Visuais ─────────────────────────────────────────────────
 
-
-
-
-
-/** Camada WMS Biomas IBGE. */
-export function createBiomaLayer() {
-  return L.tileLayer.wms(
-    'https://apisidra.ibge.gov.br/wms/biomas',
-    {
-      layers: 'biomas',
-      format: 'image/png',
-      transparent: true,
-      opacity: 0.30,
-      attribution: 'IBGE — Biomas',
-      updateWhenIdle: true,
-      updateWhenZooming: false,
-      keepBuffer: 2,
-    }
-  );
 }
 
 // ─── API — Verificação de Interseção ─────────────────────────────────────────
@@ -117,44 +92,7 @@ export function createBiomaLayer() {
 
 
 
-/**
- * Identifica o bioma predominante da gleba via IBGE API.
- * @param {GlebaData} gleba
- * @returns {Promise<string|null>}
- */
-export async function getBiomaGleba(gleba) {
-  const [lon, lat] = gleba.centroid;
 
-  // 1. Tenta via WFS Oficial (Geoserver IBGE) - Mais preciso
-  if (CONFIG.CONFORMIDADE.BIOMA_WFS) {
-    try {
-      const wfsUrl = `${CONFIG.CONFORMIDADE.BIOMA_WFS}&CQL_FILTER=INTERSECTS(geom, POINT(${lon} ${lat}))`;
-      const res = await fetchWithTimeout(wfsUrl, 10000);
-      if (res.ok) {
-        const data = await res.json();
-        const bioma = data.features?.[0]?.properties?.nm_bioma;
-        if (bioma) {
-          log(`IBGE WFS: bioma "${bioma}" detectado.`);
-          return bioma;
-        }
-      }
-    } catch (e) {
-      warn('IBGE WFS bioma erro:', e.message);
-    }
-  }
-
-  // 2. Fallback: API de Localidades (Ponto)
-  const url = `https://servicodados.ibge.gov.br/api/v1/localidades/biomas?lat=${lat}&lng=${lon}`;
-  try {
-    const res = await fetchWithTimeout(url, TIMEOUT);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    return data?.nome ?? data?.[0]?.nome ?? null;
-  } catch (e) {
-    warn('IBGE bioma API erro:', e.message);
-    return inferBiomaByUF(gleba);
-  }
-}
 
 /**
  * Verifica alertas de desmatamento (PRODES/DETER) via TerraBrasilis.
@@ -278,6 +216,12 @@ export function detectarTodasUFs(gleba) {
 }
 
 // ─── CAR — Cadastro Ambiental Rural ────────────────────────────────────────
+
+const TIPO_IMOVEL_LABEL = {
+  IRU: 'Imóvel Rural',
+  AST: 'Assentamento de Reforma Agrária',
+  PCT: 'Povos e Comunidades Tradicionais',
+};
 
 /**
  * Gera a chave de cache para uma gleba.
@@ -415,7 +359,7 @@ async function checkCARporUF(gleba, uf) {
         status: f.properties.ind_status ?? f.properties.status_imovel ?? '—',
         condicao: f.properties.ind_condicao ?? f.properties.condicao ?? '—',
         areaModulos: parseFloat(f.properties.m_fiscal ?? f.properties.num_modulo_fiscal ?? 0),
-        tipoImovel: f.properties.tipo_imovel ?? f.properties.cod_tipo_imovel ?? '—',
+        tipoImovel: TIPO_IMOVEL_LABEL[f.properties.tipo_imovel ?? f.properties.cod_tipo_imovel] ?? f.properties.tipo_imovel ?? f.properties.cod_tipo_imovel ?? '—',
         datCriacao: f.properties.dat_criacao ?? '—',
         datAtualizacao: f.properties.dat_atualizacao ?? '—',
         geometry: f.geometry,
@@ -456,10 +400,10 @@ async function checkCARporUF(gleba, uf) {
         status: rawStatus ?? '—',
         condicao: getVal('ind_condicao', 'condicao') ?? '—',
         areaModulos: parseFloat(getVal('m_fiscal', 'num_modulo_fiscal') ?? '0'),
-        tipoImovel: getVal('tipo_imovel', 'cod_tipo_imovel') ?? '-',
+        tipoImovel: TIPO_IMOVEL_LABEL[getVal('tipo_imovel', 'cod_tipo_imovel')] ?? getVal('tipo_imovel', 'cod_tipo_imovel') ?? '—',
         areaHa: parseFloat(getVal('area', 'num_area') ?? '0'),
-        datCriacao: getVal('dat_criacao') ?? '-',
-        datAtualizacao: getVal('dat_atualizacao') ?? '-',
+        datCriacao: getVal('dat_criacao') ?? '—',
+        datAtualizacao: getVal('dat_atualizacao') ?? '—',
         geometry: null,
       });
     }
@@ -545,9 +489,9 @@ export async function findCARByCode(codigo) {
       status: f.properties.ind_status ?? f.properties.status_imovel ?? '—',
       condicao: f.properties.ind_condicao ?? f.properties.condicao ?? '—',
       areaModulos: parseFloat(f.properties.m_fiscal ?? f.properties.num_modulo_fiscal ?? 0),
-      tipoImovel: f.properties.tipo_imovel ?? f.properties.cod_tipo_imovel ?? '—',
+      tipoImovel: TIPO_IMOVEL_LABEL[f.properties.tipo_imovel ?? f.properties.cod_tipo_imovel] ?? f.properties.tipo_imovel ?? f.properties.cod_tipo_imovel ?? '—',
       datCriacao: f.properties.dat_criacao ?? '—',
-      datAtualizacao: f.properties.dat_atualizacao ?? '',
+      datAtualizacao: f.properties.dat_atualizacao ?? '—',
       geometry: f.geometry,
     };
 
@@ -591,19 +535,6 @@ async function fetchWithTimeout(url, ms) {
   }
 }
 
-/**
- * Fallback: infere bioma predominante pela UF.
- * Usado quando a API IBGE não responde.
- * @param {GlebaData} gleba
- * @returns {string}
- */
-function inferBiomaByUF(gleba) {
-  const ufBioma = {
-    ma: 'Cerrado', pi: 'Caatinga', ce: 'Caatinga', rn: 'Caatinga',
-    pb: 'Caatinga', pe: 'Caatinga', al: 'Mata Atlântica',
-    se: 'Mata Atlântica', ba: 'Caatinga',
-  };
-  return ufBioma[detectarUF(gleba)] ?? 'Caatinga';
-}
 
-export { UC_PROTECAO_INTEGRAL, UC_USO_SUSTENTAVEL, BIOMA_REGULACAO };
+
+export { UC_PROTECAO_INTEGRAL, UC_USO_SUSTENTAVEL };

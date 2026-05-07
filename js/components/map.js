@@ -354,7 +354,7 @@ export function renderCARLayer(imoveis) {
                 <td><strong>${p.municipio} - ${String(p.uf).toUpperCase()}</strong></td></tr>
             <tr><td style="color:#666;padding:2px 0">Área</td>
                 <td>${Number(p.area).toFixed(2).replace('.', ',')} ha</td></tr>
-            <tr><td style="color:#666;padding:2px 0">Tip Imovel</td>
+            <tr><td style="color:#666;padding:2px 0">Tipo Imóvel</td>
                 <td><span class="badge bg-light text-dark border py-0" style="font-size:0.7rem">${p.tipoImovel}</span></td></tr>
             <tr><td style="color:#666;padding:2px 0">Mód. Fiscais</td>
                 <td><strong>${Number(p.areaModulos || 0).toFixed(3).replace('.', ',')}</strong></td></tr>

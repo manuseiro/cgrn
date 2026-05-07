@@ -1,0 +1,13 @@
+Sicor - Microdados do Crédito Rural Público
+
+​1. OS MICRODADOS DAS OPERAÇÕES DE CRÉDITO RURAL CONCEDIDO ATÉ O MÊS ANTERIOR AO CORRENTE, INCLUINDO AQUELAS ENQUADRADAS NO PROAGRO, ESTÃO INTEGRALMENTE PUBLICADOS NAS SEÇÕES A SEGUIR.
+​2. DISCLAIMER SOBRE OS MICRODADOS DO CRÉDITO RURAL PÚBLICO DISPONIBILIZADOS NESTA SEÇÃO
+3. PARA FINS DE APRESENTAÇÃO, ENTENDE-SE POR CRÉDITO RURAL PÚBLICO AQUELAS OPERAÇÕES REGISTRADAS NO SICOR QUE SÃO SEGURADAS POR PROAGRO OU CUJAS FONTES DE RECURSOS SÃO PÚBLICAS.  PORTANTO, O UNIVERSO DE OPERAÇÕES DA SEÇÃO ANTERIOR É MAIOR QUE O UNIVERSO DE OPERAÇÕES DESTA SEÇÃO, NA QUAL MICRODADOS COMPLEMENTARES SÃO DISPONIBILIZADOS.
+
+Documentação dos arquivos ".gz":(https://www.bcb.gov.br/htms/sicor/manualDadosSicorCompleto.pdf) SICOR_COMPLEMENTO_OPERACAO_BASICA.gz
+Fontes de Recursos Públicas: FonteRecursosPublicos.csv (https://www.bcb.gov.br/htms/sicor/FonteRecursosPublicos.csv)
+
+Glebas no formato WKT de operações contratadas:
+Em 2026: SICOR_GLEBAS_WKT_2026​.gz (https://www.bcb.gov.br/htms/sicor/DadosBrutos/sicor_glebas_wkt_2026.gz)
+
+Apos extrar o aqruivo vai ter um arquivo .CSV contendo as glebas de operações já contratadas:

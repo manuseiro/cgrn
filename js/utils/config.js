@@ -102,6 +102,17 @@ export const CONFIG = Object.freeze({
     TIMEOUT_MS: 15000,
   }),
 
+  BIOMA: Object.freeze({
+    URL_PRIMARIA: 'https://geoservicos.ibge.gov.br/geoserver/ows?' +
+      'service=WFS&version=1.0.0&request=GetFeature' +
+      '&typeName=CGMAT:qg_2025_240_bioma' +
+      '&outputFormat=application%2Fjson' +
+      '&CQL_FILTER=INTERSECTS(geom,POLYGON((-50%20-2,-34%20-2,-34%20-18,-50%20-18,-50%20-2)))',
+    // Bounding box aproximado do Nordeste: reduz de 30MB para ~1-2MB
+    URL_FALLBACK: 'api/qg_2025_240_bioma_nordeste.json',
+    // ↑ versão pré-filtrada e simplificada do arquivo local (gerar com Mapshaper)
+  }),
+
   STORAGE: Object.freeze({ KEY: 'cgrn_project_v3' }),
 
   /**

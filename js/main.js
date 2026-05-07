@@ -1,5 +1,5 @@
 /**
- * @file main.js — v3.6.0
+ * @file main.js — v3.6.3
  * @description Orquestrador principal da aplicação CGRN.
  *
  */
@@ -35,8 +35,9 @@ import {
   loadTerrasIndigenas, setTerrasIndigenasVisible,
   checkGlebaTI, buildTILegend
 } from './services/terras_indigenas.js';
+import { loadBioma, setBiomaVisible, getBiomaLocal } from './services/bioma.js';
 import {
-  createBiomaLayer,
+  // removido createBiomaLayer e inserido o trecho acima - loadBioma
   invalidarCacheCAR, findCARByCode
 } from './services/camadas_externas.js';
 import { loadICMBIO, setICMBioVisible } from './services/icmbio.js';
@@ -49,7 +50,7 @@ const { COORD_PRECISION } = CONFIG.VALIDATION;
 // ─── Boot ─────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
-  log('CGRN v3.6.0 inicializando...');
+  log('CGRN v3.6.3 inicializando...');
   modals.init();
   initMap();
   bindEvents();
@@ -63,6 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadTerrasIndigenas(),
     loadICMBIO(),
     loadIBAMA(),
+    loadBioma(),   // ← novo
   ]);
 
   log('CGRN pronto ✅');
@@ -182,7 +184,7 @@ function bindEvents() {
   });
   el.mostrarUC?.addEventListener('change', e => setICMBioVisible(e.target.checked));
   el.mostrarIbama?.addEventListener('change', e => setIbamaVisible(e.target.checked));
-  el.mostrarBioma?.addEventListener('change', e => toggleExternalLayer('bioma', e.target.checked));
+  el.mostrarBioma?.addEventListener('change', e => setBiomaVisible(e.target.checked));
   el.validarRegras?.addEventListener('change', e => {
     state.validatePoints = e.target.checked;
     state.cache.clear();     // Cache limpo ao trocar validarRegras
@@ -462,7 +464,7 @@ async function validarInline() {
     showMessage(mensagens, tipo, 8000);
 
   } catch (e) {
-    console.error(e);
+    warn(e);  // era: console.error(e)
     showMessage('Erro inesperado durante a validação.', 'danger');
   } finally {
     if (btn) setButtonNormal(btn);

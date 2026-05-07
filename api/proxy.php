@@ -17,7 +17,7 @@ $isDev = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1', '::1
 $allowedOrigin = $isDev ? '*' : 'https://manuseiro.github.io';
 header("Access-Control-Allow-Origin: $allowedOrigin");
 
-$targetUrl = $_GET['url'] ?? null;
+$targetUrl = urldecode($_GET['url'] ?? '');
 
 if (!$targetUrl) {
     http_response_code(400);
@@ -34,7 +34,6 @@ $allowedDomains = [
     'siscom.ibama.gov.br',
     'geoservicos.inde.gov.br',
     'geoservices.icmbio.gov.br',
-    'geoservicos.inde.gov.br',
     'geoserver.car.gov.br',
     'geoserver.funai.gov.br',
     'geoservicos.ibge.gov.br',
@@ -56,7 +55,10 @@ if (!in_array($host, $allowedDomains)) {
 // Configurações de Cache
 $cacheDir = __DIR__ . '/cache';
 if (!is_dir($cacheDir)) {
-    mkdir($cacheDir, 0755, true);
+    if (!mkdir($cacheDir, 0755, true) && !is_dir($cacheDir)) {
+        // Não conseguiu criar o diretório — continua sem cache
+        error_log('[CGRN Proxy] Falha ao criar diretório de cache: ' . $cacheDir);
+    }
 }
 
 // Usamos MD5 da URL inteira para gerar um nome de arquivo seguro
