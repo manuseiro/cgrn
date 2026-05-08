@@ -35,6 +35,7 @@ import { getBiomaGleba, BIOMA_REGULACAO } from './bioma.js';
 import { checkGlebaICMBio } from './icmbio.js';
 import { checkGlebaIbama } from './ibama.js';
 import { analyzeGlebaInCAR } from './spatial_analysis.js';
+import { checkGlebaSicor } from './sicor.js';
 
 // ─── Tipos de verificação (rótulos UI) ────────────────────────────────────
 
@@ -50,6 +51,7 @@ export const CHECKS = Object.freeze({
   DESMATAMENTO: { id: 'desmatamento', label: 'Alerta de Desmatamento (PRODES)', ref: 'Res. CMN 4.945/2021 Art. 5' },
   SEMIARIDO: { id: 'semiarido', label: 'Região Semiárida (SUDENE)', ref: 'Lei 7.827/1989 + FNE' },
   CAR: { id: 'car', label: 'CAR — Cadastro Ambiental Rural', ref: 'Cód. Florestal Art. 29' },
+  SICOR: { id: 'sicor', label: 'Gleba já Financiada (SICOR/BCB)', ref: 'Res. CMN 5.081/2023' },
 });
 
 // ─── Resultado de um item de verificação ──────────────────────────────────
@@ -92,18 +94,20 @@ export async function verificarConformidade(gleba, { skipApi = false } = {}) {
 
   // ── Verificações via API (assíncronas e paralelas) ─────────────────────
   if (!skipApi) {
-    const [ucRes, embargoRes, biomaRes, desmatRes, carRes] = await Promise.allSettled([
+    const [ucRes, embargoRes, biomaRes, desmatRes, carRes, sicorRes] = await Promise.allSettled([
       checkGlebaICMBio(gleba),
       checkGlebaIbama(gleba),
       getBiomaGleba(gleba),
       checkDesmatamento(gleba),
       checkCAR(gleba),
+      checkGlebaSicor(gleba),
     ]);
 
     itens.push(buildUCItem(gleba, ucRes));
     itens.push(buildEmbargoItem(gleba, embargoRes));
     itens.push(buildBiomaItem(gleba, biomaRes));
     itens.push(buildDesmatItem(gleba, desmatRes));
+    itens.push(buildSicorItem(gleba, sicorRes));
 
     // Interpõe analyzeGlebaInCAR: transforma CARResult[] no objeto de análise
     const carAnalisado = carRes.status === 'fulfilled'
@@ -114,7 +118,7 @@ export async function verificarConformidade(gleba, { skipApi = false } = {}) {
 
   } else {
     [CHECKS.UC_INTEGRAL, CHECKS.UC_SUSTENTAVEL, CHECKS.EMBARGO,
-    CHECKS.BIOMA, CHECKS.DESMATAMENTO, CHECKS.CAR]
+    CHECKS.BIOMA, CHECKS.DESMATAMENTO, CHECKS.CAR, CHECKS.SICOR]
       .forEach(c => itens.push({
         ...c, status: 'pendente',
         mensagem: 'Verificação via API desativada.', dados: [],
@@ -376,6 +380,28 @@ function buildCARItem(gleba, res) {
     uncoveredHa: a.uncoveredHa ?? 0,
     carAreaHa: a.carAreaHa ?? 0,
     nCARs: a.nCARs ?? 0,
+  };
+}
+
+function buildSicorItem(gleba, res) {
+  if (res.status === 'rejected') {
+    return {
+      ...CHECKS.SICOR, status: 'pendente',
+      mensagem: 'Base SICOR indisponível no momento.', dados: []
+    };
+  }
+  const ops = res.value ?? [];
+  if (ops.length === 0) {
+    return {
+      ...CHECKS.SICOR, status: 'ok',
+      mensagem: 'Gleba não possui outras operações de crédito rural ativas no SICOR.', dados: []
+    };
+  }
+  const refs = ops.map(o => o.ref_bacen).join(', ');
+  return {
+    ...CHECKS.SICOR, status: 'bloqueio',
+    mensagem: `Gleba já utilizada em ${ops.length} operação(ões) ativa(s): ${refs}. Crédito vedado por duplicidade.`,
+    dados: ops
   };
 }
 

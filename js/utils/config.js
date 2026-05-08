@@ -102,6 +102,10 @@ export const CONFIG = Object.freeze({
     TIMEOUT_MS: 15000,
   }),
 
+  SICOR: Object.freeze({
+    URL: 'https://olinda.bcb.gov.br/olinda/servico/SICOR/versao/v1/download/SICOR_GLEBAS_WKT_2026.gz',
+  }),
+
   BIOMA: Object.freeze({
     URL_PRIMARIA: 'https://geoservicos.ibge.gov.br/geoserver/ows?' +
       'service=WFS&version=1.0.0&request=GetFeature' +

@@ -1,0 +1,362 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);color:var(--color-text-primary);background:transparent;padding:1rem 0}
+.hd{display:flex;align-items:center;gap:8px;padding-bottom:.9rem;border-bottom:.5px solid var(--color-border-tertiary);margin-bottom:1rem}
+.hd-t{font-size:14px;font-weight:600;flex:1}
+.badge{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
+.b-ok{background:var(--color-background-success);color:var(--color-text-success)}
+.b-w{background:var(--color-background-warning);color:var(--color-text-warning)}
+.b-d{background:var(--color-background-danger);color:var(--color-text-danger)}
+.b-i{background:var(--color-background-info);color:var(--color-text-info)}
+.tabs{display:flex;gap:2px;margin-bottom:1rem;border-bottom:.5px solid var(--color-border-tertiary)}
+.tab{font-size:12px;font-weight:500;padding:.45rem .9rem;border-radius:var(--border-radius-md) var(--border-radius-md) 0 0;cursor:pointer;color:var(--color-text-secondary);border:.5px solid transparent;border-bottom:none;margin-bottom:-.5px}
+.tab.act{background:var(--color-background-primary);color:var(--color-text-primary);border-color:var(--color-border-tertiary);border-bottom-color:var(--color-background-primary)}
+.pane{display:none}.pane.act{display:block}
+.card{border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin-bottom:.85rem;overflow:hidden}
+.ch{display:flex;align-items:center;gap:9px;padding:.7rem 1rem;background:var(--color-background-secondary);cursor:pointer}
+.ch:hover{background:var(--color-background-tertiary)}
+.ct{font-size:13px;font-weight:500;flex:1}
+.cb{padding:.85rem 1rem;background:var(--color-background-primary);border-top:.5px solid var(--color-border-tertiary);display:none}
+.cb.open{display:block}
+.chv{font-size:11px;color:var(--color-text-tertiary);transition:transform .2s}
+.chv.open{transform:rotate(180deg)}
+.row{display:flex;gap:10px;padding:.55rem 0;border-bottom:.5px solid var(--color-border-tertiary);align-items:flex-start}
+.row:last-child{border-bottom:none;padding-bottom:0}
+.dot{font-size:14px;flex-shrink:0;line-height:1.4;width:22px}
+.rt{font-size:12px;font-weight:500;margin-bottom:2px}
+.rd{font-size:11px;color:var(--color-text-secondary);line-height:1.6}
+.code{font-family:var(--font-mono);font-size:11px;background:var(--color-background-tertiary);padding:1px 5px;border-radius:4px;border:.5px solid var(--color-border-tertiary)}
+.bc{font-family:var(--font-mono);font-size:11px;padding:8px 11px;border-radius:var(--border-radius-md);display:block;line-height:1.7;white-space:pre;overflow-x:auto;margin:.5rem 0}
+.bc-ok{background:var(--color-background-success);color:var(--color-text-success);border:.5px solid var(--color-border-success)}
+.bc-w{background:var(--color-background-warning);color:var(--color-text-warning);border:.5px solid var(--color-border-warning)}
+.bc-d{background:var(--color-background-danger);color:var(--color-text-danger);border:.5px solid var(--color-border-danger)}
+.bc-m{background:var(--color-background-secondary);color:var(--color-text-secondary);border:.5px solid var(--color-border-tertiary)}
+.score{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem}
+.sc{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.8rem;text-align:center}
+.sc-n{font-size:24px;font-weight:600;line-height:1}
+.sc-l{font-size:10px;color:var(--color-text-secondary);margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:.6rem}
+.gc{border-radius:var(--border-radius-md);padding:.6rem .85rem;font-size:12px}
+.gc-ok{background:var(--color-background-success);color:var(--color-text-success);border:.5px solid var(--color-border-success)}
+.gc-w{background:var(--color-background-warning);color:var(--color-text-warning);border:.5px solid var(--color-border-warning)}
+.gn{font-weight:500;font-size:12px;margin-bottom:1px}
+.gs{font-size:11px;opacity:.85}
+</style>
+
+<div class="hd">
+  <i class="ti ti-git-compare" style="font-size:18px"></i>
+  <span class="hd-t">CGRN v3.6.3 — Análise completa</span>
+  <span class="badge b-ok">15 corrigidos</span>
+  <span class="badge b-d">1 SyntaxError crítico</span>
+  <span class="badge b-w">4 bugs menores</span>
+</div>
+
+<div class="score">
+  <div class="sc"><div class="sc-n" style="color:var(--color-text-success)">15</div><div class="sc-l">Correções aplicadas</div></div>
+  <div class="sc"><div class="sc-n" style="color:var(--color-text-danger)">1</div><div class="sc-l">SyntaxError (app não carrega)</div></div>
+  <div class="sc"><div class="sc-n" style="color:var(--color-text-warning)">4</div><div class="sc-l">Bugs menores</div></div>
+  <div class="sc"><div class="sc-n" style="color:var(--color-text-info)">1</div><div class="sc-l">Oportunidade (BCB SICOR)</div></div>
+</div>
+
+<div class="tabs">
+  <div class="tab act" onclick="sw(0)">✅ Correções (15)</div>
+  <div class="tab" onclick="sw(1)">🔴 SyntaxError Crítico</div>
+  <div class="tab" onclick="sw(2)">⚠️ Bugs menores (4)</div>
+  <div class="tab" onclick="sw(3)">💡 SICOR/BCB</div>
+</div>
+
+<!-- TAB 0 -->
+<div class="pane act" id="p0">
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">ibama.js — <span class="code">buildIbamaPopup</span> totalmente alinhado ao schema real</span>
+      <span class="badge b-ok">✓</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Todos os campos corrigidos com fallback para compatibilidade retroativa</div>
+        <div class="rd">O popup do mapa agora lê: <span class="code">num_auto_infracao</span>, <span class="code">nom_municipio</span>, <span class="code">sig_uf</span>, <span class="code">cpf_cnpj_infrator</span>, <span class="code">nom_pessoa</span>, <span class="code">status_tad</span>, <span class="code">data_tad</span>, <span class="code">qtd_area_desmatada</span> — todos primários, com fallback para os nomes antigos. A linha "UC" foi substituída por "Infrator", e os campos <span class="code">infracao</span> e <span class="code">processo</span> foram adicionados ao template. O bug apontado na v3.6.2 está resolvido.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">icmbio.js — <span class="code">ano</span> declarado + <span class="code">cnuc</span>, <span class="code">biomas</span>, <span class="code">demarcacao</span> renderizados</span>
+      <span class="badge b-ok">✓</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">ReferenceError de <span class="code">ano</span> corrigido com <span class="code">p.criacaoano</span></div>
+        <div class="rd">A variável <span class="code">const ano = p.criacaoano ?? '—'</span> foi adicionada antes do template. Os três campos adicionais (<span class="code">cnuc</span>, <span class="code">biomas</span>, <span class="code">demarcacao</span>) agora aparecem nas linhas do popup — coletados e renderizados.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">camadas_externas.js — <span class="code">TIPO_IMOVEL_LABEL</span> + placeholders corrigidos</span>
+      <span class="badge b-ok">✓</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Usuário vê "Imóvel Rural" em vez de "IRU"</div>
+        <div class="rd">O dicionário <span class="code">TIPO_IMOVEL_LABEL</span> com <span class="code">IRU / AST / PCT</span> foi adicionado. Os três campos que usavam <span class="code">'-'</span> como fallback (<span class="code">tipoImovel</span>, <span class="code">datCriacao</span>, <span class="code">datAtualizacao</span>) foram corrigidos para <span class="code">'—'</span>.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">map.js — typo <span class="code">"Tip Imovel"</span> → <span class="code">"Tipo Imóvel"</span></span>
+      <span class="badge b-ok">✓</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Label corrigido no popup do CAR no mapa</div>
+        <div class="rd">Pendência de 2 análises seguidas finalmente resolvida.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">bioma.js — novo módulo dedicado com 4 estratégias de detecção</span>
+      <span class="badge b-ok">✓ destaque</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Separação de responsabilidades correta — bioma sai de <span class="code">camadas_externas.js</span></div>
+        <div class="rd">O módulo implementa o padrão arquitetural dos outros serviços: <span class="code">loadBioma()</span> com primária WFS + fallback local, <span class="code">setBiomaVisible()</span>, <span class="code">getBiomaLocal()</span> via cache espacial com <span class="code">bboxIntersects</span>, e <span class="code">getBiomaGleba()</span> com 4 níveis de fallback. Excelente fatoração.</div>
+      </div></div>
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Pré-processamento de bbox em <span class="code">loadBioma</span> — mesmo padrão IBAMA/ICMBio</div>
+        <div class="rd">O array <span class="code">state.biomaFeatures</span> com bboxes pré-calculados permite que <span class="code">getBiomaLocal</span> faça pré-filtro O(1) antes de <span class="code">turf.booleanPointInPolygon</span>.</div>
+      </div></div>
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt"><span class="code">BIOMA_REGULACAO</span> e <span class="code">getBiomaGleba</span> migrados para <span class="code">bioma.js</span></div>
+        <div class="rd"><span class="code">conformidade.js</span> atualizado para importar de <span class="code">bioma.js</span>. A remoção de <span class="code">camadas_externas.js</span> estava correta em intenção — mas gerou um SyntaxError (ver aba Crítico).</div>
+      </div></div>
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">config.js — bloco <span class="code">BIOMA</span> dedicado com URL filtrada por Nordeste</div>
+        <div class="rd">O bounding box <span class="code">CQL_FILTER=INTERSECTS(geom, POLYGON(...))</span> reduz de ~30 MB para ~1-2 MB. O arquivo fallback <span class="code">qg_2025_240_bioma_nordeste.json</span> foi criado e versionado.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">conformidade.js — TI graduada por <span class="code">fase_ti</span></span>
+      <span class="badge b-ok">✓</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">TI "Regularizada" e "Homologada" = bloqueio; demais fases = alerta</div>
+        <div class="rd">A graduação sugerida em v3.6.1 foi implementada. <span class="code">FASES_BLOQUEIO = ['Regularizada', 'Homologada']</span>. O status retornado agora reflete o real impacto BACEN/SICOR por fase da TI, com mensagem informando "BLOQUEIO BACEN/SICOR" ou "Em processo — verificar com jurídico".</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">proxy.php — 3 melhorias aplicadas</span>
+      <span class="badge b-ok">✓</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt"><span class="code">urldecode()</span> adicionado na leitura do parâmetro <span class="code">url</span></div>
+        <div class="rd">Corrige bug de duplo-encoding: quando a URL é encodeURIComponent'd no JS e depois o proxy não faz decode, os <span class="code">%25</span> sobrevivem e a requisição para o GeoServer falha. Agora o proxy decodifica antes de processar.</div>
+      </div></div>
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Race condition no <span class="code">mkdir</span> do cache corrigida</div>
+        <div class="rd">A verificação dupla <span class="code">!mkdir(...) && !is_dir(...)</span> evita que dois requests simultâneos causem um erro fatal quando ambos tentam criar o diretório ao mesmo tempo.</div>
+      </div></div>
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt">Domínio <span class="code">geoservicos.inde.gov.br</span> duplicado removido</div>
+        <div class="rd">Linha redundante eliminada da whitelist.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">main.js — 3 melhorias aplicadas</span>
+      <span class="badge b-ok">✓</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt"><span class="code">mostrarBioma</span> chama <span class="code">setBiomaVisible()</span> diretamente</div>
+        <div class="rd">O listener do checkbox migrou de <span class="code">toggleExternalLayer('bioma', ...)</span> para <span class="code">setBiomaVisible(e.target.checked)</span>, alinhando ao padrão dos outros serviços. <em>(Ver aba Bugs — função legada ainda referencia variável não importada)</em></div>
+      </div></div>
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt"><span class="code">loadBioma()</span> adicionado ao <span class="code">Promise.allSettled</span> do boot</div>
+        <div class="rd">O bioma agora é carregado junto com SUDENE, TI, ICMBio e IBAMA na inicialização.</div>
+      </div></div>
+      <div class="row"><div class="dot">✅</div><div>
+        <div class="rt"><span class="code">console.error(e)</span> → <span class="code">warn(e)</span> em <span class="code">validarInline</span></div>
+        <div class="rd">Consistência com o sistema de log centralizado do projeto.</div>
+      </div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TAB 1 -->
+<div class="pane" id="p1">
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">🔴 camadas_externas.js — SyntaxError: chaves órfãs bloqueiam a aplicação</span>
+      <span class="badge b-d">app não inicia</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot" style="color:var(--color-text-danger)">🔴</div><div>
+        <div class="rt">Confirmado via Node.js: <span class="code">SyntaxError: Unexpected token '}'</span> na linha 69</div>
+        <div class="rd">A remoção do bloco <span class="code">BIOMA_REGULACAO</span> e da função <span class="code">createBiomaLayer</span> deixou dois tokens órfãos no arquivo: um <span class="code">});</span> (linha 69) e um <span class="code">}</span> (linha 87). Como <span class="code">camadas_externas.js</span> é importado por <span class="code">conformidade.js</span> e <span class="code">main.js</span>, a aplicação inteira falha ao carregar.</div>
+        <code class="bc bc-d">// camadas_externas.js — situação atual (linhas 67-88):
+]);                      // fecha UC_USO_SUSTENTAVEL ← correto
+
+});                      // ← ÓRFÃO — remover esta linha
+
+const IBGE_PREFIX_TO_UF = Object.freeze({ ... });
+
+// ─── WMS — Camadas Visuais ──────────────
+}                        // ← ÓRFÃO — remover esta linha
+
+// ─── API — Verificação de Interseção ────</code>
+        <code class="bc bc-ok">// CORREÇÃO: remover as 2 linhas órfãs:
+// 1. O '}); ' após o fechamento de UC_USO_SUSTENTAVEL (linha 69)
+// 2. O '}' isolado na seção de WMS (linha 87)
+
+// Resultado esperado:
+]);                      // fecha UC_USO_SUSTENTAVEL
+
+const IBGE_PREFIX_TO_UF = Object.freeze({ ... });
+
+// ─── WMS — Camadas Visuais ──────────────
+// ─── API — Verificação de Interseção ────</code>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2 -->
+<div class="pane" id="p2">
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">🟡 main.js — <span class="code">toggleExternalLayer</span> referencia <span class="code">createBiomaLayer</span> não importada</span>
+      <span class="badge b-w">ReferenceError latente</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot" style="color:var(--color-text-warning)">🟡</div><div>
+        <div class="rt">Função legada não atualizada após migração do bioma</div>
+        <div class="rd"><span class="code">toggleExternalLayer</span> ainda contém <span class="code">const createFnMap = { bioma: createBiomaLayer }</span>. Como <span class="code">createBiomaLayer</span> não é mais importada de <span class="code">camadas_externas.js</span>, qualquer chamada a essa função causaria <span class="code">ReferenceError</span>. Atualmente o único chamador era o listener <span class="code">mostrarBioma</span>, que foi migrado para <span class="code">setBiomaVisible</span>. A função <span class="code">toggleExternalLayer</span> tornou-se dead code — pode ser removida.</div>
+        <code class="bc bc-ok">// main.js — opção 1: remover a função inteira (dead code)
+// Não há mais nenhum chamador de toggleExternalLayer
+
+// Opção 2: se quiser manter para extensão futura, limpar:
+function toggleExternalLayer(key, visible) {
+  // bioma foi migrado para bioma.js / setBiomaVisible
+  // adicionar futuros toggles aqui conforme necessário
+}</code>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">🟡 state.js — <span class="code">biomaLayer</span>, <span class="code">biomaFeatures</span>, <span class="code">biomaLoaded</span> não declarados</span>
+      <span class="badge b-w">consistência</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot" style="color:var(--color-text-warning)">🟡</div><div>
+        <div class="rt">Mesmo padrão do <span class="code">lastCarSearch</span> corrigido na v3.6.1</div>
+        <div class="rd">O módulo <span class="code">bioma.js</span> escreve <span class="code">state.biomaLayer</span>, <span class="code">state.biomaFeatures</span> e <span class="code">state.biomaLoaded</span> diretamente, mas essas propriedades não estão declaradas em <span class="code">state.js</span>. Funciona em runtime, mas quebra a documentação do estado e dificulta ferramentas de análise estática.</div>
+        <code class="bc bc-ok">// state.js — adicionar junto aos outros serviços:
+biomaLayer: null,
+biomaFeatures: [],
+biomaLoaded: false,</code>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">🟡 bioma.js — <span class="code">Math.min/max(...lons)</span> com spread em coordenadas</span>
+      <span class="badge b-w">RangeError potencial</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot" style="color:var(--color-text-warning)">🟡</div><div>
+        <div class="rt">Polígonos de bioma podem ter centenas de vértices — mesmo risco do <span class="code">Math.max(...glebas)</span></div>
+        <div class="rd">Linha 84: <span class="code">[Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)]</span>. O Cerrado e a Mata Atlântica têm contornos complexos com muitos vértices. Substituir por <span class="code">reduce</span>:</div>
+        <code class="bc bc-ok">// bioma.js — linha 84, substituir por:
+bbox: [
+  lons.reduce((a,b) => a &lt; b ? a : b),
+  lats.reduce((a,b) => a &lt; b ? a : b),
+  lons.reduce((a,b) => a &gt; b ? a : b),
+  lats.reduce((a,b) => a &gt; b ? a : b),
+],</code>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">🟡 main.js — <span class="code">getBiomaLocal</span> importado mas não usado</span>
+      <span class="badge b-w">dead import</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot" style="color:var(--color-text-warning)">🟡</div><div>
+        <div class="rt"><span class="code">getBiomaLocal</span> é chamado internamente por <span class="code">getBiomaGleba</span> dentro de <span class="code">bioma.js</span></div>
+        <div class="rd">O import em <span class="code">main.js</span> é desnecessário — <span class="code">main.js</span> não usa <span class="code">getBiomaLocal</span> em nenhum lugar. Remover da linha 38 para manter o import limpo.</div>
+        <code class="bc bc-ok">// main.js linha 38 — remover getBiomaLocal:
+import { loadBioma, setBiomaVisible } from './services/bioma.js';
+// getBiomaLocal é uso interno de bioma.js — não expor em main</code>
+      </div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TAB 3 -->
+<div class="pane" id="p3">
+  <div class="card">
+    <div class="ch" onclick="tog(this)">
+      <span class="ct">💡 BCB SICOR — Microdados de Glebas WKT disponíveis para validação cruzada</span>
+      <span class="badge b-i">novo documento</span><span class="chv">▼</span>
+    </div>
+    <div class="cb">
+      <div class="row"><div class="dot">💡</div><div>
+        <div class="rt">O arquivo <span class="code">SICOR_GLEBAS_WKT_2026.gz</span> contém geometrias de operações já contratadas</div>
+        <div class="rd">O BCB publica mensalmente os microdados de todas as glebas de crédito rural contratado em formato WKT. Isso abre uma oportunidade inédita: <strong>verificar se a gleba do usuário já foi usada como garantia em outra operação de crédito rural ativa</strong>.</div>
+        <code class="bc bc-ok">// Uso potencial — novo check em conformidade.js:
+// checkGlebaJaFiancada(gleba)
+//   1. Faz download do SICOR_GLEBAS_WKT_{ano}.gz via proxy BCB
+//   2. Filtra linhas pelo centroid bbox da gleba
+//   3. Detecta sobreposição com turf.intersect
+//   4. Retorna operações ativas que cobrem a mesma área
+//   Resultado: alerta BACEN se a gleba já tiver operação vinculada</code>
+        <div class="rd" style="margin-top:6px">O manual SICOR (novo PDF) documenta o campo <span class="code">ref_bacen</span> (número da operação) e <span class="code">cnpj_if</span> (instituição financeira). Com isso, a mensagem de alerta poderia incluir o banco e o número da operação existente.</div>
+      </div></div>
+      <div class="row"><div class="dot">💡</div><div>
+        <div class="rt">Campo <span class="code">fonte_recursos</span> do SICOR — contexto para a gleba</div>
+        <div class="rd">O arquivo <span class="code">FonteRecursosPublicos.csv</span> lista as fontes de crédito rural público (Pronaf, Pronamp, MCR). Permitiria informar ao usuário qual linha de crédito é mais compatível com o perfil da gleba (bioma, área em módulos fiscais, tipo de imóvel).</div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function sw(i){
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('act',i===j));
+  document.querySelectorAll('.pane').forEach((p,j)=>p.classList.toggle('act',i===j));
+}
+function tog(hd){
+  const cb=hd.nextElementSibling;
+  const chv=hd.querySelector('.chv');
+  cb.classList.toggle('open');
+  chv.classList.toggle('open');
+}
+</script>

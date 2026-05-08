@@ -40,6 +40,7 @@ $allowedDomains = [
     'servicodados.ibge.gov.br',
     'terrabrasilis.dpi.inpe.br',
     'manuseiro.github.io',
+    'olinda.bcb.gov.br',
 ];
 
 $parsedUrl = parse_url($targetUrl);
@@ -100,6 +101,15 @@ $error = curl_error($ch);
 $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
 
 curl_close($ch);
+
+// Suporte a descompressão manual se solicitado
+if (isset($_GET['decompress']) && $_GET['decompress'] == '1' && $response) {
+    $decompressed = @gzdecode($response);
+    if ($decompressed !== false) {
+        $response = $decompressed;
+        $contentType = 'text/csv'; // Fallback para SICOR
+    }
+}
 
 // Repassa o Content-Type original (geralmente application/json ou text/xml)
 if ($contentType) {

@@ -4,17 +4,16 @@
 
 ---
 
-## ✨ Novidades da v3.6.0
+## ✨ Novidades da v3.6.4
 
-- **Painel flutuante de camadas**: controle de TI, UC, IBAMA, Bioma, Marcadores e Validação diretamente sobre o mapa
-- **Serviços IBAMA e ICMBio internalizados**: dados locais com fallback automático para fontes externas
-- **Paleta de cores por gleba**: cada gleba recebe cor distinta no mapa e na tabela de resultados
-- **Proxy CORS seguro**: detecção automática dev/prod, whitelist de domínios, cache inteligente Stale-While-Revalidate e rate limiting de 60 req/min
-- **geo.js centralizado**: `bboxIntersects` unificada elimina código triplicado entre módulos
-- **Performance**: JSONs reduzidos de ~210 MB para ~18 MB total com Mapshaper (simplificação 3–15%)
-- **Fallback SUDENE via proxy**: consistência com os demais serviços externos
-- **Precisão de coordenadas**: padronização em 8 casas decimais (COORD\_PRECISION) em todo o fluxo
-- **Polígono CAR com fechamento automático**: importação do SICAR fecha o anel quando necessário
+- **Integração BCB SICOR**: Cruzamento inédito com microdados de glebas WKT do Banco Central para detecção de operações duplicadas.
+- **Novo Módulo de Bioma**: Serviço dedicado com 4 estratégias de detecção e filtragem WFS otimizada para o Nordeste.
+- **Painel CAR Detalhado**: Visualização de cobertura total, melhor match individual e alertas de áreas descobertas no modal de conformidade.
+- **Popups Enriquecidos**: Metadados completos em IBAMA (Processo, Infração) e ICMBio (CNUC, Ano, Demarcação).
+- **Robustez Técnica**: Correção de SyntaxError e ReferenceError latentes; proteção contra RangeError em polígonos complexos.
+- **Proxy PHP v2**: Suporte a descompressão manual GZIP para arquivos do BCB e melhorias de segurança no cache.
+- **geo.js centralizado**: `bboxIntersects` unificada elimina código triplicado entre módulos.
+- **Precisão de coordenadas**: padronização em 8 casas decimais (COORD_PRECISION) em todo o fluxo.
 
 ---
 
@@ -58,6 +57,7 @@
 | **Bioma e Marco Legal** | IBGE | Informativo |
 | **Região Semiárida (SUDENE)** | SUDENE (local + fallback) | Informativo |
 | **Geometria inválida** | turf.kinks() | Bloqueio |
+| **Gleba já Financiada** | BCB (SICOR Microdados) | Bloqueio |
 
 ### Camadas do Mapa
 | Camada | Controle |
@@ -108,11 +108,13 @@ cgrn/
 │   │   ├── modal.js            # ModalManager (abertura/fechamento)
 │   │   └── ui.js               # Toast, mensagens, tabela, status bar
 │   ├── services/
-│   │   ├── camadas_externas.js # CAR (SICAR), Bioma (IBGE), cache de busca
+│   │   ├── bioma.js            # NOVO: Serviço de Biomas (IBGE)
+│   │   ├── camadas_externas.js # CAR (SICAR), detecção de UF, cache
 │   │   ├── conformidade.js     # Verificações BACEN/SICOR (orquestração)
 │   │   ├── ibama.js            # Embargos IBAMA (local + fallback)
 │   │   ├── icmbio.js           # Unidades de Conservação (local + fallback)
 │   │   ├── persistence.js      # Salvar/carregar projeto (.cgrn)
+│   │   ├── sicor.js            # NOVO: Consulta de Glebas BCB/SICOR
 │   │   ├── spatial_analysis.js # Análise de intersecção CAR × Gleba
 │   │   ├── sudene.js           # Região Semiárida SUDENE (proxy + fallback)
 │   │   ├── terras_indigenas.js # Terras Indígenas FUNAI (GeoServer + local)
@@ -126,9 +128,10 @@ cgrn/
 │       ├── shapefile.js        # Parser Shapefile (.shp/.dbf)
 │       └── state.js            # Estado global da aplicação
 └── api/
-    ├── proxy.php               # Proxy CORS com whitelist, cache e rate limit
-    ├── are_embargo_ibama.json  # Áreas de embargo IBAMA (~11 MB)
-    ├── limite_ucs_federais_icmbio_geo.json  # UCs federais ICMBio (~4 MB)
+    ├── proxy.php               # Proxy CORS com whitelist, cache e decompress
+    ├── vw_brasil_adm_embargo_a.json        # Embargos IBAMA (~4 MB)
+    ├── limiteucsfederais_a.json            # UCs federais ICMBio (~4.3 MB)
+    ├── qg_2025_240_bioma_nordeste.json    # Biomas Nordeste (~0.1 MB)
     ├── SUDENE_2021.json        # Polígono da Região Semiárida (~1.6 MB)
     ├── terras_indigenas_nordeste.geojson    # TIs do Nordeste (FUNAI)
     └── cache/                  # Cache automático do proxy (TTL 1h)
@@ -177,13 +180,13 @@ python -m http.server 8080
 # Servidor PHP real: Apache/Nginx com PHP 7.4+
 ```
 
-> **As camadas IBAMA, ICMBio e SUDENE funcionam mesmo offline**, pois os dados estão em arquivos locais na pasta `api/`. O proxy PHP é necessário apenas para consultas ao SICAR, FUNAI e TerraBrasilis em tempo real.
+> **As camadas IBAMA, ICMBio, Bioma e SUDENE funcionam mesmo offline**, pois os dados estão em arquivos locais na pasta `api/`. O proxy PHP é necessário apenas para consultas ao SICAR, FUNAI, SICOR e TerraBrasilis em tempo real.
 
 ---
 
 ## ⚙️ Requisitos do Servidor (Produção)
 
-- PHP 7.4+ com extensão `curl`
+- PHP 7.4+ com extensão `curl` e `zlib` (para descompressão GZIP)
 - Certificados SSL configurados (para verificação HTTPS das APIs governamentais)
 - Pasta `api/cache/` com permissão de escrita (`chmod 755`)
 
@@ -209,7 +212,7 @@ O `api/proxy.php` implementa:
 | Geoprocessamento | Turf.js 6 |
 | Módulos JS | ES Modules nativos (sem bundler) |
 | Backend proxy | PHP com cURL |
-| Dados geoespaciais | FUNAI, ICMBio, IBAMA, IBGE, SICAR, INPE, SUDENE |
+| Dados geoespaciais | FUNAI, ICMBio, IBAMA, IBGE, SICAR, INPE, SUDENE, BCB |
 
 ---
 
@@ -226,6 +229,7 @@ O `api/proxy.php` implementa:
 - [x] Bioma e marco legal (Código Florestal)
 - [x] Região Semiárida SUDENE
 - [x] Autointerseções e geometria inválida (bloqueio)
+- [x] Detecção de glebas já financiadas (duplicidade no SICOR/BCB)
 
 ---
 

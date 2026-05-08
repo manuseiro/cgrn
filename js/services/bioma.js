@@ -81,7 +81,12 @@ export async function loadBioma() {
     const lats = coords.map(c => c[1]);
     return {
       nome: f.properties?.nm_bioma ?? f.properties?.bioma ?? 'Bioma',
-      bbox: [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)],
+      bbox: [
+        lons.reduce((a, b) => a < b ? a : b),
+        lats.reduce((a, b) => a < b ? a : b),
+        lons.reduce((a, b) => a > b ? a : b),
+        lats.reduce((a, b) => a > b ? a : b),
+      ],
       feature: f,
     };
   });

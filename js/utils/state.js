@@ -46,9 +46,9 @@ export const state = {
   ibamaLoaded: false,
   showIbama: false,
 
-  biomeLayer: null,   // Biomas (IBGE)
-  biomeFeatures: [],
-  biomeLoaded: false,
+  biomaLayer: null,   // Biomas (IBGE)
+  biomaFeatures: [],
+  biomaLoaded: false,
   showBioma: false,
 
   carLayer: null,   // Layer para visualização de geometrias do CAR

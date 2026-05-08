@@ -1,5 +1,5 @@
 /**
- * @file main.js — v3.6.3
+ * @file main.js — v3.6.4
  * @description Orquestrador principal da aplicação CGRN.
  *
  */
@@ -35,9 +35,8 @@ import {
   loadTerrasIndigenas, setTerrasIndigenasVisible,
   checkGlebaTI, buildTILegend
 } from './services/terras_indigenas.js';
-import { loadBioma, setBiomaVisible, getBiomaLocal } from './services/bioma.js';
+import { loadBioma, setBiomaVisible } from './services/bioma.js';
 import {
-  // removido createBiomaLayer e inserido o trecho acima - loadBioma
   invalidarCacheCAR, findCARByCode
 } from './services/camadas_externas.js';
 import { loadICMBIO, setICMBioVisible } from './services/icmbio.js';
@@ -327,22 +326,6 @@ function bindEvents() {
 
 // ─── Camadas externas on/off ───────────────────────────────────────────────
 
-function toggleExternalLayer(key, visible) {
-  const stateKeyMap = { bioma: 'biomeLayer' };
-  const createFnMap = { bioma: createBiomaLayer };
-  const stateKey = stateKeyMap[key];
-
-  if (visible) {
-    if (!state[stateKey]) {
-      state[stateKey] = createFnMap[key]();
-      log(`Camada ${key} criada`);
-    }
-    state[stateKey].addTo(state.map);
-    if (key !== 'bioma') state[stateKey].bringToBack();
-  } else {
-    if (state[stateKey]) state.map.removeLayer(state[stateKey]);
-  }
-}
 
 // ─── Processamento principal ──────────────────────────────────────────────
 

@@ -66,7 +66,8 @@ const UC_USO_SUSTENTAVEL = new Set([
   'Reserva Particular do Patrimônio Natural',
 ]);
 
-});
+
+
 
 /**
  * Mapa completo: primeiros 2 dígitos do código IBGE → sigla UF (minúsculas).
@@ -84,15 +85,7 @@ const IBGE_PREFIX_TO_UF = Object.freeze({
 
 // ─── WMS — Camadas Visuais ─────────────────────────────────────────────────
 
-}
-
 // ─── API — Verificação de Interseção ─────────────────────────────────────────
-
-
-
-
-
-
 
 /**
  * Verifica alertas de desmatamento (PRODES/DETER) via TerraBrasilis.
