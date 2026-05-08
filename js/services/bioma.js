@@ -6,7 +6,7 @@
 
 import { state } from '../utils/state.js';
 import { CONFIG } from '../utils/config.js';
-import { log, warn, showToast } from '../components/ui.js';
+import { log, warn } from '../components/ui.js';
 import { bboxIntersects } from '../utils/geo.js';
 import { detectarUF } from './camadas_externas.js';
 /* Bios que abrange o Nordeste

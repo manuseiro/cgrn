@@ -292,7 +292,19 @@ export function invalidarCacheCAR(glebaId = null) {
     log(`Cache CAR invalidado — Gleba ${glebaId}.`);
   }
 }
-
+/**
+ * Popula o cache espacial com um resultado já conhecido (ex: CAR importado pelo usuário).
+ * Evita uma segunda consulta desnecessária ao GeoServer durante a conformidade.
+ *
+ * @param {number}    glebaId  - ID da gleba que será criada
+ * @param {CARResult} carData  - Resultado já obtido por findCARByCode
+ */
+export function seedCarCache(glebaId, carData) {
+  if (!carData) return;
+  const key = `car_g${glebaId}`;
+  _carCache.set(key, { ts: Date.now(), result: [carData] });
+  log(`Cache CAR pré-populado — Gleba ${glebaId} → ${carData.codigo}`);
+}
 /**
  * Consulta o SICAR para uma UF específica via WFS.
  * Usa CQL_FILTER com INTERSECTS para precisão espacial no servidor.
@@ -304,25 +316,11 @@ export function invalidarCacheCAR(glebaId = null) {
 async function checkCARporUF(gleba, uf) {
   log(`SICAR: consultando sicar:sicar_imoveis_${uf}...`);
 
-  // Extrai anel externo do polígono da gleba
-  let coords = gleba.turfPolygon?.geometry?.coordinates;
-  if (!coords) return [];
-
-  if (gleba.turfPolygon.geometry.type === 'MultiPolygon') {
-    coords = coords[0][0];
-  } else {
-    coords = coords[0];
-  }
-
-  // Garante fechamento do anel
-  const first = coords[0];
-  const last = coords[coords.length - 1];
-  if (first[0] !== last[0] || first[1] !== last[1]) {
-    coords = [...coords, first];
-  }
-
-  // WKT: "lon lat,lon lat,..."
-  const polygonStr = coords.map(c => `${c[0]} ${c[1]}`).join(',');
+  // Usa BBOX em vez de POLYGON completo — URL ~80 chars vs 40 000+
+  // Falsos positivos (CARs que tocam o bbox mas não a gleba) são
+  // eliminados depois por analyzeGlebaInCAR via turf.intersect
+  const [minLon, minLat, maxLon, maxLat] = turf.bbox(gleba.turfPolygon);
+  const cqlFilter = `BBOX(geo_area_imovel,${minLon},${minLat},${maxLon},${maxLat})`;
 
   const url = new URL('https://geoserver.car.gov.br/geoserver/sicar/ows');
   url.searchParams.set('service', 'WFS');
@@ -330,12 +328,13 @@ async function checkCARporUF(gleba, uf) {
   url.searchParams.set('request', 'GetFeature');
   url.searchParams.set('typeName', `sicar:sicar_imoveis_${uf}`);
   url.searchParams.set('outputFormat', 'application/json');
-  url.searchParams.set('CQL_FILTER', `INTERSECTS(geo_area_imovel, POLYGON((${polygonStr})))`);
+  url.searchParams.set('CQL_FILTER', cqlFilter);
   url.searchParams.set('srsName', 'EPSG:4674');
 
   try {
     const res = await fetchWithTimeout(url.toString(), 20000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
     const contentType = res.headers.get('content-type') ?? '';
 
     // ── Resposta JSON ──────────────────────────────────────────────────
@@ -384,7 +383,6 @@ async function checkCARporUF(gleba, uf) {
       };
 
       const rawStatus = getVal('status_imovel', 'ind_status', 'status');
-      const statusMap = { AT: 'Ativo', PE: 'Pendente', CA: 'Cancelado', SU: 'Suspenso' };
 
       results.push({
         codigo: getVal('cod_imovel') ?? '—',

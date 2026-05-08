@@ -37,7 +37,9 @@ import {
 } from './services/terras_indigenas.js';
 import { loadBioma, setBiomaVisible } from './services/bioma.js';
 import {
-  invalidarCacheCAR, findCARByCode
+  checkCAR, findCARByCode, invalidarCacheCAR,
+  seedCarCache,   // ← novo
+  detectarUF
 } from './services/camadas_externas.js';
 import { loadICMBIO, setICMBioVisible } from './services/icmbio.js';
 import { loadIBAMA, setIbamaVisible } from './services/ibama.js';
@@ -293,19 +295,30 @@ function bindEvents() {
     const btnVer = e.target.closest('#btnVerNoMapaCAR');
 
     if (btnImport) {
-      const carData = state.lastCarSearch; // Precisamos guardar o resultado no state
+      const carData = state.lastCarSearch;
       if (!carData?.geometry) { showToast('Geometria indisponível para este imóvel.', 'warning'); return; }
 
-      const feat = carData.geometry.type === 'MultiPolygon' ? carData.geometry.coordinates[0][0] : carData.geometry.coordinates[0];
-      const nextGid = state.glebas.reduce((max, g) => g.glebaId > max ? g.glebaId : max, 0) + 1;
-      const lines = feat.map((ll, i) => `${nextGid} ${i + 1} ${ll[1].toFixed(COORD_PRECISION)} ${ll[0].toFixed(COORD_PRECISION)}`);
+      const feat = carData.geometry.type === 'MultiPolygon'
+        ? carData.geometry.coordinates[0][0]
+        : carData.geometry.coordinates[0];
 
+      const nextGid = state.glebas.reduce((max, g) => g.glebaId > max ? g.glebaId : max, 0) + 1;
+
+      // ✅ NOVO: pre-popula o cache antes mesmo de processar a gleba
+      seedCarCache(nextGid, carData);
+
+      const lines = feat.map((ll, i) =>
+        `${nextGid} ${i + 1} ${ll[1].toFixed(COORD_PRECISION)} ${ll[0].toFixed(COORD_PRECISION)}`
+      );
       const f = feat[0], l = feat[feat.length - 1];
       if (f[0] !== l[0] || f[1] !== l[1]) {
         lines.push(`${nextGid} ${lines.length + 1} ${f[1].toFixed(COORD_PRECISION)} ${f[0].toFixed(COORD_PRECISION)}`);
       }
       const current = getCoordText();
       setCoordText(current ? current + '\n' + lines.join('\n') : lines.join('\n'));
+
+      // ✅ MELHORIA UX: processa automaticamente após importar
+      processAndRender();
 
       const manualTab = document.getElementById('tab-manual-btn');
       if (manualTab) bootstrap.Tab.getOrCreateInstance(manualTab).show();
@@ -323,10 +336,6 @@ function bindEvents() {
 
   log('Eventos vinculados ✅');
 }
-
-// ─── Camadas externas on/off ───────────────────────────────────────────────
-
-
 // ─── Processamento principal ──────────────────────────────────────────────
 
 async function processAndRender(opts = {}) {

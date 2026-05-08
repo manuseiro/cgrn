@@ -4,16 +4,12 @@
 
 ---
 
-## ✨ Novidades da v3.6.4
+## ✨ Novidades da v3.6.5
 
-- **Integração BCB SICOR**: Cruzamento inédito com microdados de glebas WKT do Banco Central para detecção de operações duplicadas.
-- **Novo Módulo de Bioma**: Serviço dedicado com 4 estratégias de detecção e filtragem WFS otimizada para o Nordeste.
-- **Painel CAR Detalhado**: Visualização de cobertura total, melhor match individual e alertas de áreas descobertas no modal de conformidade.
-- **Popups Enriquecidos**: Metadados completos em IBAMA (Processo, Infração) e ICMBio (CNUC, Ano, Demarcação).
-- **Robustez Técnica**: Correção de SyntaxError e ReferenceError latentes; proteção contra RangeError em polígonos complexos.
-- **Proxy PHP v2**: Suporte a descompressão manual GZIP para arquivos do BCB e melhorias de segurança no cache.
-- **geo.js centralizado**: `bboxIntersects` unificada elimina código triplicado entre módulos.
-- **Precisão de coordenadas**: padronização em 8 casas decimais (COORD_PRECISION) em todo o fluxo.
+- **Correção Crítica no SICAR (Limites de URL)**: Substituição de `INTERSECTS(POLYGON)` por filtro `BBOX`, estabilizando a validação de conformidade para imóveis rurais com alta complexidade geométrica (>500 vértices).
+- **Pré-Cache Espacial (CAR)**: Introdução do `seedCarCache` para evitar consultas redundantes ao GeoServer durante a validação de glebas recém-importadas, otimizando a velocidade do processo.
+- **Automação de Fluxo (UX)**: A aplicação agora executa o processamento e renderização automaticamente no mapa assim que um imóvel CAR é importado.
+- **Estabilidade e Limpeza**: Correção de erro fatal de importação duplicada no arquivo principal e remoção de artefatos inativos.
 
 ---
 
