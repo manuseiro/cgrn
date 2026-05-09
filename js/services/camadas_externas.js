@@ -416,7 +416,7 @@ export async function findCARByCode(codigo) {
   const cleanCode = codigo.trim().toUpperCase();
 
   // === VALIDAÇÃO OFICIAL DO FORMATO CAR ===
-  const carRegex = /^([A-Z]{2})-(\d{7})-([A-F0-9]{32})$/;
+  const carRegex = /^([A-Z]{2})-(\d{7})-([A-Z0-9]{32})$/;
   const match = cleanCode.match(carRegex);
 
   if (!match) {

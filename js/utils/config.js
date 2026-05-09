@@ -46,7 +46,7 @@ export const CONFIG = Object.freeze({
   TI: Object.freeze({
     URL_PRIMARIA: 'https://geoserver.funai.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=Funai:tis_poligonais&outputFormat=application%2Fjson&CQL_FILTER=uf_sigla+IN+(\'MA\',\'PI\',\'CE\',\'RN\',\'PB\',\'PE\',\'AL\',\'SE\',\'BA\')',
     URL_FALLBACK: 'api/terras_indigenas_nordeste.geojson',
-    NORDESTE_UFS: Object.freeze(['MA', 'PI', 'CE', 'RN', 'PB', 'PE', 'AL', 'SE', 'BA']),
+    NORDESTE_UFS: Object.freeze(['MA', 'PI', 'CE', 'RN', 'PB', 'PE', 'AL', 'SE', 'BA', 'MG', 'ES']),
   }),
 
   /**
@@ -103,7 +103,8 @@ export const CONFIG = Object.freeze({
   }),
 
   SICOR: Object.freeze({
-    URL: 'https://olinda.bcb.gov.br/olinda/servico/SICOR/versao/v1/download/SICOR_GLEBAS_WKT_2026.gz',
+    //URL: 'https://olinda.bcb.gov.br/olinda/servico/SICOR/versao/v1/download/SICOR_GLEBAS_WKT_2026.gz',
+    URL: `https://olinda.bcb.gov.br/olinda/servico/SICOR/versao/v1/download/SICOR_GLEBAS_WKT_${new Date().getFullYear()}.gz`,
   }),
 
   BIOMA: Object.freeze({

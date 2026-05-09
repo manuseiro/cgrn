@@ -30,7 +30,7 @@ export async function loadSicorData() {
     const url = CONFIG.PROXY_URL + encodeURIComponent(CONFIG.SICOR.URL) + '&decompress=1';
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    
+
     const text = await res.text();
     const lines = text.split('\n');
     const groups = new Map();

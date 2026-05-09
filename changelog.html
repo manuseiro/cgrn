@@ -72,11 +72,50 @@
     </div>
 
     <div class="timeline">
+      <!-- Versão 3.6.6 -->
+      <div class="timeline-item">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-success version-badge">v3.6.6</span>
+          <span class="text-muted small">09/05/2026 (Atual)</span>
+        </div>
+        <div class="card border-0 shadow-sm rounded-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-3 text-primary">Máscara Inteligente e Expansão Territorial</h5>
+            <ul class="mb-0 small">
+              <li><strong>Máscara de Entrada CAR:</strong> Implementação de máscara automática e busca inteligente (debounce) no campo de consulta do SICAR.</li>
+              <li><strong>Regex Alfanumérico:</strong> Ampliação do padrão de validação do CAR para aceitar identificadores alfanuméricos completos conforme padrão nacional.</li>
+              <li><strong>Expansão de Escopo:</strong> Inclusão dos estados de Minas Gerais (MG) e Espírito Santo (ES) no escopo de análise do Nordeste/SUDENE.</li>
+              <li><strong>SICOR Dinâmico:</strong> Atualização automática da URL de microdados do Banco Central para o ano corrente (${new Date().getFullYear()}).</li>
+              <li><strong>Refinamento de UI:</strong> Melhorias visuais na barra de progresso da busca e estabilidade nos logs de inicialização.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Versão 3.6.5 -->
+      <div class="timeline-item">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-secondary version-badge">v3.6.5</span>
+          <span class="text-muted small">08/05/2026</span>
+        </div>
+        <div class="card border-0 shadow-sm rounded-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-3 text-primary">Correções de Auditoria e UX</h5>
+            <ul class="mb-0 small">
+              <li><strong>Refinamento de UX:</strong> Unificação da lógica de máscara do CAR e busca automática ao completar o código.</li>
+              <li><strong>Correção de Regex:</strong> Identificador do CAR agora aceita caracteres alfanuméricos completos (A-Z, 0-9) conforme padrão do SICAR.</li>
+              <li><strong>Consistência de Versão:</strong> Padronização da versão v3.6.5 em todos os logs, cabeçalhos e interface.</li>
+              <li><strong>Estabilidade do SICAR:</strong> Substituição de INTERSECTS por BBOX para evitar truncamento de URL em consultas complexas.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       <!-- Versão 3.6.4 -->
       <div class="timeline-item">
         <div class="d-flex align-items-center gap-2 mb-2">
-          <span class="badge bg-success version-badge">v3.6.4</span>
-          <span class="text-muted small">07/05/2026 (Atual)</span>
+          <span class="badge bg-secondary version-badge">v3.6.4</span>
+          <span class="text-muted small">07/05/2026</span>
         </div>
         <div class="card border-0 shadow-sm rounded-4">
           <div class="card-body p-4">

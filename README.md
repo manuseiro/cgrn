@@ -4,12 +4,13 @@
 
 ---
 
-## ✨ Novidades da v3.6.5
+## ✨ Novidades da v3.6.6
 
-- **Correção Crítica no SICAR (Limites de URL)**: Substituição de `INTERSECTS(POLYGON)` por filtro `BBOX`, estabilizando a validação de conformidade para imóveis rurais com alta complexidade geométrica (>500 vértices).
-- **Pré-Cache Espacial (CAR)**: Introdução do `seedCarCache` para evitar consultas redundantes ao GeoServer durante a validação de glebas recém-importadas, otimizando a velocidade do processo.
-- **Automação de Fluxo (UX)**: A aplicação agora executa o processamento e renderização automaticamente no mapa assim que um imóvel CAR é importado.
-- **Estabilidade e Limpeza**: Correção de erro fatal de importação duplicada no arquivo principal e remoção de artefatos inativos.
+- **Máscara Inteligente CAR**: Implementação de máscara de entrada automática e busca inteligente (debounce) no campo de consulta do SICAR, melhorando a experiência do usuário e reduzindo erros de digitação.
+- **Regex Alfanumérico SICAR**: Atualização do padrão de validação para aceitar identificadores do CAR com caracteres alfanuméricos completos ([A-Z, 0-9]), garantindo compatibilidade total com a base nacional do Serviço Florestal Brasileiro.
+- **Expansão Territorial (MG/ES)**: Inclusão dos estados de Minas Gerais (MG) e Espírito Santo (ES) no escopo de validação do Nordeste/SUDENE, suportando operações de crédito rural em áreas limítrofes e de transição.
+- **SICOR Dinâmico**: A URL de consulta aos microdados de glebas do Banco Central agora utiliza o ano corrente dinamicamente, facilitando a manutenção e garantindo dados sempre atualizados.
+- **Estilo e UX**: Melhorias visuais na barra de progresso da busca CAR e padronização dos logs de inicialização.
 
 ---
 

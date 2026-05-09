@@ -1,5 +1,5 @@
 /**
- * @file main.js — v3.6.4
+ * @file main.js — v3.6.6
  * @description Orquestrador principal da aplicação CGRN.
  *
  */
@@ -51,7 +51,7 @@ const { COORD_PRECISION } = CONFIG.VALIDATION;
 // ─── Boot ─────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
-  log('CGRN v3.6.3 inicializando...');
+  log('CGRN v3.6.6 inicializando...');
   modals.init();
   initMap();
   bindEvents();
@@ -97,15 +97,119 @@ function bindEvents() {
 
   // Busca por código CAR com Debounce + Máscara
   let searchTimeout;
+  // ── Máscara do campo de código CAR ──────────────────────────────────
+  (function initCarMask() {
+    const input = document.getElementById('carSearchCode');
+    const feedback = document.getElementById('carInputFeedback');
+    const counter = document.getElementById('carCharCount');
+    const fill = document.getElementById('carProgressFill');
+    if (!input) return;
 
-  el.carSearchCode?.addEventListener('input', (e) => {
-    // Máscara simples: permite apenas letras, números e hífen
-    let val = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
-    e.target.value = val;
+    // Estrutura: [2 letras UF] - [7 dígitos IBGE] - [32 alfanuméricos UID]
+    // Posições dos hifens automáticos: após o índice 1 (pos 2) e após o índice 9 (pos 10)
+    const GROUPS = [2, 7, 32];       // tamanho de cada grupo
+    const TOTAL = 43;               // 2+1+7+1+32
 
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(searchCARByCode, 650);
-  });
+    /**
+     * Aplica a máscara ao valor bruto (sem hifens) e retorna o valor formatado.
+     * Aceita apenas letras A-Z (grupo 1 e 3) e dígitos 0-9 (grupo 2 e 3).
+     */
+    function applyMask(raw) {
+      // Remove tudo que não for alfanumérico
+      const clean = raw.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+      let result = '';
+      let pos = 0;
+
+      for (let g = 0; g < GROUPS.length && pos < clean.length; g++) {
+        const size = GROUPS[g];
+
+        for (let i = 0; i < size && pos < clean.length; i++, pos++) {
+          const ch = clean[pos];
+          // Grupo 1 (UF): apenas letras
+          if (g === 0 && !/[A-Z]/.test(ch)) continue;
+          // Grupo 2 (IBGE): apenas dígitos
+          if (g === 1 && !/[0-9]/.test(ch)) continue;
+          // Grupo 3 (UID): alfanumérico
+          result += ch;
+        }
+
+        // Insere hífen entre grupos (se ainda há conteúdo vindo)
+        if (g < GROUPS.length - 1 && pos < clean.length) result += '-';
+      }
+
+      return result;
+    }
+
+    /** Atualiza contador, barra e feedback de acordo com o valor atual. */
+    function updateHints(val) {
+      const len = val.length;
+      const pct = Math.round((len / TOTAL) * 100);
+      const done = len === TOTAL;
+      const ufOk = len >= 2;
+      const ibgeOk = len >= 10; // 2 + 1 + 7
+
+      counter.textContent = `${len} / ${TOTAL}`;
+      counter.className = `badge ${done ? 'bg-success' : len > 0 ? 'bg-primary' : 'bg-secondary'}`;
+      fill.style.width = pct + '%';
+      fill.className = `progress-bar ${done ? 'bg-success' : 'bg-primary'}`;
+
+      if (done) {
+        feedback.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>'
+          + '<span class="text-success">Código completo — pronto para buscar</span>';
+      } else if (ibgeOk) {
+        const restante = TOTAL - len;
+        feedback.innerHTML = `<i class="bi bi-pencil me-1"></i>Faltam <strong>${restante}</strong>`
+          + ` caractere(s) no identificador único`;
+      } else if (ufOk) {
+        feedback.innerHTML = '<i class="bi bi-pencil me-1"></i>Informe os 7 dígitos do código IBGE';
+      } else if (len > 0) {
+        feedback.innerHTML = '<i class="bi bi-pencil me-1"></i>Informe a sigla do Estado (UF)';
+      } else {
+        feedback.innerHTML = '<i class="bi bi-keyboard me-1"></i>Digite ou cole o código completo';
+      }
+    }
+
+    input.addEventListener('input', () => {
+      const cursor = input.selectionStart;
+      const before = input.value;
+      const masked = applyMask(before);
+      input.value = masked;
+
+      // Reposiciona o cursor inteligentemente após a máscara
+      const added = masked.length - before.length;
+      const newPos = Math.max(0, cursor + added);
+      input.setSelectionRange(newPos, newPos);
+
+      updateHints(masked);
+
+      // ✅ Unificado: busca automática ao completar 43 caracteres (com debounce)
+      clearTimeout(searchTimeout);
+      if (masked.length === TOTAL) {
+        searchTimeout = setTimeout(searchCARByCode, 650);
+      }
+    });
+
+    // Colar texto externo
+    input.addEventListener('paste', e => {
+      e.preventDefault();
+      const pasted = (e.clipboardData || window.clipboardData).getData('text');
+      const masked = applyMask(pasted);
+      input.value = masked;
+      updateHints(masked);
+      if (masked.length === TOTAL) {
+        setTimeout(searchCARByCode, 350);
+      }
+    });
+
+    // Enter dispara a busca
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); searchCARByCode(); }
+    });
+
+    // Estado inicial
+    updateHints('');
+  })();
+  // ── fim da máscara ───────────────────────────────────────────────────
 
   el.btnSearchCAR?.addEventListener('click', searchCARByCode);
 
@@ -289,8 +393,9 @@ function bindEvents() {
     showToast('Cache do SICAR limpo.', 'success');
   });
 
-  // Delegação de eventos para botões dinâmicos do CAR Search
-  document.getElementById('carSearchResult')?.addEventListener('click', e => {
+  // Delegação de eventos para botões dinâmicos do CAR Search (Importar/Ver)
+  // Usamos delegação no container da aba para garantir funcionamento mesmo se o div de resultados mudar
+  document.getElementById('tabCAR')?.addEventListener('click', e => {
     const btnImport = e.target.closest('#btnImportarCAR');
     const btnVer = e.target.closest('#btnVerNoMapaCAR');
 
@@ -304,7 +409,7 @@ function bindEvents() {
 
       const nextGid = state.glebas.reduce((max, g) => g.glebaId > max ? g.glebaId : max, 0) + 1;
 
-      // ✅ NOVO: pre-popula o cache antes mesmo de processar a gleba
+      // ✅ Pre-popula o cache antes mesmo de processar a gleba
       seedCarCache(nextGid, carData);
 
       const lines = feat.map((ll, i) =>
@@ -317,11 +422,14 @@ function bindEvents() {
       const current = getCoordText();
       setCoordText(current ? current + '\n' + lines.join('\n') : lines.join('\n'));
 
-      // ✅ MELHORIA UX: processa automaticamente após importar
+      // ✅ Processa automaticamente após importar
       processAndRender();
 
       const manualTab = document.getElementById('tab-manual-btn');
-      if (manualTab) bootstrap.Tab.getOrCreateInstance(manualTab).show();
+      if (manualTab) {
+        const tabTrigger = bootstrap.Tab.getOrCreateInstance(manualTab);
+        tabTrigger.show();
+      }
       showToast(`Imóvel ${carData.codigo} importado com sucesso.`, 'success');
     }
 

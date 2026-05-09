@@ -211,7 +211,7 @@
       <span class="status-divider"></span>
       <span id="statusArea" class="status-item">—</span>
       <span class="status-divider d-none d-md-inline-block"></span>
-      <span class="status-item d-none d-md-inline text-muted opacity-50">CGRN v3.6.4 • SIRGAS 2000</span>
+      <span class="status-item d-none d-md-inline text-muted opacity-50">CGRN v3.6.6 • SIRGAS 2000</span>
     </div>
 
     <div class="ms-auto d-flex align-items-center gap-3">
@@ -339,20 +339,31 @@
             <!-- Tab Consultar CAR -->
             <div class="tab-pane fade" id="tabCAR" role="tabpanel">
               <div class="p-3 bg-light rounded-3 border">
-                <label for="carSearchCode" class="form-label small fw-bold text-muted text-uppercase mb-2">Código do
-                  Imóvel (SICAR)</label>
-                <div class="input-group mb-3">
-                  <input type="text" id="carSearchCode" class="form-control"
-                    placeholder="Ex: UF-XXXXXXX-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" maxlength="44">
+                <label for="carSearchCode" class="form-label small fw-bold text-muted text-uppercase mb-2">
+                  Código do Imóvel (SICAR)
+                </label>
+                <div class="input-group mb-1">
+                  <input type="text" id="carSearchCode" class="form-control font-monospace"
+                    placeholder="UF-IBGE(7)-IDENTIFICADOR(32)" maxlength="43" autocomplete="off" autocorrect="off"
+                    autocapitalize="characters" spellcheck="false">
                   <button class="btn btn-primary px-4" type="button" id="btnSearchCAR">
                     <i class="bi bi-search me-1"></i>Buscar
                   </button>
                 </div>
-                <div id="carSearchResult" class="mt-3">
-                  <div class="small text-muted border-top pt-2">
-                    <i class="bi bi-info-circle me-1"></i>Informe o código completo para localizar a geometria oficial.
+                <!-- Indicador de progresso e feedback inline -->
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <div id="carInputFeedback" class="small text-muted">
+                    <i class="bi bi-keyboard me-1"></i>Digite ou cole o código completo
                   </div>
+                  <span id="carCharCount" class="badge bg-secondary" style="font-size:.68rem">0 / 43</span>
                 </div>
+                <div id="carProgressBar" class="progress mb-3" style="height:3px">
+                  <div id="carProgressFill" class="progress-bar" role="progressbar"
+                    style="width:0%;transition:width .15s ease"></div>
+                </div>
+
+                <!-- Container para resultados da busca -->
+                <div id="carSearchResult" class="mt-3"></div>
               </div>
             </div>
           </div>
@@ -595,7 +606,7 @@
               <circle cx="12" cy="12" r="3" />
             </svg>
             <h5 class="fw-bold mt-3 mb-1">GlebasNord <span class="badge bg-primary ms-1"
-                style="font-size: 0.6rem">v3.6.4</span></h5>
+                style="font-size: 0.6rem">v3.6.6</span></h5>
             <p class="text-muted small">Cálculo e análise de glebas rurais no Nordeste</p>
           </div>
 
