@@ -72,11 +72,32 @@
     </div>
 
     <div class="timeline">
+      <!-- Versão 3.6.7 -->
+      <div class="timeline-item">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-success version-badge">v3.6.7</span>
+          <span class="text-muted small">09/05/2026 (Atual)</span>
+        </div>
+        <div class="card border-0 shadow-sm rounded-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-3 text-primary">Estabilização SICOR e Resiliência de Dados</h5>
+            <ul class="mb-0 small">
+              <li><strong>Correção Crítica SICOR:</strong> Reconstrução completa do parser WKT para os microdados do Banco Central (BCB), eliminando falhas de processamento e garantindo a detecção precisa de glebas já financiadas.</li>
+              <li><strong>Detecção Dinâmica de Colunas:</strong> Identificação automática das colunas de referência e geometria no CSV do SICOR, tornando o sistema resiliente a mudanças no formato dos arquivos governamentais.</li>
+              <li><strong>Lógica de Fallback de Ano:</strong> Implementação de tentativa automática do ano corrente e anterior para download dos dados SICOR, garantindo disponibilidade contínua.</li>
+              <li><strong>Feedback de Carregamento:</strong> Novos indicadores visuais na barra de status para monitorar o progresso do download de datasets pesados (SICOR, IBAMA, etc.).</li>
+              <li><strong>Performance Otimizada:</strong> Padrão <em>Singleton Promise</em> para evitar bloqueios na interface durante o carregamento de bases espaciais.</li>
+              <li><strong>Segurança:</strong> Whitelist do proxy PHP atualizada para suportar novos domínios confiáveis.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       <!-- Versão 3.6.6 -->
       <div class="timeline-item">
         <div class="d-flex align-items-center gap-2 mb-2">
-          <span class="badge bg-success version-badge">v3.6.6</span>
-          <span class="text-muted small">09/05/2026 (Atual)</span>
+          <span class="badge bg-secondary version-badge">v3.6.6</span>
+          <span class="text-muted small">09/05/2026</span>
         </div>
         <div class="card border-0 shadow-sm rounded-4">
           <div class="card-body p-4">

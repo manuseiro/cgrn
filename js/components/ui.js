@@ -265,6 +265,23 @@ export function setSudeneStatus(status) {
   s.innerHTML = `${icon}${txt}`;
 }
 
+// ─── Status SICOR ─────────────────────────────────────────────────────────
+export function updateSicorStatus(status) {
+  const s = el.sicorStatus;
+  if (!s) return;
+  const m = {
+    loading: { cls: 'text-warning', txt: 'SICOR...' },
+    ok: { cls: 'text-success', txt: 'SICOR' },
+    error: { cls: 'text-danger', txt: 'SICOR OFF' },
+  };
+  const { cls, txt } = m[status] ?? m.loading;
+  const icon = status === 'ok' ? '<i class="bi bi-check-circle-fill me-1"></i>'
+    : status === 'error' ? '<i class="bi bi-exclamation-triangle-fill me-1"></i>'
+      : '<span class="spinner-border spinner-border-sm me-1" role="status"></span>';
+  s.className = `status-item small ${cls}`;
+  s.innerHTML = `${icon}${txt}`;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────
 export const getCoordText = () => el.coordenadas?.value ?? '';
 export const setCoordText = text => { if (el.coordenadas) el.coordenadas.value = text; };

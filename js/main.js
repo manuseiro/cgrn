@@ -1,5 +1,5 @@
 /**
- * @file main.js — v3.6.6
+ * @file main.js — v3.6.7
  * @description Orquestrador principal da aplicação CGRN.
  *
  */
@@ -43,6 +43,7 @@ import {
 } from './services/camadas_externas.js';
 import { loadICMBIO, setICMBioVisible } from './services/icmbio.js';
 import { loadIBAMA, setIbamaVisible } from './services/ibama.js';
+import { loadSicorData } from './services/sicor.js';
 import { verificarConformidade, CHECKS } from './services/conformidade.js';
 import { modals } from './components/modal.js';
 const { COORD_PRECISION } = CONFIG.VALIDATION;
@@ -65,7 +66,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadTerrasIndigenas(),
     loadICMBIO(),
     loadIBAMA(),
-    loadBioma(),   // ← novo
+    loadBioma(),
+    loadSicorData(),   // ← novo — inicia download em paralelo no boot
   ]);
 
   log('CGRN pronto ✅');

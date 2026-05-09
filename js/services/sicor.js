@@ -2,87 +2,147 @@
  * @file sicor.js
  * @description Serviço de consulta ao SICOR (BCB) para detectar glebas já financiadas.
  * Baseado no arquivo de microdados de glebas WKT/CSV do Banco Central.
+ * Suporta download em background no boot e fallback de ano.
  */
 
 import { CONFIG } from '../utils/config.js';
-import { log, warn } from '../components/ui.js';
+import { state } from '../utils/state.js';
+import { log, warn, updateSicorStatus } from '../components/ui.js';
 
-/** Cache em memória dos dados do SICOR para evitar downloads repetidos na mesma sessão */
+/** Cache em memória dos dados do SICOR */
 let _sicorPolygons = null;
 let _isLoading = false;
+let _loadPromise = null;
 
 /**
  * Carrega e processa os dados do SICOR.
- * O arquivo é um CSV compactado em Gzip via proxy.
+ * O arquivo é um CSV compactado em Gzip, processado via proxy com descompressão.
  */
 export async function loadSicorData() {
-  if (_sicorPolygons) return _sicorPolygons;
-  if (_isLoading) return new Promise(resolve => {
-    const check = setInterval(() => {
-      if (!_isLoading) { clearInterval(check); resolve(_sicorPolygons); }
-    }, 100);
-  });
+  // Singleton — evita downloads paralelos e retorna cache se pronto
+  if (_sicorPolygons !== null) return _sicorPolygons;
+  if (_isLoading) return _loadPromise;
 
   _isLoading = true;
-  log('SICOR: Iniciando carregamento de microdados BCB...');
+  _loadPromise = _doLoad();
+  return _loadPromise;
+}
+
+/**
+ * Execução real do carregamento.
+ * @private
+ */
+async function _doLoad() {
+  updateSicorStatus('loading');
+  log('SICOR: carregando microdados BCB...');
 
   try {
-    const url = CONFIG.PROXY_URL + encodeURIComponent(CONFIG.SICOR.URL) + '&decompress=1';
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const year = new Date().getFullYear();
+    let res = null;
+    let usedYear = year;
+
+    // Tenta o ano corrente, com fallback para o ano anterior (importante em Janeiro)
+    for (const y of [year, year - 1]) {
+      // URL oficial do BCB (microdados brutos)
+      const baseUrl = `${CONFIG.SICOR.URL_BASE}${y}.gz`;
+      const url = CONFIG.PROXY_URL + encodeURIComponent(baseUrl) + '&decompress=1';
+      
+      try {
+        res = await fetch(url, { signal: AbortSignal.timeout(60000) });
+        if (res.ok) { 
+          usedYear = y;
+          log(`SICOR: usando arquivo de ${y}`); 
+          break; 
+        }
+      } catch (e) { 
+        warn(`SICOR: tentativa ano ${y} falhou:`, e.message);
+      }
+    }
+
+    if (!res?.ok) throw new Error('Arquivo SICOR não disponível no BCB (404/Timeout)');
 
     const text = await res.text();
     const lines = text.split('\n');
-    const groups = new Map();
+    if (lines.length < 2) throw new Error('Arquivo SICOR vazio ou inválido');
 
-    // Pula o cabeçalho (i=1)
+    // Detecta colunas dinamicamente (BCB costuma mudar a ordem)
+    const header = lines[0].split(';').map(h => h.trim().toUpperCase());
+    const refIdx = header.findIndex(h => h.includes('REF_BACEN') || h === 'NU_ORDEM');
+    const wktIdx = header.findIndex(h => h.includes('MULTIPOL') || h.includes('WKT') || h.includes('GEOM'));
+
+    if (wktIdx === -1) {
+      throw new Error(`Coluna de geometria não encontrada. Colunas: ${header.join(', ')}`);
+    }
+    
+    log(`SICOR: colunas detectadas — ref[${refIdx}], wkt[${wktIdx}]`);
+
+    const polygons = [];
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
 
       const parts = line.split(';');
-      if (parts.length < 7) continue;
+      const ref = refIdx !== -1 ? (parts[refIdx]?.trim() ?? `L${i}`) : `L${i}`;
+      const wktStr = parts[wktIdx]?.trim() ?? '';
+      
+      if (!wktStr || wktStr === 'MULTIPOLYGON EMPTY') continue;
 
-      const ref = parts[0];       // #REF_BACEN
-      const lat = parseFloat(parts[5]);
-      const lon = parseFloat(parts[6]);
-
-      if (isNaN(lat) || isNaN(lon)) continue;
-
-      if (!groups.has(ref)) groups.set(ref, []);
-      groups.get(ref).push([lon, lat]); // Turf usa [lon, lat]
-    }
-
-    const polygons = [];
-    for (const [ref, pts] of groups) {
-      if (pts.length < 4) continue; // Mínimo para um polígono fechado
-
-      // Garante fechamento
-      const first = pts[0];
-      const last = pts[pts.length - 1];
-      if (first[0] !== last[0] || first[1] !== last[1]) {
-        pts.push([first[0], first[1]]);
-      }
-
-      try {
-        const poly = turf.polygon([pts], { ref_bacen: ref });
-        const bbox = turf.bbox(poly);
-        polygons.push({ ref, poly, bbox });
-      } catch (e) {
-        // Ignora polígonos inválidos
+      const poly = parseWKT(wktStr, { ref_bacen: ref });
+      if (poly) {
+        polygons.push({ ref, poly, bbox: turf.bbox(poly) });
       }
     }
 
     _sicorPolygons = polygons;
-    log(`SICOR: ${polygons.length} operações carregadas.`);
+    updateSicorStatus('ok');
+    log(`SICOR: ${polygons.length} operações carregadas ✅ (${usedYear})`);
     return _sicorPolygons;
 
   } catch (e) {
-    warn('SICOR: Falha ao carregar microdados:', e.message);
+    warn('SICOR: falha crítica:', e.message);
+    updateSicorStatus('error');
     _sicorPolygons = [];
     return [];
   } finally {
     _isLoading = false;
+  }
+}
+
+/**
+ * Parser WKT simplificado para POLYGON/MULTIPOLYGON.
+ * @param {string} wkt 
+ * @param {object} properties 
+ * @returns {Feature|null}
+ */
+function parseWKT(wkt, properties) {
+  try {
+    // Limpeza e extração de coordenadas
+    // Suporta MULTIPOLYGON(((...))) e POLYGON((...))
+    const clean = wkt.replace(/MULTIPOLYGON|POLYGON/gi, '').trim();
+    const rings = [];
+    
+    // Expressão para pegar o que está dentro de parênteses aninhados
+    const matches = clean.match(/\(\(([^)]+)\)\)/g) || [clean];
+    
+    for (const m of matches) {
+      const coords = m.replace(/[()]/g, '').split(',').map(pair => {
+        const [lon, lat] = pair.trim().split(/\s+/).map(Number);
+        return [lon, lat];
+      });
+      
+      if (coords.length >= 4) {
+        // Garante fechamento
+        if (coords[0][0] !== coords[coords.length-1][0] || coords[0][1] !== coords[coords.length-1][1]) {
+          coords.push([...coords[0]]);
+        }
+        rings.push(coords);
+      }
+    }
+
+    if (rings.length === 0) return null;
+    return turf.polygon(rings, properties);
+  } catch (e) {
+    return null;
   }
 }
 
@@ -93,14 +153,15 @@ export async function loadSicorData() {
  * @returns {Promise<Object[]>} Lista de operações encontradas
  */
 export async function checkGlebaSicor(gleba) {
-  const allPolys = await loadSicorData();
+  // Se ainda estiver carregando, aguarda a promise singleton
+  const allPolys = await (_sicorPolygons !== null ? _sicorPolygons : loadSicorData());
   if (!allPolys.length) return [];
 
   const glebaBbox = turf.bbox(gleba.turfPolygon);
   const found = [];
 
   for (const item of allPolys) {
-    // Filtro rápido por BBox
+    // Filtro rápido por BBox (bboxIntersects do geo.js seria ideal)
     if (!turf.booleanIntersects(turf.bboxPolygon(glebaBbox), turf.bboxPolygon(item.bbox))) {
       continue;
     }
@@ -114,7 +175,7 @@ export async function checkGlebaSicor(gleba) {
         });
       }
     } catch (e) {
-      // ignore
+      // ignore geometries problemáticas
     }
   }
 

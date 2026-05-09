@@ -41,6 +41,8 @@ $allowedDomains = [
     'terrabrasilis.dpi.inpe.br',
     'manuseiro.github.io',
     'olinda.bcb.gov.br',
+    'hostingersite.com',
+    'glebasnord.com.br',
 ];
 
 $parsedUrl = parse_url($targetUrl);

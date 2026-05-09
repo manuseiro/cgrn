@@ -57,6 +57,11 @@ export const el = {
   get statusCoords() { return document.getElementById('statusCoords'); },
   get statusArea() { return document.getElementById('statusArea'); },
   get sudeneStatus() { return document.getElementById('sudeneStatus'); },
+  get sicorStatus() { return document.getElementById('sicorStatus'); },
+  get ibamaStatus() { return document.getElementById('ibamaStatus'); },
+  get biomaStatus() { return document.getElementById('biomaStatus'); },
+  get ucStatus() { return document.getElementById('ucStatus'); },
+  get tiStatus() { return document.getElementById('tiStatus'); },
   get savedProjectInfo() { return document.getElementById('savedProjectInfo'); },
 };
 import { CONFIG } from '../utils/config.js';

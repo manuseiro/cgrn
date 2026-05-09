@@ -103,8 +103,8 @@ export const CONFIG = Object.freeze({
   }),
 
   SICOR: Object.freeze({
-    //URL: 'https://olinda.bcb.gov.br/olinda/servico/SICOR/versao/v1/download/SICOR_GLEBAS_WKT_2026.gz',
-    URL: `https://olinda.bcb.gov.br/olinda/servico/SICOR/versao/v1/download/SICOR_GLEBAS_WKT_${new Date().getFullYear()}.gz`,
+    /** Base URL para os microdados brutos do BCB. O ano e a descompressão são tratados em sicor.js */
+    URL_BASE: 'https://www.bcb.gov.br/htms/sicor/DadosBrutos/sicor_glebas_wkt_',
   }),
 
   BIOMA: Object.freeze({

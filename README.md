@@ -4,13 +4,13 @@
 
 ---
 
-## ✨ Novidades da v3.6.6
+## ✨ Novidades da v3.6.7
 
-- **Máscara Inteligente CAR**: Implementação de máscara de entrada automática e busca inteligente (debounce) no campo de consulta do SICAR, melhorando a experiência do usuário e reduzindo erros de digitação.
-- **Regex Alfanumérico SICAR**: Atualização do padrão de validação para aceitar identificadores do CAR com caracteres alfanuméricos completos ([A-Z, 0-9]), garantindo compatibilidade total com a base nacional do Serviço Florestal Brasileiro.
-- **Expansão Territorial (MG/ES)**: Inclusão dos estados de Minas Gerais (MG) e Espírito Santo (ES) no escopo de validação do Nordeste/SUDENE, suportando operações de crédito rural em áreas limítrofes e de transição.
-- **SICOR Dinâmico**: A URL de consulta aos microdados de glebas do Banco Central agora utiliza o ano corrente dinamicamente, facilitando a manutenção e garantindo dados sempre atualizados.
-- **Estilo e UX**: Melhorias visuais na barra de progresso da busca CAR e padronização dos logs de inicialização.
+- **Correção Crítica SICOR**: Reconstrução completa do parser WKT para os microdados do Banco Central (BCB), eliminando falhas de processamento (`NaN`) e garantindo a detecção precisa de glebas já financiadas.
+- **Resiliência e Fallback**: Implementação de detecção dinâmica de colunas no CSV do SICOR e lógica de fallback para o ano anterior, garantindo disponibilidade mesmo durante atualizações da base do BCB.
+- **Feedback de Carregamento**: Novos indicadores visuais na barra de status que informam o progresso do download de grandes datasets (SICOR, IBAMA, etc.) em tempo real.
+- **Performance Otimizada**: Uso do padrão *Singleton Promise* para carregamento de dados em background, evitando travamentos na interface durante verificações de conformidade.
+- **Whitelist Ampliada**: Atualização do proxy PHP para suportar novos endpoints e domínios de infraestrutura.
 
 ---
 
