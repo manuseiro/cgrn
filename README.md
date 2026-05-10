@@ -4,13 +4,17 @@
 
 ---
 
-## ✨ Novidades da v3.6.8
+## ✨ Novidades da v3.6.9
 
 - **Segurança de Infraestrutura**: Implementação de Rate Limiting, proteção contra SSRF e sanitização de headers no proxy PHP, seguindo recomendações de auditoria técnica.
 - **Resiliência de Cache**: Correção do cache de validação para preservar alertas de sobreposição e geometrias de interseção entre consultas.
 - **Precisão Geoespacial**: Novo parser MultiPolygon para microdados SICOR e otimização de filtros espaciais via Bounding Box (`bboxIntersects`).
 - **Consistência de Regras**: Alinhamento do limite de área máxima (50.000 ha) e validação imediata de dimensões no processamento da gleba.
 - **Proteção de Dados**: Adição de `.htaccess` para proteção do cache e sanitização de nomes de projetos (XSS) via `escapeHtml`.
+- **Estabilidade Geral**: Correções pontuais de consistência em cache e validações de geometria.
+- **Atualização de Assets**: Inclusão/atualização de camadas geoespaciais (limites, biomas e dados auxiliares).
+- **Interface**: Ajustes visuais e de versionamento no `index.html` e componentes front-end.
+- **Manutenção**: Otimização de arquivos estáticos e preparação para próximas funcionalidades.
 
 ---
 

@@ -35,8 +35,27 @@ body {
 .navbar {
   position: relative;
   z-index: 1030;
-  height: var(--cgrn-nav-h);
+  min-height: var(--cgrn-nav-h);
   font-size: .87rem;
+}
+
+/* Garante que o mapa só inicia abaixo da navbar, mesmo quando expandida no mobile */
+@media (max-width: 991.98px) {
+
+  .navbar-collapse.show~*+#map,
+  body:has(.navbar-collapse.show) #map {
+    top: var(--cgrn-nav-h);
+    /* mantém posição base; o collapse flutua sobre o mapa */
+  }
+
+  /* Collapse com scroll quando muito alto no mobile */
+  .navbar-collapse {
+    max-height: calc(100vh - var(--cgrn-nav-h) - var(--cgrn-status-h));
+    overflow-y: auto;
+    background: inherit;
+    border-top: 1px solid rgba(255, 255, 255, .1);
+    padding: .5rem 0;
+  }
 }
 
 .navbar-brand {
@@ -577,6 +596,25 @@ body {
   font-size: .82rem;
 }
 
+/* Container de toasts: posicionado dinamicamente acima da status bar */
+.cgrn-toast-container {
+  z-index: 1100;
+  bottom: calc(var(--cgrn-status-h) + 6px);
+}
+
+@media (max-width: 576px) {
+  .cgrn-toast-container {
+    right: 0 !important;
+    left: 0;
+    padding: .5rem !important;
+  }
+
+  .toast {
+    min-width: unset;
+    width: 100%;
+  }
+}
+
 /* ─── Controles Leaflet no dark mode ─────────────────────────── */
 [data-bs-theme="dark"] .leaflet-bar a,
 [data-bs-theme="dark"] .leaflet-draw-toolbar a {
@@ -650,5 +688,25 @@ body {
 
   #tiLegendPanel {
     display: none !important;
+  }
+
+  /* Status bar no mobile: truncar texto longo de coordenadas */
+  #statusCoords {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Status icons no mobile mostram apenas ícone (texto nos spans internos escondido por d-none) */
+@media (max-width: 575.98px) {
+
+  /* Painel flutuante no mobile: posiciona no topo direito para não sobrepor os controles Leaflet */
+  #layerControlPanel {
+    bottom: calc(var(--cgrn-status-h) + 6px);
+    right: 6px;
+    min-width: 48px;
+    max-width: 220px;
   }
 }

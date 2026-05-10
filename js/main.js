@@ -226,9 +226,12 @@ function bindEvents() {
   });
   el.btnDarkMode?.addEventListener('click', () => { state.darkMode = !state.darkMode; applyDarkMode(state.darkMode); });
 
-  // Botão de conformidade BACEN
-  document.getElementById('btnConformidade')?.addEventListener('click', () => {
-    runConformidade(state.glebas);
+  // Botão de conformidade BACEN — delegado para funcionar no navbar E no modal de resultados
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-action="conformidade"]')) {
+      e.preventDefault();
+      runConformidade(state.glebas);
+    }
   });
 
   // Exportações

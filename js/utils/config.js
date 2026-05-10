@@ -95,6 +95,9 @@ export const CONFIG = Object.freeze({
      * API GraphQL pública
      */
     MAPBIOMAS_API: 'https://plataforma.alerta.mapbiomas.org/api/v1/alerts.json',
+    // API IBGE Estados, 
+    //https://servicodados.ibge.gov.br/api/v3/malhas/estados/23?subnivel=biomas&formato=application/vnd.geo+json
+
 
     /**
      * CAR — Cadastro Ambiental Rural (SICAR)

@@ -56,7 +56,7 @@
               <li>
                 <hr class="dropdown-divider">
               </li>
-              <li><a class="dropdown-item" href="#" id="btnConformidade">
+              <li><a class="dropdown-item" href="#" data-action="conformidade">
                   <i class="bi bi-shield-lock-fill me-2"></i>Verificar Conformidade BACEN/SICOR</a></li>
             </ul>
           </li>
@@ -86,7 +86,7 @@
           <!-- Projeto -->
           <li class="nav-item">
             <a class="nav-link px-2" href="#" data-modal-open="projetoModal">
-              Projeto
+              <i class="bi bi-folder-fill me-1"></i>Projeto
             </a>
           </li>
 
@@ -97,6 +97,7 @@
           <li class="nav-item">
             <a class="nav-link px-1 opacity-75" href="#" data-modal-open="sobreModal">
               <i class="bi bi-info-circle-fill"></i>
+              <span class="d-lg-none ms-1">Sobre</span>
             </a>
           </li>
           <li class="nav-item py-2 py-lg-1 col-12 col-lg-auto">
@@ -104,8 +105,9 @@
             <hr class="d-lg-none my-2 text-white-50">
           </li>
           <li class="nav-item">
-            <button id="toggleDarkMode" class="btn btn-link nav-link border-opacity-25"><i
-                class="bi bi-moon-stars-fill me-1"></i>
+            <button id="toggleDarkMode" class="btn btn-link nav-link border-opacity-25">
+              <i class="bi bi-moon-stars-fill me-1"></i>
+              <span class="d-lg-none">Modo Escuro</span>
             </button>
           </li>
         </ul>
@@ -214,33 +216,31 @@
       <span class="status-item d-none d-md-inline text-muted opacity-50">CGRN v3.6.8 • SIRGAS 2000</span>
     </div>
 
-    <div class="ms-auto d-flex align-items-center gap-3">
-      <!-- Adicionar ao grupo de status de camadas 
-      <span id="sicorStatus" class="status-item small text-secondary"
-        title="Camada de Validação de Glebas Já contratadas junto ao BACEN/SICOR">
-        <i class="bi bi-hourglass-split"></i> SICOR
-      </span>-->
-      <span id="biomaStatus" class="status-item small text-secondary">
-        <i class="bi bi-hourglass-split"></i> BIOMAS
+    <div class="ms-auto d-flex align-items-center gap-2 gap-md-3">
+      <span id="biomaStatus" class="status-item small text-secondary d-none d-sm-inline-flex" title="Status Biomas">
+        <i class="bi bi-hourglass-split"></i> <span class="d-none d-lg-inline ms-1">BIOMAS</span>
       </span>
-      <span class="status-divider"></span>
-      <span id="ibamaStatus" class="status-item small text-secondary">
-        <i class="bi bi-hourglass-split"></i> IBAMA
+      <span class="status-divider d-none d-sm-inline-block"></span>
+      <span id="ibamaStatus" class="status-item small text-secondary d-none d-sm-inline-flex" title="Status IBAMA">
+        <i class="bi bi-hourglass-split"></i> <span class="d-none d-lg-inline ms-1">IBAMA</span>
       </span>
-      <span class="status-divider"></span>
-      <span id="ucStatus" class="status-item small text-secondary">
-        <i class="bi bi-hourglass-split"></i> ICMBio
+      <span class="status-divider d-none d-sm-inline-block"></span>
+      <span id="ucStatus" class="status-item small text-secondary d-none d-sm-inline-flex" title="Status ICMBio">
+        <i class="bi bi-hourglass-split"></i> <span class="d-none d-lg-inline ms-1">ICMBio</span>
       </span>
-      <span class="status-divider"></span>
-      <span id="sudeneStatus" class="status-item small text-warning"><i class="bi bi-hourglass-split"></i> SUDENE</span>
-      <span class="status-divider"></span>
-      <span id="tiStatus" class="status-item small text-warning"><i class="bi bi-hourglass-split"></i> TERRAS
-        INDÍGENAS</span>
+      <span class="status-divider d-none d-md-inline-block"></span>
+      <span id="sudeneStatus" class="status-item small text-warning d-none d-md-inline-flex" title="Status SUDENE">
+        <i class="bi bi-hourglass-split"></i> <span class="d-none d-lg-inline ms-1">SUDENE</span>
+      </span>
+      <span class="status-divider d-none d-md-inline-block"></span>
+      <span id="tiStatus" class="status-item small text-warning d-none d-md-inline-flex" title="Terras Indígenas">
+        <i class="bi bi-hourglass-split"></i> <span class="d-none d-lg-inline ms-1">TI</span>
+      </span>
     </div>
   </footer>
 
   <!-- Toast container -->
-  <div id="toastContainer" class="toast-container position-fixed end-0 p-3" style="z-index:1100;bottom:38px"></div>
+  <div id="toastContainer" class="toast-container position-fixed end-0 p-3 cgrn-toast-container"></div>
 
   <!-- ══════════════════════════════════════════════════════════════
      MODAL: ADICIONAR / VALIDAR GLEBA
@@ -448,7 +448,8 @@
               Regular</small>
           </div>
 
-          <button type="button" class="btn btn-outline-dark px-3  btn-sm" id="btnConformidade">
+          <button type="button" class="btn btn-outline-dark px-3  btn-sm" id="btnConformidadeModal"
+            data-action="conformidade">
             <i class="bi bi-shield-lock-fill me-1"></i>Verificar BACEN/SICOR
           </button>
 
