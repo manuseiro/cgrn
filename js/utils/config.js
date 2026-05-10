@@ -24,9 +24,9 @@ export const CONFIG = Object.freeze({
     /** Precisão decimal recomendada para bases SICAR/BACEN (evita truncamento) */
     COORD_PRECISION: 8,
     /** BACEN/SICOR: área mínima da gleba em hectares */
-    AREA_MIN_HA: 0.1,
+    AREA_MIN_HA: 0.01,
     /** BACEN/SICOR: área máxima por gleba para crédito rural geral */
-    AREA_MAX_HA: 15000,
+    AREA_MAX_HA: 50000,
   }),
 
   SUDENE: Object.freeze({
@@ -42,27 +42,31 @@ export const CONFIG = Object.freeze({
   /**
    * Terras Indígenas — FUNAI via https://manuseiro.github.io/api/funai/.
    * Fallback para arquivo local se a URL externa falhar.
+   * URL_PRIMARIA com FILTRO PIR UF: &CQL_FILTER=uf_sigla%20IN%20(%27MA%27%2C%27PI%27%2C%27CE%27%2C%27RN%27%2C%27PB%27%2C%27PE%27%2C%27AL%27%2C%27SE%27%2C%27BA%27%2C%27ES%27%2C%27MG%27)
    */
   TI: Object.freeze({
-    URL_PRIMARIA: 'https://geoserver.funai.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=Funai:tis_poligonais&outputFormat=application%2Fjson&CQL_FILTER=uf_sigla+IN+(\'MA\',\'PI\',\'CE\',\'RN\',\'PB\',\'PE\',\'AL\',\'SE\',\'BA\')',
-    URL_FALLBACK: 'api/terras_indigenas_nordeste.geojson',
+    URL_PRIMARIA: 'https://geoserver.funai.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=Funai:tis_poligonais_portarias&outputFormat=application%2Fjson&CQL_FILTER=uf_sigla%20IN%20(%27MA%27%2C%27PI%27%2C%27CE%27%2C%27RN%27%2C%27PB%27%2C%27PE%27%2C%27AL%27%2C%27SE%27%2C%27BA%27%2C%27ES%27%2C%27MG%27)',
+    URL_FALLBACK: 'https://manuseiro.github.io/api/funai/tis_poligonais_portarias.json',
     NORDESTE_UFS: Object.freeze(['MA', 'PI', 'CE', 'RN', 'PB', 'PE', 'AL', 'SE', 'BA', 'MG', 'ES']),
   }),
 
   /**
    * ICMBio — Unidades de Conservação (Arquivo Interno) via https://manuseiro.github.io/api/icmbio/.
    * Fallback para arquivo local se a URL externa falhar.
+   * URL_PRIMARIA com FILTRO PIR UF: &CQL_FILTER=ufabrang%20IN%20(%27MA%27%2C%27PI%27%2C%27CE%27%2C%27RN%27%2C%27PB%27%2C%27PE%27%2C%27AL%27%2C%27SE%27%2C%27BA%27%2C%27ES%27%2C%27MG%27)
    */
   ICMBIO: Object.freeze({
-    URL_PRIMARIA: 'https://geoservicos.inde.gov.br/geoserver/ICMBio/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=limiteucsfederais_a&outputFormat=application%2Fjson',
+    URL_PRIMARIA: 'https://geoservicos.inde.gov.br/geoserver/ICMBio/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=limiteucsfederais_a&outputFormat=application%2Fjson&CQL_FILTER=ufabrang%20IN%20(%27MA%27%2C%27PI%27%2C%27CE%27%2C%27RN%27%2C%27PB%27%2C%27PE%27%2C%27AL%27%2C%27SE%27%2C%27BA%27%2C%27ES%27%2C%27MG%27)',
     URL_FALLBACK: 'api/limiteucsfederais_a.json',
   }),
 
   /**
    * IBAMA — Áreas Embargadas (Arquivo Interno)
-   */
+   * https://siscom.ibama.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=publica:vw_brasil_adm_embargo_a&outputFormat=application/json&maxFeatures=10000&CQL_FILTER=uf+IN+(\'MA\',\'PI\',\'CE\',\'RN\',\'PB\',\'PE\',\'AL\',\'SE\',\'BA\')
+   * URL_PRIMARIA com FILTRO PIR UF: &CQL_FILTER=sig_uf%20IN%20(%27MA%27%2C%27PI%27%2C%27CE%27%2C%27RN%27%2C%27PB%27%2C%27PE%27%2C%27AL%27%2C%27SE%27%2C%27BA%27%2C%27ES%27%2C%27MG%27)
+  */
   IBAMA: Object.freeze({
-    URL_PRIMARIA: 'https://siscom.ibama.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=publica:vw_brasil_adm_embargo_a&outputFormat=application/json&CQL_FILTER=uf+IN+(\'MA\',\'PI\',\'CE\',\'RN\',\'PB\',\'PE\',\'AL\',\'SE\',\'BA\')',
+    URL_PRIMARIA: 'https://siscom.ibama.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=publica:vw_brasil_adm_embargo_a&outputFormat=application/json&maxFeatures=10000&CQL_FILTER=sig_uf%20IN%20(%27MA%27%2C%27PI%27%2C%27CE%27%2C%27RN%27%2C%27PB%27%2C%27PE%27%2C%27AL%27%2C%27SE%27%2C%27BA%27%2C%27ES%27%2C%27MG%27)',
     URL_FALLBACK: 'api/vw_brasil_adm_embargo_a.json',
   }),
 
@@ -108,14 +112,30 @@ export const CONFIG = Object.freeze({
   }),
 
   BIOMA: Object.freeze({
-    URL_PRIMARIA: 'https://geoservicos.ibge.gov.br/geoserver/ows?' +
+    /** URL base */
+    BASE_URL: 'https://geoservicos.ibge.gov.br/geoserver/ows?' +
       'service=WFS&version=1.0.0&request=GetFeature' +
       '&typeName=CGMAT:qg_2025_240_bioma' +
-      '&outputFormat=application%2Fjson' +
-      '&CQL_FILTER=INTERSECTS(geom,POLYGON((-50%20-2,-34%20-2,-34%20-18,-50%20-18,-50%20-2)))',
-    // Bounding box aproximado do Nordeste: reduz de 30MB para ~1-2MB
-    URL_FALLBACK: 'api/qg_2025_240_bioma_nordeste.json',
-    // ↑ versão pré-filtrada e simplificada do arquivo local (gerar com Mapshaper)
+      '&outputFormat=application/json',
+
+    /** Estados: Nordeste completo + MG + ES */
+    ESTADOS: Object.freeze(['MA', 'PI', 'CE', 'RN', 'PB', 'PE', 'AL', 'SE', 'BA', 'MG', 'ES']),
+
+    /**
+     * Bounding Box expandida (Nordeste + MG + ES)
+     * Mais segura e cobre bem a região desejada
+     */
+    get CQL_FILTER() {
+      return "INTERSECTS(geom,POLYGON((-52 -1,-30 -1,-30 -23,-52 -23,-52 -1)))";
+    },
+
+    /** URL Primária com filtro espacial otimizado */
+    get URL_PRIMARIA() {
+      return this.BASE_URL + '&CQL_FILTER=' + encodeURIComponent(this.CQL_FILTER) + '&maxFeatures=5000';
+    },
+
+    URL_FALLBACK: 'https://manuseiro.github.io/api/ibge/qg_2025_240_bioma_nordeste.json',
+    // ↑ Sugiro gerar um novo fallback com Mapshaper incluindo MG e ES
   }),
 
   STORAGE: Object.freeze({ KEY: 'cgrn_project_v3' }),

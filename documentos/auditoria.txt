@@ -1,0 +1,152 @@
+Melhoria proposta para changelog.html e docs.html
+Os arquivos já estão razoavelmente bem estruturados e usam Bootstrap + style.css, mas têm problemas de layout:
+
+Container muito estreito e sem boa responsividade.
+Falta de altura total com scroll suave.
+Pouca consistência visual com o index.html (navbar, cards, sombras, espaçamentos, tema dark/light).
+No changelog, a timeline pode crescer muito sem scroll controlado.
+No docs, o sidebar sticky funciona, mas o conteúdo principal é curto e sem "cuerpo" visual.
+
+1. Melhoria Geral (aplicar nos dois arquivos)
+Adicione/substitua no <head> e <body> para maior fidelidade ao projeto:
+
+[HTML]
+
+<!-- No <head>, após os links existentes -->
+<style>
+    html, body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden; /* Controlado pelo container principal */
+    }
+    
+    .main-container {
+        height: calc(100vh - 80px); /* Ajusta para navbar */
+        overflow-y: auto;
+        scroll-behavior: smooth;
+        padding-bottom: 2rem;
+    }
+    
+    .card {
+        border: none;
+        border-radius: var(--cgrn-radius, 12px);
+        box-shadow: var(--cgrn-shadow, 0 4px 20px rgba(0,0,0,0.1));
+    }
+    
+    [data-bs-theme="dark"] .card {
+        background-color: #1f2937;
+    }
+    
+    .timeline {
+        padding-left: 2.5rem;
+    }
+    
+    /* Scrollbar moderna */
+    .main-container::-webkit-scrollbar {
+        width: 8px;
+    }
+    .main-container::-webkit-scrollbar-thumb {
+        background: var(--bs-primary);
+        border-radius: 4px;
+    }
+</style>
+[/HTML]
+2. changelog.html – Versão Melhorada
+Substitua o conteúdo principal por esta estrutura (mantendo suas versões):
+[HTML]
+
+<body>
+  <div class="container-fluid px-3 py-3">
+    <!-- Navbar consistente com o app -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm mb-4 rounded-4 px-3">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="index.html">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        <span class="fw-bold">GlebasNord</span>
+      </a>
+      <div class="ms-auto">
+        <a href="index.html" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-arrow-left me-1"></i>Voltar ao App
+        </a>
+      </div>
+    </nav>
+
+    <div class="main-container">
+      <div class="mb-5 text-center">
+        <h1 class="fw-bold display-6">Notas de Lançamento</h1>
+        <p class="text-muted lead">Histórico completo de melhorias e correções do GlebasNord</p>
+      </div>
+
+      <div class="timeline mx-auto" style="max-width: 900px;">
+        <!-- Suas timeline-items aqui (mantive as que você já tem) -->
+        <!-- Exemplo da mais recente -->
+        <div class="timeline-item">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <span class="badge bg-success fs-5 px-3 py-2 version-badge">v3.6.7</span>
+            <span class="text-muted">09/05/2026 • Atual</span>
+          </div>
+          <div class="card">
+            <div class="card-body p-4">
+              <!-- conteúdo existente -->
+            </div>
+          </div>
+        </div>
+        <!-- ... repita para as demais versões ... -->
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Tema dark/light
+    if (localStorage.getItem('cgrn_theme') === 'dark') {
+      document.documentElement.setAttribute('data-bs-theme', 'dark');
+    }
+  </script>
+</body>
+[/HTML]
+
+3. docs.html – Versão Melhorada
+Melhorei o layout com duas colunas mais equilibradas e melhor navegação:
+[/HTML]
+
+<div class="container-fluid px-3 py-3">
+  <!-- Navbar igual à do changelog -->
+
+  <div class="main-container">
+    <div class="row g-4">
+      <!-- Sidebar -->
+      <div class="col-lg-3">
+        <div class="sticky-top" style="top: 20px;">
+          <div class="card p-3">
+            <h6 class="fw-bold text-uppercase text-muted small mb-3">Sumário</h6>
+            <nav id="doc-nav" class="nav flex-column gap-1">
+              <!-- Seus links existentes -->
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      <!-- Conteúdo -->
+      <div class="col-lg-9">
+        <div class="card border-0 shadow-sm overflow-hidden">
+          <div class="card-body p-4 p-lg-5">
+            <!-- Todo o conteúdo das seções vai aqui -->
+            <!-- Adicione mais seções se quiser expandir a documentação -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+[/HTML]
+
+Dicas adicionais
+
+Consistência de tema — O script de data-bs-theme já existe e funciona bem.
+Scroll — O .main-container resolve o problema de falta de scroll.
+Mobile — O Bootstrap + container-fluid + colunas responsivas já melhoram bastante.
+Cores e ícones — Use mais bi bi-* e badges com as cores do projeto (success, danger, primary).
+Atualize o README — Mencione que as páginas de suporte agora têm visual alinhado ao app.

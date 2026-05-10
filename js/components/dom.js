@@ -2,7 +2,9 @@
  * @file dom.js
  * @description Referências centralizadas aos elementos do DOM para a aplicação CGRN.
  */
-
+import { CONFIG } from '../utils/config.js';
+export const log = (...a) => CONFIG.DEBUG && console.log('[CGRN]', ...a);
+export const warn = (...a) => CONFIG.DEBUG && console.warn('[CGRN]', ...a);
 export const el = {
   // Modais
   get modalAdicionarGleba() { return document.getElementById('adicionarGleba'); },
@@ -37,8 +39,8 @@ export const el = {
   get btnValidar() { return document.getElementById('validar-gleba-btn'); },
   get btnLimparMapa() { return document.getElementById('limparMapa'); },
   get btnInserirExemplo() { return document.getElementById('inserirExemplo'); },
-  get carSearchCode()  { return document.getElementById('carSearchCode'); },
-  get btnSearchCAR()   { return document.getElementById('btnSearchCAR'); },
+  get carSearchCode() { return document.getElementById('carSearchCode'); },
+  get btnSearchCAR() { return document.getElementById('btnSearchCAR'); },
 
   // Botões — navbar
   get btnCalcular() { return document.getElementById('calcularArea'); },
@@ -64,6 +66,4 @@ export const el = {
   get tiStatus() { return document.getElementById('tiStatus'); },
   get savedProjectInfo() { return document.getElementById('savedProjectInfo'); },
 };
-import { CONFIG } from '../utils/config.js';
-export const log  = (...a) => CONFIG.DEBUG && console.log('[CGRN]', ...a);
-export const warn = (...a) => CONFIG.DEBUG && console.warn('[CGRN]', ...a);
+

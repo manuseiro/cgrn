@@ -4,13 +4,13 @@
 
 ---
 
-## ✨ Novidades da v3.6.7
+## ✨ Novidades da v3.6.8
 
-- **Correção Crítica SICOR**: Reconstrução completa do parser WKT para os microdados do Banco Central (BCB), eliminando falhas de processamento (`NaN`) e garantindo a detecção precisa de glebas já financiadas.
-- **Resiliência e Fallback**: Implementação de detecção dinâmica de colunas no CSV do SICOR e lógica de fallback para o ano anterior, garantindo disponibilidade mesmo durante atualizações da base do BCB.
-- **Feedback de Carregamento**: Novos indicadores visuais na barra de status que informam o progresso do download de grandes datasets (SICOR, IBAMA, etc.) em tempo real.
-- **Performance Otimizada**: Uso do padrão *Singleton Promise* para carregamento de dados em background, evitando travamentos na interface durante verificações de conformidade.
-- **Whitelist Ampliada**: Atualização do proxy PHP para suportar novos endpoints e domínios de infraestrutura.
+- **Segurança de Infraestrutura**: Implementação de Rate Limiting, proteção contra SSRF e sanitização de headers no proxy PHP, seguindo recomendações de auditoria técnica.
+- **Resiliência de Cache**: Correção do cache de validação para preservar alertas de sobreposição e geometrias de interseção entre consultas.
+- **Precisão Geoespacial**: Novo parser MultiPolygon para microdados SICOR e otimização de filtros espaciais via Bounding Box (`bboxIntersects`).
+- **Consistência de Regras**: Alinhamento do limite de área máxima (50.000 ha) e validação imediata de dimensões no processamento da gleba.
+- **Proteção de Dados**: Adição de `.htaccess` para proteção do cache e sanitização de nomes de projetos (XSS) via `escapeHtml`.
 
 ---
 

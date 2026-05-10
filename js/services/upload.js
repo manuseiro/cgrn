@@ -96,7 +96,7 @@ function normalizeFlatFile(raw, ext) {
         ? (l.includes(';') ? l.split(';').map(v=>v.trim().replace(',','.')) : l.split(',').map(v=>v.trim()))
         : l.trim().split(/\s+/);
       parts = parts.map(v => v.replace(/^["']|["']$/g,'').trim());
-      if (parts.some(v => isNaN(Number(v)) && /gleba|ponto|lat|lon/i.test(v))) return null; // header
+      if (parts.some(v => isNaN(Number(v)))) return null; // header or non-numeric line
       return parts.length >= 4 ? parts.slice(0,4).join(' ') : null;
     })
     .filter(Boolean)

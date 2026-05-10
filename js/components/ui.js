@@ -10,6 +10,17 @@ import { el, log, warn } from './dom.js';
 
 export { el, log, warn };
 
+/**
+ * Escapa caracteres HTML para prevenir XSS.
+ * @param {string} str 
+ * @returns {string}
+ */
+export function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
 // ─── Toast ────────────────────────────────────────────────────────────────
 let _tc = 0;
 
@@ -87,7 +98,7 @@ export function formatPerimeter(m) {
 
 // 05/05/2026 - 00:30 - Subistuimos o trecho: export function areaToColor(area, maxArea) {return '#F68B1F'; }
 export function areaToColor(area, maxArea, glebaId = 1) {
-  const paleta = ['#1D9E75','#185FA5','#854F0B','#7F77DD','#D85A30','#3B6D11','#993556'];
+  const paleta = ['#1D9E75', '#185FA5', '#854F0B', '#7F77DD', '#D85A30', '#3B6D11', '#993556'];
   return paleta[(glebaId - 1) % paleta.length];
 }
 // ─── Tabela de resultados ─────────────────────────────────────────────────
@@ -138,7 +149,7 @@ export function renderResultsTable(glebas) {
   const totalArea = glebas.reduce((s, g) => s + g.area, 0);
 
   body.innerHTML = glebas.map(g => {
-    const color = areaToColor(g.area, maxArea);
+    const color = areaToColor(g.area, maxArea, g.glebaId);
 
     // Semiárido badge
     const semiLabel = g.semiArido === true
@@ -233,8 +244,8 @@ export function updateStatusBar(glebas) {
 }
 export function updateStatusCoords(latlng) {
   if (el.statusCoords) {
-    el.statusCoords.textContent = 
-    `Lat ${latlng.lat.toFixed(COORD_PRECISION)} | Lon ${latlng.lng.toFixed(COORD_PRECISION)}`;
+    el.statusCoords.textContent =
+      `Lat ${latlng.lat.toFixed(COORD_PRECISION)} | Lon ${latlng.lng.toFixed(COORD_PRECISION)}`;
   }
 }
 
@@ -265,7 +276,7 @@ export function setSudeneStatus(status) {
   s.innerHTML = `${icon}${txt}`;
 }
 
-// ─── Status SICOR ─────────────────────────────────────────────────────────
+//Status do SICOR na barra inferior
 export function updateSicorStatus(status) {
   const s = el.sicorStatus;
   if (!s) return;

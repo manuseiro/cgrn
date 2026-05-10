@@ -27,7 +27,7 @@
  */
 
 import { CONFIG } from '../utils/config.js';
-import { state } from '../utils/state.js';
+//import { state } from '../utils/state.js';
 import { log, warn, showToast } from '../components/ui.js';
 
 // ─── Constantes ────────────────────────────────────────────────────────────
@@ -65,10 +65,6 @@ const UC_USO_SUSTENTAVEL = new Set([
   'Reserva de Fauna', 'Reserva de Desenvolvimento Sustentável',
   'Reserva Particular do Patrimônio Natural',
 ]);
-
-
-
-
 /**
  * Mapa completo: primeiros 2 dígitos do código IBGE → sigla UF (minúsculas).
  * Os códigos IBGE de 7 dígitos seguem o padrão nacional — os 2 primeiros
@@ -82,10 +78,6 @@ const IBGE_PREFIX_TO_UF = Object.freeze({
   '41': 'pr', '42': 'sc', '43': 'rs',
   '50': 'ms', '51': 'mt', '52': 'go', '53': 'df',
 });
-
-// ─── WMS — Camadas Visuais ─────────────────────────────────────────────────
-
-// ─── API — Verificação de Interseção ─────────────────────────────────────────
 
 /**
  * Verifica alertas de desmatamento (PRODES/DETER) via TerraBrasilis.
@@ -209,7 +201,6 @@ export function detectarTodasUFs(gleba) {
 }
 
 // ─── CAR — Cadastro Ambiental Rural ────────────────────────────────────────
-
 const TIPO_IMOVEL_LABEL = {
   IRU: 'Imóvel Rural',
   AST: 'Assentamento de Reforma Agrária',
@@ -494,8 +485,6 @@ export async function findCARByCode(codigo) {
     throw e;
   }
 }
-
-
 // ─── Utilitários internos ──────────────────────────────────────────────────
 
 /**
@@ -525,7 +514,4 @@ async function fetchWithTimeout(url, ms) {
     clearTimeout(id);
   }
 }
-
-
-
 export { UC_PROTECAO_INTEGRAL, UC_USO_SUSTENTAVEL };

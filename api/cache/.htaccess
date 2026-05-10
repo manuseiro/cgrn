@@ -1,0 +1,3 @@
+# Proteção do diretório de cache
+Order deny,allow
+Deny from all

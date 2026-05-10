@@ -80,7 +80,7 @@ export async function loadBioma() {
     const lons = coords.map(c => c[0]);
     const lats = coords.map(c => c[1]);
     return {
-      nome: f.properties?.nm_bioma ?? f.properties?.bioma ?? 'Bioma',
+      nome: f.properties?.nm_bioma ?? f.properties?.bioma ?? 'BIOMA',
       bbox: [
         lons.reduce((a, b) => a < b ? a : b),
         lats.reduce((a, b) => a < b ? a : b),
@@ -112,7 +112,7 @@ export async function loadBioma() {
 
   state.biomaLoaded = true;
   updateBiomaStatus('ok');
-  log('Bioma carregado ✅');
+  log('BIOMA carregado ✅');
 }
 
 export function setBiomaVisible(visible) {
@@ -199,14 +199,14 @@ function inferBiomaByUF(gleba) {
   };
   return ufBioma[detectarUF(gleba)] ?? 'Caatinga';
 }
-
+//Status do Bioma na barra inferior
 function updateBiomaStatus(status) {
   const el = document.getElementById('biomaStatus');
   if (!el) return;
   const m = {
-    loading: { cls: 'text-warning', icon: 'spinner-border spinner-border-sm', txt: 'Bioma...' },
-    ok: { cls: 'text-success', icon: 'bi bi-tree-fill', txt: 'Bioma' },
-    error: { cls: 'text-warning', icon: 'bi bi-exclamation-triangle-fill', txt: 'Bioma OFF' },
+    loading: { cls: 'text-warning', icon: 'spinner-border spinner-border-sm', txt: 'BIOMA...' },
+    ok: { cls: 'text-success', icon: 'bi bi-tree-fill', txt: 'BIOMA' },
+    error: { cls: 'text-warning', icon: 'bi bi-exclamation-triangle-fill', txt: 'BIOMA OFF' },
   };
   const s = m[status] ?? m.loading;
   const iconHtml = status === 'loading'

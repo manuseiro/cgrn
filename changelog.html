@@ -4,231 +4,324 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Changelog - CGRN</title>
+  <title>Changelog - GlebasNord</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="css/style.css">
   <style>
+    html,
     body {
+      height: 100%;
+      margin: 0;
+    }
+
+    .main-wrapper {
+      min-height: 100vh;
       background-color: var(--bs-body-bg);
     }
 
+    .main-container {
+      height: calc(100vh - 85px);
+      overflow-y: auto;
+      scroll-behavior: smooth;
+      padding-bottom: 3rem;
+    }
+
     .timeline {
-      border-left: 2px solid var(--bs-primary);
-      margin-left: 20px;
-      padding-left: 20px;
+      max-width: 920px;
+      margin: 0 auto;
+      border-left: 3px solid var(--bs-primary);
+      padding-left: 2.5rem;
       position: relative;
     }
 
     .timeline-item {
       position: relative;
-      margin-bottom: 40px;
+      margin-bottom: 3rem;
     }
 
     .timeline-item::before {
       content: '';
       position: absolute;
-      left: -31px;
-      top: 0;
-      width: 20px;
-      height: 20px;
+      left: -33px;
+      top: 8px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       background: var(--bs-primary);
       border: 4px solid var(--bs-body-bg);
-    }
-
-    .timeline-item.future::before {
-      background: var(--bs-secondary);
+      box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.2);
     }
 
     .version-badge {
       font-family: monospace;
-      font-weight: bold;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .card {
+      border: none;
+      border-radius: 16px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+      transition: transform 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
     }
   </style>
 </head>
 
 <body>
-  <div class="container py-4" style="max-width: 800px;">
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm mb-5 rounded-4 px-3">
-      <a class="navbar-brand d-flex align-items-center gap-2" href="index.html">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-        <span class="fw-bold">GlebasNord</span>
-      </a>
-      <div class="ms-auto">
-        <a href="index.html" class="btn btn-outline-light btn-sm">
-          <i class="bi bi-arrow-left me-1"></i>Voltar
+  <div class="main-wrapper">
+    <div class="container-fluid px-4 py-3">
+      <!-- Navbar consistente -->
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm mb-4 rounded-4 px-3">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+          <span class="fw-bold fs-4">GlebasNord</span>
         </a>
-      </div>
-    </nav>
-
-    <div class="mb-5">
-      <h1 class="fw-bold mb-2">Notas de Lançamento</h1>
-      <p class="text-muted">Acompanhe a evolução do sistema e as melhorias em análise espacial.</p>
-    </div>
-
-    <div class="timeline">
-      <!-- Versão 3.6.7 -->
-      <div class="timeline-item">
-        <div class="d-flex align-items-center gap-2 mb-2">
-          <span class="badge bg-success version-badge">v3.6.7</span>
-          <span class="text-muted small">09/05/2026 (Atual)</span>
+        <div class="ms-auto">
+          <a href="/" class="btn btn-outline-light btn-sm px-3">
+            <i class="bi bi-arrow-left me-2"></i>Voltar ao App
+          </a>
         </div>
-        <div class="card border-0 shadow-sm rounded-4">
-          <div class="card-body p-4">
-            <h5 class="fw-bold mb-3 text-primary">Estabilização SICOR e Resiliência de Dados</h5>
-            <ul class="mb-0 small">
-              <li><strong>Correção Crítica SICOR:</strong> Reconstrução completa do parser WKT para os microdados do Banco Central (BCB), eliminando falhas de processamento e garantindo a detecção precisa de glebas já financiadas.</li>
-              <li><strong>Detecção Dinâmica de Colunas:</strong> Identificação automática das colunas de referência e geometria no CSV do SICOR, tornando o sistema resiliente a mudanças no formato dos arquivos governamentais.</li>
-              <li><strong>Lógica de Fallback de Ano:</strong> Implementação de tentativa automática do ano corrente e anterior para download dos dados SICOR, garantindo disponibilidade contínua.</li>
-              <li><strong>Feedback de Carregamento:</strong> Novos indicadores visuais na barra de status para monitorar o progresso do download de datasets pesados (SICOR, IBAMA, etc.).</li>
-              <li><strong>Performance Otimizada:</strong> Padrão <em>Singleton Promise</em> para evitar bloqueios na interface durante o carregamento de bases espaciais.</li>
-              <li><strong>Segurança:</strong> Whitelist do proxy PHP atualizada para suportar novos domínios confiáveis.</li>
-            </ul>
+      </nav>
+
+      <div class="main-container">
+        <div class="text-center mb-5">
+          <h1 class="fw-bold display-5">Notas de Lançamento</h1>
+          <p class="lead text-muted">Histórico completo de evolução do GlebasNord</p>
+        </div>
+
+        <div class="timeline">
+          <!-- Versão 3.6.8 -->
+          <div class="timeline-item">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-success version-badge">v3.6.8</span>
+              <span class="text-muted small">09/05/2026 (Atual)</span>
+            </div>
+            <div class="card border-0 shadow-sm rounded-4">
+              <div class="card-body p-4">
+                <h5 class="fw-bold mb-3 text-primary">Segurança e Auditoria Técnica</h5>
+                <ul class="mb-0 small">
+                  <li><strong>Reforço no Proxy PHP:</strong> Implementação de Rate Limiting, mitigação de SSRF
+                    (MAXREDIRS/Protocols) e sanitização de headers para prevenir CRLF injection.</li>
+                  <li><strong>Integridade do Cache:</strong> Correção no sistema de cache para garantir que alertas de
+                    sobreposição e geometrias de interseção não sejam perdidos.</li>
+                  <li><strong>Evolução do SICOR:</strong> Novo suporte a MultiPolygons em WKT e otimização de
+                    performance
+                    usando filtros de Bounding Box nativos.</li>
+                  <li><strong>Prevenção de XSS:</strong> Sanitização automática do nome do projeto via
+                    <code>escapeHtml</code> antes da persistência.
+                  </li>
+                  <li><strong>Regras de Negócio:</strong> Alinhamento do limite de área máxima (50.000 ha) e validação
+                    bloqueante de dimensões na origem.</li>
+                  <li><strong>Proteção de Cache:</strong> Inclusão de <code>.htaccess</code> para impedir acesso direto
+                    ao
+                    diretório de cache do servidor.</li>
+                </ul>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Versão 3.6.6 -->
-      <div class="timeline-item">
-        <div class="d-flex align-items-center gap-2 mb-2">
-          <span class="badge bg-secondary version-badge">v3.6.6</span>
-          <span class="text-muted small">09/05/2026</span>
-        </div>
-        <div class="card border-0 shadow-sm rounded-4">
-          <div class="card-body p-4">
-            <h5 class="fw-bold mb-3 text-primary">Máscara Inteligente e Expansão Territorial</h5>
-            <ul class="mb-0 small">
-              <li><strong>Máscara de Entrada CAR:</strong> Implementação de máscara automática e busca inteligente (debounce) no campo de consulta do SICAR.</li>
-              <li><strong>Regex Alfanumérico:</strong> Ampliação do padrão de validação do CAR para aceitar identificadores alfanuméricos completos conforme padrão nacional.</li>
-              <li><strong>Expansão de Escopo:</strong> Inclusão dos estados de Minas Gerais (MG) e Espírito Santo (ES) no escopo de análise do Nordeste/SUDENE.</li>
-              <li><strong>SICOR Dinâmico:</strong> Atualização automática da URL de microdados do Banco Central para o ano corrente (${new Date().getFullYear()}).</li>
-              <li><strong>Refinamento de UI:</strong> Melhorias visuais na barra de progresso da busca e estabilidade nos logs de inicialização.</li>
-            </ul>
+          <!-- Versão 3.6.7 -->
+          <div class="timeline-item">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-secondary version-badge">v3.6.7</span>
+              <span class="text-muted small">09/05/2026</span>
+            </div>
+            <div class="card border-0 shadow-sm rounded-4">
+              <div class="card-body p-4">
+                <h5 class="fw-bold mb-3 text-primary">Estabilização SICOR e Resiliência de Dados</h5>
+                <ul class="mb-0 small">
+                  <li><strong>Correção Crítica SICOR:</strong> Reconstrução completa do parser WKT para os microdados do
+                    Banco Central (BCB), eliminando falhas de processamento e garantindo a detecção precisa de glebas já
+                    financiadas.</li>
+                  <li><strong>Detecção Dinâmica de Colunas:</strong> Identificação automática das colunas de referência
+                    e
+                    geometria no CSV do SICOR, tornando o sistema resiliente a mudanças no formato dos arquivos
+                    governamentais.</li>
+                  <li><strong>Lógica de Fallback de Ano:</strong> Implementação de tentativa automática do ano corrente
+                    e
+                    anterior para download dos dados SICOR, garantindo disponibilidade contínua.</li>
+                  <li><strong>Feedback de Carregamento:</strong> Novos indicadores visuais na barra de status para
+                    monitorar
+                    o progresso do download de datasets pesados (SICOR, IBAMA, etc.).</li>
+                  <li><strong>Performance Otimizada:</strong> Padrão <em>Singleton Promise</em> para evitar bloqueios na
+                    interface durante o carregamento de bases espaciais.</li>
+                  <li><strong>Segurança:</strong> Whitelist do proxy PHP atualizada para suportar novos domínios
+                    confiáveis.
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Versão 3.6.5 -->
-      <div class="timeline-item">
-        <div class="d-flex align-items-center gap-2 mb-2">
-          <span class="badge bg-secondary version-badge">v3.6.5</span>
-          <span class="text-muted small">08/05/2026</span>
-        </div>
-        <div class="card border-0 shadow-sm rounded-4">
-          <div class="card-body p-4">
-            <h5 class="fw-bold mb-3 text-primary">Correções de Auditoria e UX</h5>
-            <ul class="mb-0 small">
-              <li><strong>Refinamento de UX:</strong> Unificação da lógica de máscara do CAR e busca automática ao completar o código.</li>
-              <li><strong>Correção de Regex:</strong> Identificador do CAR agora aceita caracteres alfanuméricos completos (A-Z, 0-9) conforme padrão do SICAR.</li>
-              <li><strong>Consistência de Versão:</strong> Padronização da versão v3.6.5 em todos os logs, cabeçalhos e interface.</li>
-              <li><strong>Estabilidade do SICAR:</strong> Substituição de INTERSECTS por BBOX para evitar truncamento de URL em consultas complexas.</li>
-            </ul>
+          <!-- Versão 3.6.6 -->
+          <div class="timeline-item">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-secondary version-badge">v3.6.6</span>
+              <span class="text-muted small">09/05/2026</span>
+            </div>
+            <div class="card border-0 shadow-sm rounded-4">
+              <div class="card-body p-4">
+                <h5 class="fw-bold mb-3 text-primary">Máscara Inteligente e Expansão Territorial</h5>
+                <ul class="mb-0 small">
+                  <li><strong>Máscara de Entrada CAR:</strong> Implementação de máscara automática e busca inteligente
+                    (debounce) no campo de consulta do SICAR.</li>
+                  <li><strong>Regex Alfanumérico:</strong> Ampliação do padrão de validação do CAR para aceitar
+                    identificadores alfanuméricos completos conforme padrão nacional.</li>
+                  <li><strong>Expansão de Escopo:</strong> Inclusão dos estados de Minas Gerais (MG) e Espírito Santo
+                    (ES)
+                    no escopo de análise do Nordeste/SUDENE.</li>
+                  <li><strong>SICOR Dinâmico:</strong> Atualização automática da URL de microdados do Banco Central para
+                    o ano corrente</li>
+                  <li><strong>Refinamento de UI:</strong> Melhorias visuais na barra de progresso da busca e
+                    estabilidade
+                    nos logs de inicialização.</li>
+                </ul>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Versão 3.6.4 -->
-      <div class="timeline-item">
-        <div class="d-flex align-items-center gap-2 mb-2">
-          <span class="badge bg-secondary version-badge">v3.6.4</span>
-          <span class="text-muted small">07/05/2026</span>
-        </div>
-        <div class="card border-0 shadow-sm rounded-4">
-          <div class="card-body p-4">
-            <h5 class="fw-bold mb-3 text-primary">Integração BCB SICOR e Novo Módulo de Biomas</h5>
-            <ul class="mb-0 small">
-              <li><strong>Integração BCB SICOR:</strong> Validação cruzada com microdados de glebas WKT do Banco Central para detecção de duplicidade em operações de crédito rural.</li>
-              <li><strong>Novo Serviço de Biomas:</strong> Módulo <code>bioma.js</code> dedicado com 4 estratégias de detecção e filtragem WFS otimizada para o Nordeste.</li>
-              <li><strong>Análise de CAR Avançada:</strong> Painel de cobertura detalhado com barras de progresso, melhor match individual e alertas de área descoberta.</li>
-              <li><strong>Popups Enriquecidos:</strong> Novos campos em IBAMA (Processo, Infração) e ICMBio (CNUC, Ano, Biomas, Demarcação).</li>
-              <li><strong>Estabilidade Técnica:</strong> Correção de SyntaxError em <code>camadas_externas.js</code> e ReferenceError em <code>main.js</code>.</li>
-              <li><strong>Proxy PHP v2:</strong> Suporte a descompressão manual GZIP (essencial para dados do BCB) e segurança aprimorada.</li>
-            </ul>
+          <!-- Versão 3.6.5 -->
+          <div class="timeline-item">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-secondary version-badge">v3.6.5</span>
+              <span class="text-muted small">08/05/2026</span>
+            </div>
+            <div class="card border-0 shadow-sm rounded-4">
+              <div class="card-body p-4">
+                <h5 class="fw-bold mb-3 text-primary">Correções de Auditoria e UX</h5>
+                <ul class="mb-0 small">
+                  <li><strong>Refinamento de UX:</strong> Unificação da lógica de máscara do CAR e busca automática ao
+                    completar o código.</li>
+                  <li><strong>Correção de Regex:</strong> Identificador do CAR agora aceita caracteres alfanuméricos
+                    completos (A-Z, 0-9) conforme padrão do SICAR.</li>
+                  <li><strong>Consistência de Versão:</strong> Padronização da versão v3.6.5 em todos os logs,
+                    cabeçalhos e
+                    interface.</li>
+                  <li><strong>Estabilidade do SICAR:</strong> Substituição de INTERSECTS por BBOX para evitar
+                    truncamento de
+                    URL em consultas complexas.</li>
+                </ul>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Versão 3.6.0 -->
-      <div class="timeline-item">
-        <div class="d-flex align-items-center gap-2 mb-2">
-          <span class="badge bg-secondary version-badge">v3.6.0</span>
-          <span class="text-muted small">05/05/2026</span>
-        </div>
-        <div class="card border-0 shadow-sm rounded-4">
-          <div class="card-body p-4">
-            <h5 class="fw-bold mb-3 text-primary">Refatoração de Busca e Robustez CAR</h5>
-            <ul class="mb-0 small">
-              <li><strong>Refatoração Spatial:</strong> Lógica de MultiPolygon movida para
-                <code>spatial_analysis.js</code> com tratamento de erros topológicos.
-              </li>
-              <li><strong>Busca Inteligente CAR:</strong> Suporte a múltiplos formatos de código e detecção automática
-                de UF via Regex.</li>
-              <li><strong>Otimização de Performance:</strong> Debounce na busca CAR e cache alfanumérico por código de
-                imóvel.</li>
-              <li><strong>Interface Moderna:</strong> Renovação visual das páginas de Documentação e Changelog.</li>
-              <li><strong>UI Improvements:</strong> Novo botão para limpar cache do SICAR e feedback visual aprimorado
-                em processamentos longos.</li>
-            </ul>
+          <!-- Versão 3.6.4 -->
+          <div class="timeline-item">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-secondary version-badge">v3.6.4</span>
+              <span class="text-muted small">07/05/2026</span>
+            </div>
+            <div class="card border-0 shadow-sm rounded-4">
+              <div class="card-body p-4">
+                <h5 class="fw-bold mb-3 text-primary">Integração BCB SICOR e Novo Módulo de Biomas</h5>
+                <ul class="mb-0 small">
+                  <li><strong>Integração BCB SICOR:</strong> Validação cruzada com microdados de glebas WKT do Banco
+                    Central
+                    para detecção de duplicidade em operações de crédito rural.</li>
+                  <li><strong>Novo Serviço de Biomas:</strong> Módulo <code>bioma.js</code> dedicado com 4 estratégias
+                    de
+                    detecção e filtragem WFS otimizada para o Nordeste.</li>
+                  <li><strong>Análise de CAR Avançada:</strong> Painel de cobertura detalhado com barras de progresso,
+                    melhor match individual e alertas de área descoberta.</li>
+                  <li><strong>Popups Enriquecidos:</strong> Novos campos em IBAMA (Processo, Infração) e ICMBio (CNUC,
+                    Ano,
+                    Biomas, Demarcação).</li>
+                  <li><strong>Estabilidade Técnica:</strong> Correção de SyntaxError em <code>camadas_externas.js</code>
+                    e
+                    ReferenceError em <code>main.js</code>.</li>
+                  <li><strong>Proxy PHP v2:</strong> Suporte a descompressão manual GZIP (essencial para dados do BCB) e
+                    segurança aprimorada.</li>
+                </ul>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-      <!-- Versão 3.5.1 -->
-      <div class="timeline-item">
-        <div class="d-flex align-items-center gap-2 mb-2">
-          <span class="badge bg-secondary version-badge">v3.5.1</span>
-          <span class="text-muted small">02/05/2026</span>
-        </div>
-        <div class="card border-0 shadow-sm rounded-4">
-          <div class="card-body p-4">
-            <h5 class="fw-bold mb-3 text-primary">Refatoração de Busca e Robustez CAR</h5>
-            <ul class="mb-0 small">
-              <li><strong>Refatoração Spatial:</strong> Lógica de MultiPolygon movida para
-                <code>spatial_analysis.js</code> com tratamento de erros topológicos.
-              </li>
-              <li><strong>Busca Inteligente CAR:</strong> Suporte a múltiplos formatos de código e detecção automática
-                de UF via Regex.</li>
-              <li><strong>Otimização de Performance:</strong> Debounce na busca CAR e cache alfanumérico por código de
-                imóvel.</li>
-              <li><strong>Interface Moderna:</strong> Renovação visual das páginas de Documentação e Changelog.</li>
-              <li><strong>UI Improvements:</strong> Novo botão para limpar cache do SICAR e feedback visual aprimorado
-                em processamentos longos.</li>
-            </ul>
+
+          <!-- Versão 3.6.0 -->
+          <div class="timeline-item">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-secondary version-badge">v3.6.0</span>
+              <span class="text-muted small">05/05/2026</span>
+            </div>
+            <div class="card border-0 shadow-sm rounded-4">
+              <div class="card-body p-4">
+                <h5 class="fw-bold mb-3 text-primary">Refatoração de Busca e Robustez CAR</h5>
+                <ul class="mb-0 small">
+                  <li><strong>Refatoração Spatial:</strong> Lógica de MultiPolygon movida para
+                    <code>spatial_analysis.js</code> com tratamento de erros topológicos.
+                  </li>
+                  <li><strong>Busca Inteligente CAR:</strong> Suporte a múltiplos formatos de código e detecção
+                    automática
+                    de UF via Regex.</li>
+                  <li><strong>Otimização de Performance:</strong> Debounce na busca CAR e cache alfanumérico por código
+                    de
+                    imóvel.</li>
+                  <li><strong>Interface Moderna:</strong> Renovação visual das páginas de Documentação e Changelog.</li>
+                  <li><strong>UI Improvements:</strong> Novo botão para limpar cache do SICAR e feedback visual
+                    aprimorado
+                    em processamentos longos.</li>
+                </ul>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Versão 3.5.0 -->
-      <div class="timeline-item">
-        <div class="d-flex align-items-center gap-2 mb-2">
-          <span class="badge bg-primary version-badge">v3.5.0</span>
-          <span class="text-muted small">30/04/2026</span>
-        </div>
-        <div class="card border-0 shadow-sm rounded-4">
-          <div class="card-body p-4">
-            <h5 class="fw-bold mb-3">Módulo de Conformidade BACEN</h5>
-            <ul class="mb-0 small">
-              <li>Lançamento oficial da verificação automática BACEN/SICOR.</li>
-              <li>Integração com bases ICMBio, IBAMA e FUNAI via GeoServer.</li>
-              <li>Cálculo de sobreposição percentual em tempo real.</li>
-            </ul>
+          <!-- Versão 3.5.1 -->
+          <div class="timeline-item">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-secondary version-badge">v3.5.1</span>
+              <span class="text-muted small">02/05/2026</span>
+            </div>
+            <div class="card border-0 shadow-sm rounded-4">
+              <div class="card-body p-4">
+                <h5 class="fw-bold mb-3 text-primary">Refatoração de Busca e Robustez CAR</h5>
+                <ul class="mb-0 small">
+                  <li><strong>Refatoração Spatial:</strong> Lógica de MultiPolygon movida para
+                    <code>spatial_analysis.js</code> com tratamento de erros topológicos.
+                  </li>
+                  <li><strong>Busca Inteligente CAR:</strong> Suporte a múltiplos formatos de código e detecção
+                    automática
+                    de UF via Regex.</li>
+                  <li><strong>Otimização de Performance:</strong> Debounce na busca CAR e cache alfanumérico por código
+                    de
+                    imóvel.</li>
+                  <li><strong>Interface Moderna:</strong> Renovação visual das páginas de Documentação e Changelog.</li>
+                  <li><strong>UI Improvements:</strong> Novo botão para limpar cache do SICAR e feedback visual
+                    aprimorado
+                    em processamentos longos.</li>
+                </ul>
+              </div>
+            </div>
           </div>
+
+          <!-- Versão 3.5.0 -->
+          <div class="timeline-item">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-primary version-badge">v3.5.0</span>
+              <span class="text-muted small">30/04/2026</span>
+            </div>
+            <div class="card border-0 shadow-sm rounded-4">
+              <div class="card-body p-4">
+                <h5 class="fw-bold mb-3">Módulo de Conformidade BACEN</h5>
+                <ul class="mb-0 small">
+                  <li>Lançamento oficial da verificação automática BACEN/SICOR.</li>
+                  <li>Integração com bases ICMBio, IBAMA e FUNAI via GeoServer.</li>
+                  <li>Cálculo de sobreposição percentual em tempo real.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
-    </div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    if (localStorage.getItem('cgrn_theme') === 'dark') {
-      document.documentElement.setAttribute('data-bs-theme', 'dark');
-    }
-  </script>
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+      <script>
+        if (localStorage.getItem('cgrn_theme') === 'dark') {
+          document.documentElement.setAttribute('data-bs-theme', 'dark');
+        }
+      </script>
 </body>
 
 </html>

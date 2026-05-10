@@ -202,6 +202,15 @@ function validateSingleGleba(glebaId, points, validarPontos, allWarnings) {
   let area, centroid, perimeter;
   try {
     area = turf.area(poly) / 10000;
+
+    // M2: Validação de área mínima/máxima imediata
+    if (area < CONFIG.VALIDATION.AREA_MIN_HA || area > CONFIG.VALIDATION.AREA_MAX_HA) {
+      return { 
+        errors: [`Gleba ${glebaId}: área ${area.toFixed(2)} ha fora dos limites (${CONFIG.VALIDATION.AREA_MIN_HA} a ${CONFIG.VALIDATION.AREA_MAX_HA} ha).`], 
+        glebaData: null 
+      };
+    }
+
     centroid = turf.centroid(poly).geometry.coordinates;
     perimeter = turf.length(turf.polygonToLine(poly), { units: 'meters' });
   } catch (e) {
@@ -298,14 +307,16 @@ export function validateCoordinates(rawText, { validarPontos = true } = {}) {
   }
 
   // Cache hit
-  const cacheKey = `${djb2(text)}_${validarPontos ? '1' : '0'}`;
+  const cacheKey = `${text.slice(0, 200)}_${validarPontos ? '1' : '0'}`;
   if (state.cache.has(cacheKey)) {
     log('Cache hit:', cacheKey);
+    const cached = state.cache.get(cacheKey);
     return {
       valid: true,
       errors: [],
-      warnings: [],
-      data: state.cache.get(cacheKey),
+      warnings: cached.warnings || [],
+      data: cached.data,
+      overlapFeatures: cached.overlapFeatures || [],
       fromCache: true
     };
   }
@@ -364,7 +375,18 @@ export function validateCoordinates(rawText, { validarPontos = true } = {}) {
 
   // Sucesso
   allData.sort((a, b) => a.glebaId - b.glebaId);
-  state.cache.set(cacheKey, allData);
+  
+  // Limita o cache a 20 itens (M3)
+  if (state.cache.size >= 20) {
+    const firstKey = state.cache.keys().next().value;
+    state.cache.delete(firstKey);
+  }
+  
+  state.cache.set(cacheKey, { 
+    data: allData, 
+    warnings: allWarnings, 
+    overlapFeatures 
+  });
 
   return {
     valid: true,

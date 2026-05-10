@@ -1,5 +1,5 @@
 /**
- * @file main.js — v3.6.7
+ * @file main.js — v3.6.8
  * @description Orquestrador principal da aplicação CGRN.
  *
  */
@@ -52,7 +52,7 @@ const { COORD_PRECISION } = CONFIG.VALIDATION;
 // ─── Boot ─────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
-  log('CGRN v3.6.6 inicializando...');
+  log('CGRN v3.6.8 inicializando...');
   modals.init();
   initMap();
   bindEvents();

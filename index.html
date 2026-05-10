@@ -24,10 +24,10 @@
     <div class="container-fluid px-3">
 
       <a class="navbar-brand d-flex align-items-center gap-2" href="./">
-        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <!--  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
           <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5" />
           <circle cx="12" cy="12" r="3" />
-        </svg>
+        </svg>-->
         <span class="fw-bold">GlebasNord</span>
         <!-- <span class="text-secondary fw-normal fs-6 d-none d-lg-inline ms-1">Glebas Nord</span> -->
       </a>
@@ -211,14 +211,15 @@
       <span class="status-divider"></span>
       <span id="statusArea" class="status-item">—</span>
       <span class="status-divider d-none d-md-inline-block"></span>
-      <span class="status-item d-none d-md-inline text-muted opacity-50">CGRN v3.6.6 • SIRGAS 2000</span>
+      <span class="status-item d-none d-md-inline text-muted opacity-50">CGRN v3.6.8 • SIRGAS 2000</span>
     </div>
 
     <div class="ms-auto d-flex align-items-center gap-3">
-      <!-- Adicionar ao grupo de status de camadas -->
-      <span id="sicorStatus" class="status-item small text-secondary">
+      <!-- Adicionar ao grupo de status de camadas 
+      <span id="sicorStatus" class="status-item small text-secondary"
+        title="Camada de Validação de Glebas Já contratadas junto ao BACEN/SICOR">
         <i class="bi bi-hourglass-split"></i> SICOR
-      </span>
+      </span>-->
       <span id="biomaStatus" class="status-item small text-secondary">
         <i class="bi bi-hourglass-split"></i> BIOMAS
       </span>
@@ -305,12 +306,13 @@
               <textarea id="coordenadas" class="form-control font-monospace coord-area rounded-3 border-2" rows="8"
                 placeholder="Exemplo:&#10;1 1 -6.2410 -38.9140&#10;1 2 -6.2410 -38.8980&#10;1 3 -6.2270 -38.8980&#10;1 4 -6.2270 -38.9140&#10;1 5 -6.2410 -38.9140"
                 spellcheck="false" autocorrect="off" autocapitalize="off" style="font-size: 0.9rem"></textarea>
+              <!--  Habilitar Somente em Ambiente de Desenvolvimento/Teste
               <div class="d-flex align-items-center gap-2 mt-3 flex-wrap">
                 <button id="inserirExemplo" class="btn btn-outline-secondary btn-sm px-3 ">
                   <i class="bi bi-lightbulb me-1"></i>Exemplo (Orós/CE)
                 </button>
                 <small class="text-muted border-start ps-2">lat [−18,−1] | lon [−48,−34]</small>
-              </div>
+              </div>-->
             </div>
 
             <!-- Tab Upload -->
@@ -327,7 +329,8 @@
               <div class="mt-4 grid-help rounded-3 p-3 bg-body-tertiary">
                 <div class="row g-3">
                   <div class="col-md-6">
-                    <h6 class="small fw-bold text-uppercase mb-2"><i class="bi bi-file-earmark-zip me-1"></i> SIG / SHP
+                    <h6 class="small fw-bold text-uppercase mb-2"><i class="bi bi-file-earmark-zip me-1"></i> SIG /
+                      SHP
                     </h6>
                     <p class="small text-muted mb-0">Envie um ZIP contendo os arquivos .shp e .dbf (obrigatórios).</p>
                   </div>
@@ -609,7 +612,7 @@
               <circle cx="12" cy="12" r="3" />
             </svg>
             <h5 class="fw-bold mt-3 mb-1">GlebasNord <span class="badge bg-primary ms-1"
-                style="font-size: 0.6rem">v3.6.6</span></h5>
+                style="font-size: 0.6rem">v3.6.8</span></h5>
             <p class="text-muted small">Cálculo e análise de glebas rurais no Nordeste</p>
           </div>
 
@@ -626,7 +629,8 @@
                 (SUDENE 2021)</div>
               <div class="d-flex align-items-center gap-2"><i class="bi bi-check-circle text-success"></i> Cadastro
                 Ambiental Rural (CAR)</div>
-              <div class="d-flex align-items-center gap-2"><i class="bi bi-check-circle text-success"></i> Biomas (IBGE)
+              <div class="d-flex align-items-center gap-2"><i class="bi bi-check-circle text-success"></i> Biomas
+                (IBGE)
               </div>
             </div>
           </div>

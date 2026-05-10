@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auditoria de Código — manuseiro/cgrn</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
+
+    :root {
+      --bg: #0d0f14;
+      --surface: #13161d;
+      --border: #1e2330;
+      --accent: #e8ff5a;
+      --danger: #ff4d6d;
+      --warn: #ffbe0b;
+      --ok: #06d6a0;
+      --info: #4cc9f0;
+      --muted: #5a6275;
+      --text: #dce4f0;
+      --code-bg: #0a0c10;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      padding: 0 0 80px;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #0a0c10 0%, #12151f 60%, #1a1f2e 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 48px 40px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      top: -80px;
+      right: -80px;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(232, 255, 90, 0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .header-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: clamp(24px, 4vw, 38px);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+
+    h1 span {
+      color: var(--accent);
+    }
+
+    .header-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+
+    /* ── Score bar ── */
+    .score-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px 32px;
+      margin: 36px 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 20px;
+    }
+
+    .score-item {
+      text-align: center;
+    }
+
+    .score-num {
+      font-size: 36px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .score-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .c-danger {
+      color: var(--danger);
+    }
+
+    .c-warn {
+      color: var(--warn);
+    }
+
+    .c-ok {
+      color: var(--ok);
+    }
+
+    .c-info {
+      color: var(--info);
+    }
+
+    /* ── Section headings ── */
+    .section {
+      margin: 44px 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .section h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+
+    .section-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-left: auto;
+    }
+
+    /* ── Finding cards ── */
+    .finding {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 22px;
+      margin-bottom: 12px;
+      border-left: 3px solid transparent;
+      transition: border-color 0.2s;
+    }
+
+    .finding:hover {
+      border-left-color: var(--muted);
+    }
+
+    .finding.critical {
+      border-left-color: var(--danger);
+    }
+
+    .finding.warning {
+      border-left-color: var(--warn);
+    }
+
+    .finding.info {
+      border-left-color: var(--info);
+    }
+
+    .finding.ok {
+      border-left-color: var(--ok);
+    }
+
+    .finding-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .finding-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .badge-critical {
+      background: rgba(255, 77, 109, 0.18);
+      color: var(--danger);
+    }
+
+    .badge-warning {
+      background: rgba(255, 190, 11, 0.15);
+      color: var(--warn);
+    }
+
+    .badge-info {
+      background: rgba(76, 201, 240, 0.12);
+      color: var(--info);
+    }
+
+    .badge-ok {
+      background: rgba(6, 214, 160, 0.12);
+      color: var(--ok);
+    }
+
+    .finding-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #e8ecf4;
+      line-height: 1.3;
+    }
+
+    .finding-file {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .finding-desc {
+      font-size: 13.5px;
+      color: #b0bcd0;
+      line-height: 1.65;
+      margin-bottom: 12px;
+    }
+
+    /* ── Code blocks ── */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid #1a1e28;
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      overflow-x: auto;
+      color: #8fa4c8;
+      margin: 8px 0;
+      white-space: pre;
+    }
+
+    pre .hi-bad {
+      color: #ff6b8a;
+    }
+
+    pre .hi-good {
+      color: #a8ff78;
+    }
+
+    pre .hi-warn {
+      color: #ffda79;
+    }
+
+    pre .hi-comment {
+      color: #4a5568;
+    }
+
+    pre .hi-key {
+      color: #c792ea;
+    }
+
+    pre .hi-str {
+      color: #c3e88d;
+    }
+
+    .fix-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 12px;
+      margin-bottom: 4px;
+      color: var(--ok);
+    }
+
+    .fix-label.before {
+      color: var(--danger);
+    }
+
+    /* ── Summary table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    }
+
+    th {
+      background: #0e1018;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 10px 14px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* ── Divider ── */
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 32px 0;
+    }
+
+    /* ── Highlight boxes ── */
+    .callout {
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 12px 0;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .callout.danger {
+      background: rgba(255, 77, 109, 0.08);
+      border: 1px solid rgba(255, 77, 109, 0.2);
+    }
+
+    .callout.warn {
+      background: rgba(255, 190, 11, 0.07);
+      border: 1px solid rgba(255, 190, 11, 0.2);
+    }
+
+    .callout.ok {
+      background: rgba(6, 214, 160, 0.07);
+      border: 1px solid rgba(6, 214, 160, 0.2);
+    }
+
+    .callout.info {
+      background: rgba(76, 201, 240, 0.07);
+      border: 1px solid rgba(76, 201, 240, 0.2);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .container {
+        padding: 0 16px;
+      }
+
+      header {
+        padding: 32px 20px;
+      }
+
+      .score-bar {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="container">
+      <div class="header-tag">Auditoria de Código — v3.6.0</div>
+      <h1>manuseiro/<span>cgrn</span><br>GlebasNord</h1>
+      <div class="header-meta">
+        <span>📦 JavaScript 72% · HTML 20% · CSS 6% · PHP 2%</span>
+        <span>📅 Auditado em maio/2026</span>
+        <span>🔍 14 findings</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- Score -->
+    <div class="score-bar">
+      <div class="score-item">
+        <div class="score-num c-danger">5</div>
+        <div class="score-label">Falhas de Segurança</div>
+      </div>
+      <div class="score-item">
+        <div class="score-num c-warn">4</div>
+        <div class="score-label">Bugs / Lógica</div>
+      </div>
+      <div class="score-item">
+        <div class="score-num c-info">3</div>
+        <div class="score-label">Código Morto</div>
+      </div>
+      <div class="score-item">
+        <div class="score-num c-ok">6</div>
+        <div class="score-label">Melhorias Sugeridas</div>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <strong>Contexto:</strong> O projeto tem arquitetura bem estruturada, uso correto de ES Modules, bom índice
+      espacial com bbox, fallback para dados locais e lógica de conformidade BACEN/SICOR bem modelada. Os problemas
+      encontrados são pontuais e corrigíveis sem refatoração maior.
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+       SEÇÃO 1: FALHAS DE SEGURANÇA
+  ════════════════════════════════════════════════════════ -->
+    <div class="section">
+      <div class="section-icon" style="background:rgba(255,77,109,0.12)">🔒</div>
+      <h2>Falhas de Segurança</h2>
+      <span class="section-badge" style="background:rgba(255,77,109,0.15);color:var(--danger)">5 encontradas</span>
+    </div>
+
+    <!-- S1 -->
+    <div class="finding critical">
+      <div class="finding-header">
+        <span class="finding-badge badge-critical">CRÍTICO</span>
+        <span class="finding-title">Rate Limiting prometido no README não está implementado</span>
+      </div>
+      <div class="finding-file">api/proxy.php</div>
+      <div class="finding-desc">
+        O README afirma: <em>"Rate limiting: 60 requisições por minuto por sessão"</em>. O código do proxy <strong>não
+          contém nenhuma linha sequer de rate limiting</strong>. Qualquer agente pode fazer requisições ilimitadas,
+        usando o proxy como amplificador contra as APIs governamentais (FUNAI, IBAMA, INPE etc.) ou para gerar tráfego
+        abusivo a partir do seu servidor.
+      </div>
+      <div class="fix-label">✅ Correção sugerida — adicionar no início do proxy.php</div>
+      <pre><span class="hi-comment">// Rate limiting: 60 req/min por IP</span>
+<span class="hi-key">session_start</span>();
+$ip = $_SERVER['REMOTE_ADDR'];
+$key = <span class="hi-str">'rl_'</span> . md5($ip);
+$now = time();
+$window = 60;
+$limit  = 60;
+
+<span class="hi-key">if</span> (!isset($_SESSION[$key])) {
+    $_SESSION[$key] = [<span class="hi-str">'count'</span> => 0, <span class="hi-str">'start'</span> => $now];
+}
+<span class="hi-key">if</span> (($now - $_SESSION[$key][<span class="hi-str">'start'</span>]) > $window) {
+    $_SESSION[$key] = [<span class="hi-str">'count'</span> => 0, <span class="hi-str">'start'</span> => $now];
+}
+$_SESSION[$key][<span class="hi-str">'count'</span>]++;
+<span class="hi-key">if</span> ($_SESSION[$key][<span class="hi-str">'count'</span>] > $limit) {
+    http_response_code(429);
+    header(<span class="hi-str">'Retry-After: 60'</span>);
+    echo json_encode([<span class="hi-str">'error'</span> => <span class="hi-str">'Rate limit excedido. Tente em 1 minuto.'</span>]);
+    exit;
+}</pre>
+    </div>
+
+    <!-- S2 -->
+    <div class="finding critical">
+      <div class="finding-header">
+        <span class="finding-badge badge-critical">CRÍTICO</span>
+        <span class="finding-title">Header Injection via Content-Type não sanitizado</span>
+      </div>
+      <div class="finding-file">api/proxy.php · linha 118</div>
+      <div class="finding-desc">
+        O Content-Type retornado pela API remota é repassado diretamente ao <code>header()</code> sem nenhuma
+        sanitização. Um servidor remoto comprometido (ou que responda com dados inesperados) poderia injetar quebras de
+        linha (<code>\r\n</code>) e adicionar headers HTTP arbitrários na resposta — técnica conhecida como <em>HTTP
+          Response Splitting</em>.
+      </div>
+      <div class="fix-label before">❌ Código atual</div>
+      <pre><span class="hi-bad">header("Content-Type: $contentType");</span></pre>
+      <div class="fix-label">✅ Correção</div>
+      <pre><span class="hi-comment">// Remove qualquer caractere de controle (CRLF injection)</span>
+$safeContentType = preg_replace(<span class="hi-str">'/[\r\n]/'</span>, <span class="hi-str">''</span>, $contentType);
+<span class="hi-good">header("Content-Type: $safeContentType");</span></pre>
+    </div>
+
+    <!-- S3 -->
+    <div class="finding critical">
+      <div class="finding-header">
+        <span class="finding-badge badge-critical">ALTO</span>
+        <span class="finding-title">SSRF via redirecionamentos ilimitados (FOLLOWLOCATION sem MAXREDIRS)</span>
+      </div>
+      <div class="finding-file">api/proxy.php · linha 87</div>
+      <div class="finding-desc">
+        <code>CURLOPT_FOLLOWLOCATION = true</code> sem <code>CURLOPT_MAXREDIRS</code> permite redirecionamentos em
+        cadeia potencialmente infinitos. Se uma API autorizada redirecionar para um host interno (e.g.,
+        <code>http://169.254.169.254/</code> — AWS metadata), ou para um protocolo diferente como <code>file://</code>,
+        o cURL seguirá sem restrição. Isso abre vetor de SSRF (Server-Side Request Forgery).
+      </div>
+      <div class="fix-label before">❌ Código atual</div>
+      <pre><span class="hi-bad">curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);</span></pre>
+      <div class="fix-label">✅ Correção</div>
+      <pre><span class="hi-good">curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+curl_setopt($ch, CURLOPT_MAXREDIRS, 3);
+curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
+curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS);</span> <span class="hi-comment">// Só HTTPS em redirect</span></pre>
+    </div>
+
+    <!-- S4 -->
+    <div class="finding warning">
+      <div class="finding-header">
+        <span class="finding-badge badge-warning">MÉDIO</span>
+        <span class="finding-title">XSS Stored: <code>project.name</code> inserido em innerHTML sem escape</span>
+      </div>
+      <div class="finding-file">js/services/persistence.js · linhas 37, 72, 115</div>
+      <div class="finding-desc">
+        O nome do projeto digitado pelo usuário é salvo no <code>localStorage</code> e depois injetado diretamente em
+        innerHTML em múltiplos pontos. Se um usuário (ou arquivo <code>.cgrn</code> importado de terceiro) contiver um
+        nome como <code>&lt;img src=x onerror=alert(1)&gt;</code>, ele será executado como XSS na próxima carga do
+        projeto.
+      </div>
+      <div class="fix-label before">❌ Código atual (3 ocorrências)</div>
+      <pre><span class="hi-bad">showProjectMessage(`Projeto "&lt;strong&gt;${project.name}&lt;/strong&gt;" salvo`, ...);</span>
+<span class="hi-bad">el.innerHTML = `&lt;div class="fw-semibold"&gt;${project.name}&lt;/div&gt;`;</span></pre>
+      <div class="fix-label">✅ Correção — adicionar função de escape</div>
+      <pre><span class="hi-comment">// Adicionar em ui.js ou utils</span>
+<span class="hi-key">export function</span> escapeHtml(str) {
+  <span class="hi-key">const</span> d = document.createElement(<span class="hi-str">'div'</span>);
+  d.textContent = str;
+  <span class="hi-key">return</span> d.innerHTML;
+}
+
+<span class="hi-comment">// Em persistence.js:</span>
+<span class="hi-good">showProjectMessage(`Projeto "&lt;strong&gt;${escapeHtml(project.name)}&lt;/strong&gt;" salvo`, ...);</span>
+<span class="hi-good">el.innerHTML = `&lt;div class="fw-semibold"&gt;${escapeHtml(project.name)}&lt;/div&gt;`;</span></pre>
+    </div>
+
+    <!-- S5 -->
+    <div class="finding warning">
+      <div class="finding-header">
+        <span class="finding-badge badge-warning">MÉDIO</span>
+        <span class="finding-title"><code>hostingersite.com</code> na whitelist é excessivamente permissivo</span>
+      </div>
+      <div class="finding-file">api/proxy.php · linha 44</div>
+      <div class="finding-desc">
+        A whitelist contém <code>'hostingersite.com'</code> — plataforma de hospedagem compartilhada onde qualquer
+        pessoa pode criar um site. Um atacante poderia hospedar um endpoint nesse domínio e usar seu proxy para fazer
+        requisições a ele, contornando a intenção de restringir apenas APIs governamentais. O mesmo vale para
+        <code>'manuseiro.github.io'</code> se incluído apenas para testes.
+      </div>
+      <div class="fix-label">✅ Recomendação</div>
+      <pre><span class="hi-comment">// Remover da lista ou restringir ao subdomínio exato:</span>
+$allowedDomains = [
+    <span class="hi-str">'car.gov.br'</span>, <span class="hi-str">'geoserver.car.gov.br'</span>,
+    <span class="hi-str">'siscom.ibama.gov.br'</span>, <span class="hi-str">'ibge.gov.br'</span>, <span class="hi-str">'servicodados.ibge.gov.br'</span>,
+    <span class="hi-str">'geoservicos.inde.gov.br'</span>, <span class="hi-str">'geoservicos.ibge.gov.br'</span>,
+    <span class="hi-str">'geoservices.icmbio.gov.br'</span>, <span class="hi-str">'geoserver.funai.gov.br'</span>,
+    <span class="hi-str">'terrabrasilis.dpi.inpe.br'</span>, <span class="hi-str">'olinda.bcb.gov.br'</span>,
+    <span class="hi-hi-bad">// REMOVER: 'hostingersite.com', 'manuseiro.github.io'</span>
+];</pre>
+    </div>
+
+    <hr />
+
+    <!-- ═══════════════════════════════════════════════════════
+       SEÇÃO 2: BUGS E LÓGICA INCORRETA
+  ════════════════════════════════════════════════════════ -->
+    <div class="section">
+      <div class="section-icon" style="background:rgba(255,190,11,0.12)">🐛</div>
+      <h2>Bugs e Lógica Incorreta</h2>
+      <span class="section-badge" style="background:rgba(255,190,11,0.15);color:var(--warn)">4 encontrados</span>
+    </div>
+
+    <!-- B1 -->
+    <div class="finding warning">
+      <div class="finding-header">
+        <span class="finding-badge badge-warning">BUG</span>
+        <span class="finding-title">Cache hit em <code>validateCoordinates</code> retorna dados incompletos</span>
+      </div>
+      <div class="finding-file">js/services/validation.js · linhas 302–310</div>
+      <div class="finding-desc">
+        Quando há cache hit, a função retorna <code>overlapFeatures: undefined</code> e <code>warnings: []</code> (sem
+        os avisos originais). O código que chama a função (em <code>main.js</code>) pode tentar iterar
+        <code>result.overlapFeatures</code> e quebrar silenciosamente. Além disso, os avisos de duplicatas/interseção
+        gerados na primeira validação são perdidos nas chamadas subsequentes com cache.
+      </div>
+      <div class="fix-label before">❌ Código atual</div>
+      <pre><span class="hi-key">if</span> (state.cache.has(cacheKey)) {
+  <span class="hi-key">return</span> {
+    valid: true, errors: [],
+    <span class="hi-bad">warnings: [],            // ← avisos perdidos</span>
+    data: state.cache.get(cacheKey),
+    <span class="hi-bad">fromCache: true          // ← overlapFeatures ausente</span>
+  };
+}</pre>
+      <div class="fix-label">✅ Correção — cachear o resultado completo</div>
+      <pre><span class="hi-comment">// Cachear o resultado inteiro, não só allData</span>
+state.cache.set(cacheKey, { data: allData, warnings: allWarnings, overlapFeatures });
+
+<span class="hi-key">if</span> (state.cache.has(cacheKey)) {
+  <span class="hi-key">const</span> cached = state.cache.get(cacheKey);
+  <span class="hi-good">return { valid: true, errors: [], fromCache: true, ...cached };</span>
+}</pre>
+    </div>
+
+    <!-- B2 -->
+    <div class="finding warning">
+      <div class="finding-header">
+        <span class="finding-badge badge-warning">BUG</span>
+        <span class="finding-title"><code>sicor.js</code>: WKT MultiPolygon parseado como Polygon com múltiplos
+          anéis</span>
+      </div>
+      <div class="finding-file">js/services/sicor.js · função parseWKT()</div>
+      <div class="finding-desc">
+        Quando o WKT é um <code>MULTIPOLYGON</code> com mais de um polígono, o código coleta todos os rings e cria
+        <code>turf.polygon(rings, props)</code>. Para o Turf.js, passar múltiplos rings em <code>turf.polygon()</code>
+        cria um polígono com buracos (holes), não um MultiPolygon. O resultado geométrico é incorreto e pode gerar
+        falsos negativos na verificação de financiamentos SICOR.
+      </div>
+      <div class="fix-label before">❌ Código atual</div>
+      <pre><span class="hi-bad">return turf.polygon(rings, properties); // rings[1+] viram "holes"</span></pre>
+      <div class="fix-label">✅ Correção</div>
+      <pre><span class="hi-key">if</span> (rings.length === 1) {
+  <span class="hi-good">return turf.polygon(rings, properties);</span>
+} <span class="hi-key">else</span> {
+  <span class="hi-comment">// Cada ring é um polígono independente no MultiPolygon</span>
+  <span class="hi-good">return turf.multiPolygon(rings.map(r => [r]), properties);</span>
+}</pre>
+    </div>
+
+    <!-- B3 -->
+    <div class="finding warning">
+      <div class="finding-header">
+        <span class="finding-badge badge-warning">BUG</span>
+        <span class="finding-title">CORS preflight (OPTIONS) não tratado — APIs podem bloquear requisições</span>
+      </div>
+      <div class="finding-file">api/proxy.php</div>
+      <div class="finding-desc">
+        O proxy não responde ao método HTTP <code>OPTIONS</code> (preflight CORS). Em navegadores modernos, qualquer
+        requisição cross-origin com headers customizados ou métodos não-simples dispara um preflight. Sem tratamento do
+        OPTIONS, o proxy retorna erro ou código inesperado, podendo bloquear requisições legítimas em produção onde o
+        CORS é restrito.
+      </div>
+      <div class="fix-label">✅ Correção — adicionar logo após os headers CORS</div>
+      <pre><span class="hi-good">header('Access-Control-Allow-Methods: GET, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, X-Requested-With');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}</span></pre>
+    </div>
+
+    <!-- B4 -->
+    <div class="finding warning">
+      <div class="finding-header">
+        <span class="finding-badge badge-warning">LÓGICA</span>
+        <span class="finding-title">Discrepância entre <code>AREA_MAX_HA</code> no código (15.000 ha) e README (50.000
+          ha)</span>
+      </div>
+      <div class="finding-file">js/utils/config.js · VALIDATION.AREA_MAX_HA</div>
+      <div class="finding-desc">
+        O README documenta limite máximo de <strong>50.000 ha</strong> por gleba. O código em <code>config.js</code> usa
+        <strong>15.000 ha</strong> e <code>conformidade.js</code> usa <code>AREA_MAX_HA</code> para gerar alerta. Essa
+        inconsistência pode reprovar operações legítimas de grandes imóveis rurais ou dar conformidade errada ao
+        usuário. Definir o valor correto conforme a Resolução CMN vigente.
+      </div>
+      <div class="callout warn">
+        Verificar qual é o limite real da Res. CMN 5.081/2023 para a modalidade geral de crédito rural e alinhar código,
+        <code>config.js</code> e documentação.
+      </div>
+    </div>
+
+    <hr />
+
+    <!-- ═══════════════════════════════════════════════════════
+       SEÇÃO 3: CÓDIGO MORTO / DUPLICAÇÃO
+  ════════════════════════════════════════════════════════ -->
+    <div class="section">
+      <div class="section-icon" style="background:rgba(76,201,240,0.12)">♻️</div>
+      <h2>Código Morto e Duplicação</h2>
+      <span class="section-badge" style="background:rgba(76,201,240,0.15);color:var(--info)">3 encontrados</span>
+    </div>
+
+    <!-- C1 -->
+    <div class="finding info">
+      <div class="finding-header">
+        <span class="finding-badge badge-info">DUPLICADO</span>
+        <span class="finding-title"><code>bboxIntersects</code> definida em <code>state.js</code> E em
+          <code>geo.js</code></span>
+      </div>
+      <div class="finding-file">js/utils/state.js · linha final / js/utils/geo.js</div>
+      <div class="finding-desc">
+        A função <code>bboxIntersects</code> está exportada em dois arquivos. Todos os módulos (ibama.js, icmbio.js,
+        validation.js, terras_indigenas.js, bioma.js) importam de <code>geo.js</code> — a versão em
+        <code>state.js</code> nunca é importada e é código morto. Remover de <code>state.js</code> para evitar confusão.
+      </div>
+      <div class="fix-label">✅ Ação</div>
+      <pre><span class="hi-comment">// Remover de state.js (últimas 6 linhas):</span>
+<span class="hi-bad">export function bboxIntersects(...) { ... } // ← DELETE</span>
+
+<span class="hi-comment">// Manter apenas em geo.js (já está correto).</span></pre>
+    </div>
+
+    <!-- C2 -->
+    <div class="finding info">
+      <div class="finding-header">
+        <span class="finding-badge badge-info">ESTRUTURA</span>
+        <span class="finding-title"><code>import</code> no meio do arquivo em <code>terras_indigenas.js</code></span>
+      </div>
+      <div class="finding-file">js/services/terras_indigenas.js · linha 227</div>
+      <div class="finding-desc">
+        Há um bloco <code>import &#123; bboxIntersects &#125; from '../utils/geo.js'</code> posicionado na linha 227,
+        após definições de funções, comentários e código executável. Embora ES Modules façam hoisting dos imports (não
+        causa erro), isso é uma má prática que confunde linters, IDEs e revisores de código. Todos os imports devem
+        ficar no topo do arquivo.
+      </div>
+      <div class="fix-label">✅ Mover para o topo, junto dos outros imports (linhas 8–10)</div>
+      <pre><span class="hi-comment">// Topo do arquivo — correto</span>
+<span class="hi-good">import { state } from '../utils/state.js';
+import { CONFIG } from '../utils/config.js';
+import { log, warn, showToast } from '../components/ui.js';
+import { bboxIntersects } from '../utils/geo.js'; // ← mover para cá</span></pre>
+    </div>
+
+    <!-- C3 -->
+    <div class="finding info">
+      <div class="finding-header">
+        <span class="finding-badge badge-info">OPORTUNIDADE</span>
+        <span class="finding-title"><code>sicor.js</code> não usa <code>bboxIntersects</code> apesar de comentário
+          indicando isso</span>
+      </div>
+      <div class="finding-file">js/services/sicor.js · linha 164</div>
+      <div class="finding-desc">
+        O próprio código comenta <em>"Filtro rápido por BBox (bboxIntersects do geo.js seria ideal)"</em> mas usa
+        <code>turf.booleanIntersects(turf.bboxPolygon(bbox1), turf.bboxPolygon(bbox2))</code>, que cria dois objetos
+        Feature desnecessários a cada iteração. Com potencialmente milhares de operações SICOR carregadas, isso é
+        ineficiente.
+      </div>
+      <div class="fix-label before">❌ Código atual (ineficiente)</div>
+      <pre><span class="hi-bad">if (!turf.booleanIntersects(turf.bboxPolygon(glebaBbox), turf.bboxPolygon(item.bbox))) {</span></pre>
+      <div class="fix-label">✅ Correção — importar e usar bboxIntersects</div>
+      <pre><span class="hi-comment">// No topo de sicor.js</span>
+<span class="hi-good">import { bboxIntersects } from '../utils/geo.js';
+
+// No loop:
+if (!bboxIntersects(glebaBbox, item.bbox)) continue;</span></pre>
+    </div>
+
+    <hr />
+
+    <!-- ═══════════════════════════════════════════════════════
+       SEÇÃO 4: MELHORIAS SUGERIDAS
+  ════════════════════════════════════════════════════════ -->
+    <div class="section">
+      <div class="section-icon" style="background:rgba(6,214,160,0.12)">💡</div>
+      <h2>Melhorias Sugeridas</h2>
+      <span class="section-badge" style="background:rgba(6,214,160,0.15);color:var(--ok)">6 sugestões</span>
+    </div>
+
+    <!-- M1 -->
+    <div class="finding ok">
+      <div class="finding-header">
+        <span class="finding-badge badge-ok">MELHORIA</span>
+        <span class="finding-title">Substituir hash djb2 por chave de cache mais robusta</span>
+      </div>
+      <div class="finding-file">js/services/validation.js · função djb2()</div>
+      <div class="finding-desc">
+        O hash djb2 de 32 bits gera colisões teoricamente improváveis, mas para uma aplicação geoespacial com
+        coordenadas muito parecidas (diferindo apenas na última casa decimal), a probabilidade aumenta. Uma colisão
+        faria a validação retornar dados de outra gleba silenciosamente. Solução mais simples: usar as primeiras 200
+        caracteres do texto como chave (textos de glebas são únicos na prática).
+      </div>
+      <pre><span class="hi-comment">// Simples, sem risco de colisão para textos de gleba</span>
+<span class="hi-good">const cacheKey = `${text.slice(0, 200)}_${validarPontos ? '1' : '0'}`;</span></pre>
+    </div>
+
+    <!-- M2 -->
+    <div class="finding ok">
+      <div class="finding-header">
+        <span class="finding-badge badge-ok">MELHORIA</span>
+        <span class="finding-title">Validação de área mínima/máxima movida para <code>validateSingleGleba</code></span>
+      </div>
+      <div class="finding-file">js/services/validation.js</div>
+      <div class="finding-desc">
+        Atualmente, a validação de área (min/max hectares) só ocorre em <code>conformidade.js → checkArea()</code>, que
+        é assíncrona e opcional. Glebas fora dos limites de área passam pela validação e chegam ao mapa antes de serem
+        reprovadas. Isso cria inconsistência de UX. Adicionar a verificação de área em <code>validateSingleGleba</code>
+        como erro bloqueante imediato.
+      </div>
+      <pre><span class="hi-comment">// Em validateSingleGleba(), após calcular area:</span>
+<span class="hi-key">const</span> area = turf.area(poly) / 10000;
+<span class="hi-good">if (area &lt; CONFIG.VALIDATION.AREA_MIN_HA || area &gt; CONFIG.VALIDATION.AREA_MAX_HA) {
+  return { errors: [`Gleba ${glebaId}: área ${area.toFixed(2)} ha fora dos limites.`], glebaData: null };
+}</span></pre>
+    </div>
+
+    <!-- M3 -->
+    <div class="finding ok">
+      <div class="finding-header">
+        <span class="finding-badge badge-ok">MELHORIA</span>
+        <span class="finding-title">Cache de validação sem TTL — dados ficam obsoletos entre sessões</span>
+      </div>
+      <div class="finding-file">js/utils/state.js / js/services/validation.js</div>
+      <div class="finding-desc">
+        O <code>state.cache</code> (Map em memória) nunca é limpo durante a sessão. Se o usuário recarregar novas
+        camadas (TI, IBAMA) e revalidar as mesmas coordenadas, o cache retorna o resultado antigo sem as novas
+        verificações. Adicionar timestamp ao cache ou invalidar ao carregar novas camadas.
+      </div>
+      <pre><span class="hi-comment">// Alternativa simples: limitar tamanho do cache</span>
+<span class="hi-key">const</span> MAX_CACHE = 20;
+<span class="hi-key">if</span> (state.cache.size >= MAX_CACHE) {
+  <span class="hi-good">state.cache.delete(state.cache.keys().next().value); // remove o mais antigo</span>
+}
+state.cache.set(cacheKey, resultado);</pre>
+    </div>
+
+    <!-- M4 -->
+    <div class="finding ok">
+      <div class="finding-header">
+        <span class="finding-badge badge-ok">MELHORIA</span>
+        <span class="finding-title">Adicionar <code>.htaccess</code> protegendo o diretório <code>api/cache/</code>
+      </div>
+    </div>
+    <div class="finding-file">api/cache/ (diretório público)</div>
+    <div class="finding-desc">
+      O diretório <code>api/cache/</code> armazena respostas JSON de APIs governamentais e é acessível diretamente via
+      URL (ex: <code>/api/cache/abc123.json</code>). Qualquer pessoa pode inspecionar o cache e inferir quais URLs foram
+      consultadas. Adicionar um <code>.htaccess</code> no diretório.
+    </div>
+    <pre><span class="hi-comment"># api/cache/.htaccess</span>
+<span class="hi-good">Order deny,allow
+Deny from all</span></pre>
+  </div>
+
+  <!-- M5 -->
+  <div class="finding ok">
+    <div class="finding-header">
+      <span class="finding-badge badge-ok">MELHORIA</span>
+      <span class="finding-title">Detecção de header CSV em <code>upload.js</code> é frágil</span>
+    </div>
+    <div class="finding-file">js/services/upload.js · função normalizeFlatFile()</div>
+    <div class="finding-desc">
+      A detecção de linha de cabeçalho usa a regex <code>/gleba|ponto|lat|lon/i</code>. Arquivos com cabeçalhos em
+      inglês (<code>ID,order,latitude,longitude</code>) passam a regex mas "latitude" seria detectado — porém "order" e
+      "ID" não ativam o filtro individualmente. O primeiro campo "ID" (não numérico) já é suficiente: qualquer linha
+      onde <code>parts[0]</code> não seja numérico deve ser descartada.
+    </div>
+    <pre><span class="hi-good">// Substitua o filtro de header por:
+if (parts.some(v => isNaN(Number(v)))) return null;</span></pre>
+  </div>
+
+  <!-- M6 -->
+  <div class="finding ok">
+    <div class="finding-header">
+      <span class="finding-badge badge-ok">MELHORIA</span>
+      <span class="finding-title">Adicionar <code>X-Proxy-Error-Msg</code> apenas em modo dev</span>
+    </div>
+    <div class="finding-file">api/proxy.php · linha 138</div>
+    <div class="finding-desc">
+      O header <code>X-Proxy-Error-Msg</code> expõe mensagens de erro internas da biblioteca cURL (endereços IP
+      internos, nomes de host, detalhes de SSL) para qualquer cliente em produção. Isso facilita a enumeração de
+      recursos internos do servidor. Restringir ao modo dev.
+    </div>
+    <pre><span class="hi-bad">header('X-Proxy-Error-Msg: ' . ($error ?: "..."));</span>
+
+<span class="hi-comment">// Corrigido:</span>
+<span class="hi-good">if ($isDev) {
+    header('X-Proxy-Error-Msg: ' . ($error ?: "HTTP $httpCode"));
+}</span></pre>
+  </div>
+
+  <hr />
+
+  <!-- ── Sumário ── -->
+  <div class="section">
+    <div class="section-icon" style="background:rgba(232,255,90,0.1)">📋</div>
+    <h2>Tabela Resumo de Todos os Findings</h2>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Severidade</th>
+        <th>Arquivo</th>
+        <th>Descrição</th>
+        <th>Esforço de Fix</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>S1</td>
+        <td><span class="finding-badge badge-critical" style="display:inline-block">CRÍTICO</span></td>
+        <td><code>proxy.php</code></td>
+        <td>Rate limiting ausente (prometido no README)</td>
+        <td>~30 min</td>
+      </tr>
+      <tr>
+        <td>S2</td>
+        <td><span class="finding-badge badge-critical" style="display:inline-block">CRÍTICO</span></td>
+        <td><code>proxy.php</code></td>
+        <td>Header injection via Content-Type sem sanitização</td>
+        <td>5 min</td>
+      </tr>
+      <tr>
+        <td>S3</td>
+        <td><span class="finding-badge badge-critical" style="display:inline-block">ALTO</span></td>
+        <td><code>proxy.php</code></td>
+        <td>SSRF via FOLLOWLOCATION sem MAXREDIRS</td>
+        <td>5 min</td>
+      </tr>
+      <tr>
+        <td>S4</td>
+        <td><span class="finding-badge badge-warning" style="display:inline-block">MÉDIO</span></td>
+        <td><code>persistence.js</code></td>
+        <td>XSS Stored via project.name no innerHTML</td>
+        <td>20 min</td>
+      </tr>
+      <tr>
+        <td>S5</td>
+        <td><span class="finding-badge badge-warning" style="display:inline-block">MÉDIO</span></td>
+        <td><code>proxy.php</code></td>
+        <td>hostingersite.com na whitelist é permissivo demais</td>
+        <td>2 min</td>
+      </tr>
+      <tr>
+        <td>B1</td>
+        <td><span class="finding-badge badge-warning" style="display:inline-block">BUG</span></td>
+        <td><code>validation.js</code></td>
+        <td>Cache hit retorna overlapFeatures ausente e warnings vazios</td>
+        <td>15 min</td>
+      </tr>
+      <tr>
+        <td>B2</td>
+        <td><span class="finding-badge badge-warning" style="display:inline-block">BUG</span></td>
+        <td><code>sicor.js</code></td>
+        <td>MultiPolygon WKT parseado como Polygon com holes</td>
+        <td>10 min</td>
+      </tr>
+      <tr>
+        <td>B3</td>
+        <td><span class="finding-badge badge-warning" style="display:inline-block">BUG</span></td>
+        <td><code>proxy.php</code></td>
+        <td>CORS preflight OPTIONS não tratado</td>
+        <td>5 min</td>
+      </tr>
+      <tr>
+        <td>B4</td>
+        <td><span class="finding-badge badge-warning" style="display:inline-block">LÓGICA</span></td>
+        <td><code>config.js</code></td>
+        <td>AREA_MAX_HA: 15.000 ha no código vs 50.000 ha no README</td>
+        <td>5 min</td>
+      </tr>
+      <tr>
+        <td>C1</td>
+        <td><span class="finding-badge badge-info" style="display:inline-block">INFO</span></td>
+        <td><code>state.js</code></td>
+        <td>bboxIntersects duplicada (código morto)</td>
+        <td>2 min</td>
+      </tr>
+      <tr>
+        <td>C2</td>
+        <td><span class="finding-badge badge-info" style="display:inline-block">INFO</span></td>
+        <td><code>terras_indigenas.js</code></td>
+        <td>import no meio do arquivo (linha 227)</td>
+        <td>2 min</td>
+      </tr>
+      <tr>
+        <td>C3</td>
+        <td><span class="finding-badge badge-info" style="display:inline-block">INFO</span></td>
+        <td><code>sicor.js</code></td>
+        <td>bboxIntersects comentado mas não importado/usado</td>
+        <td>5 min</td>
+      </tr>
+      <tr>
+        <td>M1–M6</td>
+        <td><span class="finding-badge badge-ok" style="display:inline-block">MELHORIA</span></td>
+        <td>Vários</td>
+        <td>Cache robusto, área em validateSingle, .htaccess, etc.</td>
+        <td>2–4h total</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ── Pontos positivos ── -->
+  <div class="section">
+    <div class="section-icon" style="background:rgba(6,214,160,0.12)">✅</div>
+    <h2>Pontos Fortes do Projeto</h2>
+  </div>
+
+  <div class="callout ok">
+    <strong>Arquitetura limpa:</strong> Uso correto de ES Modules nativos, separação clara entre
+    services/utils/components, sem bundler desnecessário.
+  </div>
+  <div class="callout ok">
+    <strong>Índice espacial com bbox:</strong> O pré-filtro por bounding box antes de <code>booleanPointInPolygon</code>
+    é a abordagem correta para performance com milhares de features.
+  </div>
+  <div class="callout ok">
+    <strong>Fallback robusto:</strong> Todas as camadas externas têm fallback para dados locais. O sistema funciona
+    mesmo sem conexão com as APIs governamentais.
+  </div>
+  <div class="callout ok">
+    <strong>Modelagem BACEN/SICOR correta:</strong> Os status (ok/alerta/bloqueio/pendente) e a referência às resoluções
+    legais estão bem documentados e estruturados.
+  </div>
+  <div class="callout ok">
+    <strong>Proxy com whitelist exata:</strong> O uso de <code>in_array()</code> com comparação exata (não substring)
+    evita bypass por subdomain (<code>evil.car.gov.br</code> é corretamente rejeitado).
+  </div>
+  <div class="callout ok">
+    <strong>Cache Stale-While-Revalidate no proxy:</strong> Retornar dados expirados enquanto busca novos é uma boa
+    prática para resiliência com APIs instáveis.
+  </div>
+
+  <div
+    style="margin-top: 48px; padding: 20px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 12.5px; color: var(--muted); font-family: 'JetBrains Mono', monospace;">
+    Auditoria realizada por Claude Sonnet 4 (Anthropic) · Repositório: github.com/manuseiro/cgrn · v3.6.0 · Maio 2026
+  </div>
+
+  </div>
+</body>
+
+</html>

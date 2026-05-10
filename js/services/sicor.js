@@ -6,8 +6,9 @@
  */
 
 import { CONFIG } from '../utils/config.js';
-import { state } from '../utils/state.js';
+//import { state } from '../utils/state.js';
 import { log, warn, updateSicorStatus } from '../components/ui.js';
+import { bboxIntersects } from '../utils/geo.js';
 
 /** Cache em memória dos dados do SICOR */
 let _sicorPolygons = null;
@@ -46,15 +47,15 @@ async function _doLoad() {
       // URL oficial do BCB (microdados brutos)
       const baseUrl = `${CONFIG.SICOR.URL_BASE}${y}.gz`;
       const url = CONFIG.PROXY_URL + encodeURIComponent(baseUrl) + '&decompress=1';
-      
+
       try {
         res = await fetch(url, { signal: AbortSignal.timeout(60000) });
-        if (res.ok) { 
+        if (res.ok) {
           usedYear = y;
-          log(`SICOR: usando arquivo de ${y}`); 
-          break; 
+          log(`SICOR: usando arquivo de ${y}`);
+          break;
         }
-      } catch (e) { 
+      } catch (e) {
         warn(`SICOR: tentativa ano ${y} falhou:`, e.message);
       }
     }
@@ -73,7 +74,7 @@ async function _doLoad() {
     if (wktIdx === -1) {
       throw new Error(`Coluna de geometria não encontrada. Colunas: ${header.join(', ')}`);
     }
-    
+
     log(`SICOR: colunas detectadas — ref[${refIdx}], wkt[${wktIdx}]`);
 
     const polygons = [];
@@ -84,7 +85,7 @@ async function _doLoad() {
       const parts = line.split(';');
       const ref = refIdx !== -1 ? (parts[refIdx]?.trim() ?? `L${i}`) : `L${i}`;
       const wktStr = parts[wktIdx]?.trim() ?? '';
-      
+
       if (!wktStr || wktStr === 'MULTIPOLYGON EMPTY') continue;
 
       const poly = parseWKT(wktStr, { ref_bacen: ref });
@@ -120,19 +121,19 @@ function parseWKT(wkt, properties) {
     // Suporta MULTIPOLYGON(((...))) e POLYGON((...))
     const clean = wkt.replace(/MULTIPOLYGON|POLYGON/gi, '').trim();
     const rings = [];
-    
+
     // Expressão para pegar o que está dentro de parênteses aninhados
     const matches = clean.match(/\(\(([^)]+)\)\)/g) || [clean];
-    
+
     for (const m of matches) {
       const coords = m.replace(/[()]/g, '').split(',').map(pair => {
         const [lon, lat] = pair.trim().split(/\s+/).map(Number);
         return [lon, lat];
       });
-      
+
       if (coords.length >= 4) {
         // Garante fechamento
-        if (coords[0][0] !== coords[coords.length-1][0] || coords[0][1] !== coords[coords.length-1][1]) {
+        if (coords[0][0] !== coords[coords.length - 1][0] || coords[0][1] !== coords[coords.length - 1][1]) {
           coords.push([...coords[0]]);
         }
         rings.push(coords);
@@ -140,7 +141,12 @@ function parseWKT(wkt, properties) {
     }
 
     if (rings.length === 0) return null;
-    return turf.polygon(rings, properties);
+    if (rings.length === 1) {
+      return turf.polygon(rings, properties);
+    } else {
+      // B2: Cada ring é um polígono independente no MultiPolygon
+      return turf.multiPolygon(rings.map(r => [r]), properties);
+    }
   } catch (e) {
     return null;
   }
@@ -161,8 +167,8 @@ export async function checkGlebaSicor(gleba) {
   const found = [];
 
   for (const item of allPolys) {
-    // Filtro rápido por BBox (bboxIntersects do geo.js seria ideal)
-    if (!turf.booleanIntersects(turf.bboxPolygon(glebaBbox), turf.bboxPolygon(item.bbox))) {
+    // C3: Filtro rápido por BBox (eficiente)
+    if (!bboxIntersects(glebaBbox, item.bbox)) {
       continue;
     }
 

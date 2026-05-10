@@ -4,12 +4,12 @@
  * Usa showToast() (global) e showProjectMessage() (modal) — sem duplicar IDs.
  */
 
-import { state } from '../utils/state.js';
+//import { state } from '../utils/state.js';
 import { CONFIG } from '../utils/config.js';
 import {
   getCoordText, setCoordText,
-  showMessage, showProjectMessage, showToast,  // ← adicionar showToast
-  log, warn, el
+  showMessage, showProjectMessage, showToast,
+  escapeHtml, log, warn, el
 } from '../components/ui.js';
 
 const STORAGE_KEY = CONFIG.STORAGE.KEY;
@@ -34,10 +34,10 @@ export function saveProject(projectName, glebaCount) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
     showProjectMessage(
-      `Projeto "<strong>${project.name}</strong>" salvo (${glebaCount} gleba[s]).`,
+      `Projeto "<strong>${escapeHtml(project.name)}</strong>" salvo (${glebaCount} gleba[s]).`,
       'success', 4000
     );
-    showToast(`<i class="bi bi-floppy"></i> Projeto "${project.name}" salvo com sucesso.`, 'success', 3000);
+    showToast(`<i class="bi bi-floppy"></i> Projeto "${escapeHtml(project.name)}" salvo com sucesso.`, 'success', 3000);
     updateSavedInfo(project);
     log('Projeto salvo:', project.name);
     return true;
@@ -69,11 +69,11 @@ export function loadProject() {
 
     setCoordText(project.coords);
     showProjectMessage(
-      `Projeto "<strong>${project.name}</strong>" carregado.<br>` +
+      `Projeto "<strong>${escapeHtml(project.name)}</strong>" carregado.<br>` +
       `<small class="text-muted">Salvo em: ${fmtDate(project.savedAt)}</small>`,
       'info', 5000
     );
-    showToast(`<i class="bi bi-folder-fill"></i> Projeto "${project.name}" carregado.`, 'info', 3000);
+    showToast(`<i class="bi bi-folder-fill"></i> Projeto "${escapeHtml(project.name)}" carregado.`, 'info', 3000);
     log('Projeto carregado:', project.name);
     return project;
   } catch (e) {
@@ -112,7 +112,7 @@ function updateSavedInfo(project) {
     <div class="d-flex align-items-center gap-2">
       <i class="bi bi-floppy-fill text-primary"></i>
       <div>
-        <div class="fw-semibold">${project.name}</div>
+        <div class="fw-semibold">${escapeHtml(project.name)}</div>
         <small class="text-muted">${project.glebaCount ?? '?'} gleba(s) • ${fmtDate(project.savedAt)}</small>
       </div>
     </div>`;

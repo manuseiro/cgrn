@@ -1,13 +1,13 @@
 /**
  * @file terras_indigenas.js — v3.0
  * @description Terras Indígenas do Nordeste (FUNAI/geobr).
- * Fonte primária: https://leosil21.github.io/geobr/2020/terras_indigenas_br.json
  * Fallback:       terras_indigenas_nordeste.geojson (local)
  */
 
 import { state } from '../utils/state.js';
 import { CONFIG } from '../utils/config.js';
 import { log, warn, showToast } from '../components/ui.js';
+import { bboxIntersects } from '../utils/geo.js';
 
 const NORDESTE_UFS = new Set(CONFIG.TI.NORDESTE_UFS);
 
@@ -107,10 +107,10 @@ function normalizeTISource(raw) {
         etnia: props.etnia_nome ?? props.etnia ?? '—',
         municipio: props.municipio_nome ?? props.municipio ?? '—',
         uf: props.uf_sigla ?? props.uf ?? '—',
-        area_ha: props.superficie_perimetro_ha ?? props.area_ha ?? 0,
+        area_ha: props.areahaalb ?? props.area_ha ?? 0,
         fase: props.fase_ti ?? props.fase ?? '—',
         modalidade: props.modalidade_ti ?? props.modalidade ?? '—',
-        atualizado: props.data_atualizacao ?? props.atualizado ?? '—',
+        atualizado: props.criacaoato ?? props.atualizado ?? '—',
       },
       geometry: geom,
     };
@@ -180,7 +180,7 @@ export function checkGlebaTI(gleba) {
       if (turf.booleanIntersects(gleba.turfPolygon, ti.feature)) {
         let areaHa = null;
         try {
-          const inter = turf.intersect(turf.featureCollection([gleba.turfPolygon, ti.feature]));
+          const inter = turf.intersect(gleba.turfPolygon, ti.feature);
           if (inter) areaHa = turf.area(inter) / 10_000;
         } catch (_) { }
         results.push({
@@ -220,27 +220,21 @@ export function buildTILegend() {
 
 // ─── Utilitários ──────────────────────────────────────────────────────────
 
-/*function bboxOk([ax0, ay0, ax1, ay1], [bx0, by0, bx1, by1]) {
-  return !(ax1 < bx0 || ax0 > bx1 || ay1 < by0 || ay0 > by1);
-}*/
-// ibama.js, icmbio.js, terras_indigenas.js — remover a função local e adicionar o import:
-import { bboxIntersects } from '../utils/geo.js';
-
 function buildTIPopup(p) {
-  const s = FASE_STYLE[p?.fase] ?? FASE_DEFAULT;
-  const area = p?.area_ha ? parseFloat(p.area_ha).toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' ha' : '—';
+  const s = FASE_STYLE[p?.fase_ti] ?? FASE_DEFAULT;
+  const area = p?.areahaalb ? parseFloat(p.areahaalb).toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' ha' : '—';
   return `<div class="cgrn-popup" style="min-width:210px">
     <div class="d-flex align-items-start gap-2 mb-2">
       <span style="font-size:1.3em"><i class="bi bi-feather text-danger"></i></span>
-      <div><strong>${p?.nome ?? 'Terra Indígena'}</strong><br>
+      <div><strong>${p?.terrai_nome ?? 'Terra Indígena'}</strong><br>
         <small class="text-muted">${p?.etnia ?? ''}</small></div>
     </div>
-    <span class="badge" style="background:${s.fill}">${p?.fase ?? '—'}</span>
+    <span class="badge" style="background:${s.fill}">${p?.fase_ti ?? '—'}</span>
     <table class="popup-table mt-2">
-      <tr><td>Município</td><td>${p?.municipio ?? '—'} / ${p?.uf ?? ''}</td></tr>
+      <tr><td>Município</td><td>${p?.municipio_nome ?? '—'} / ${p?.uf_sigla ?? ''}</td></tr>
       <tr><td>Área</td><td>${area}</td></tr>
-      <tr><td>Modalidade</td><td>${p?.modalidade ?? '—'}</td></tr>
-      <tr><td>Atualização</td><td>${p?.atualizado ?? '—'}</td></tr>
+      <tr><td>Modalidade</td><td>${p?.modalidade_ti ?? '—'}</td></tr>
+      <tr><td>Criação Ato</td><td>${p?.criacaoato ?? '—'}</td></tr>
     </table>
   </div>`;
 }

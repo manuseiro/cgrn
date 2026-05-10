@@ -1,4 +1,6 @@
 # .gitattributes
+# Cache do proxy PHP
+api/cache/**
 * text=auto eol=lf
 *.js text eol=lf
 *.html text eol=lf

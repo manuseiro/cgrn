@@ -9,13 +9,45 @@ if (extension_loaded('zlib') && !headers_sent()) {
  * @description Proxy com Cache Inteligente (Stale-While-Revalidate) para contornar problemas de CORS e lentidão/quedas das APIs governamentais.
  */
 
+session_start();
+
+// ── Rate Limiting (60 req/min por IP) ──────────────────────────────────────
+$ip = $_SERVER['REMOTE_ADDR'];
+$rlKey = 'rl_' . md5($ip);
+$now = time();
+$window = 60;
+$limit = 60;
+
+if (!isset($_SESSION[$rlKey])) {
+    $_SESSION[$rlKey] = ['count' => 0, 'start' => $now];
+}
+if (($now - $_SESSION[$rlKey]['start']) > $window) {
+    $_SESSION[$rlKey] = ['count' => 0, 'start' => $now];
+}
+$_SESSION[$rlKey]['count']++;
+
+if ($_SESSION[$rlKey]['count'] > $limit) {
+    http_response_code(429);
+    header('Retry-After: 60');
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Rate limit excedido. Tente em 1 minuto.']);
+    exit;
+}
+
 // ── Detecção de ambiente (dev vs produção) ────────────────────────────────
-// Não precisa alterar nada antes do deploy: é automático.
 $isDev = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1', '::1']);
 
 // CORS: aberto em dev, restrito ao domínio real em produção
-$allowedOrigin = $isDev ? '*' : 'https://manuseiro.github.io';
+$allowedOrigin = $isDev ? '*' : 'https://glebasnord.com.br';
 header("Access-Control-Allow-Origin: $allowedOrigin");
+header('Access-Control-Allow-Methods: GET, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, X-Requested-With');
+
+// Preflight CORS (OPTIONS)
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
 
 $targetUrl = urldecode($_GET['url'] ?? '');
 
@@ -29,19 +61,20 @@ if (!$targetUrl) {
 // Lista de domínios permitidos (White-list por segurança)
 $allowedDomains = [
     'car.gov.br',
+    'geoserver.car.gov.br',
     'ibama.gov.br',
-    'ibge.gov.br',
     'siscom.ibama.gov.br',
+    'ibge.gov.br',
+    'servicodados.ibge.gov.br',
+    'geoservicos.ibge.gov.br',
     'geoservicos.inde.gov.br',
     'geoservices.icmbio.gov.br',
-    'geoserver.car.gov.br',
     'geoserver.funai.gov.br',
-    'geoservicos.ibge.gov.br',
-    'servicodados.ibge.gov.br',
-    'terrabrasilis.dpi.inpe.br',
     'manuseiro.github.io',
+    'terrabrasilis.dpi.inpe.br',
+    'www.bcb.gov.br',
+    'bcb.gov.br',
     'olinda.bcb.gov.br',
-    'hostingersite.com',
     'glebasnord.com.br',
 ];
 
@@ -85,6 +118,10 @@ $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $targetUrl);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+curl_setopt($ch, CURLOPT_MAXREDIRS, 3);
+curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
+curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS); // Só HTTPS em redirect
+
 // SSL: desativado em dev (WAMP não tem bundle de CA), verificado em produção
 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, !$isDev);
 if (!$isDev) {
@@ -115,7 +152,9 @@ if (isset($_GET['decompress']) && $_GET['decompress'] == '1' && $response) {
 
 // Repassa o Content-Type original (geralmente application/json ou text/xml)
 if ($contentType) {
-    header("Content-Type: $contentType");
+    // Remove qualquer caractere de controle (CRLF injection)
+    $safeContentType = preg_replace('/[\r\n]/', '', $contentType);
+    header("Content-Type: $safeContentType");
 } else {
     header('Content-Type: application/json');
 }
@@ -135,7 +174,9 @@ if ($isSuccess && $isDataFormat) {
     // Erro (Timeout, 500, 404, etc) OU o serviço retornou um HTML em vez de JSON...
     if ($cacheExists) {
         header('X-Proxy-Cache: STALE_FALLBACK'); // Avisa que é um dado expirado salvo no sufoco
-        header('X-Proxy-Error-Msg: ' . ($error ?: "HTTP $httpCode ou formato invalido ($contentType)"));
+        if ($isDev) {
+            header('X-Proxy-Error-Msg: ' . ($error ?: "HTTP $httpCode ou formato invalido ($contentType)"));
+        }
         http_response_code(200);
         echo file_get_contents($cacheFile);
     } else {
