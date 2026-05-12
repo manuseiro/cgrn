@@ -6,8 +6,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GlebasNord — Cálculo e análise de glebas da Região Nordeste</title>
   <meta name="description"
-    content="Cálculo e validação de glebas no Nordeste brasileiro com conformidade BACEN/SICOR, Terras Indígenas (FUNAI), UCs (ICMBio) e embargos IBAMA." />
-
+    content="Ferramenta gratuita de cálculo de glebas da região Nordeste. Validação BACEN/SICOR, verificação de Terras Indígenas, UCs, embargos IBAMA, CAR e mais. Importe KML, Shapefile ou desenhe no mapa." />
+  <!-- Canonical -->
+  <link rel="canonical" href="https://glebasnord.com.br/" />
+  <!-- Open Graph / Social (muito importante para compartilhamento) -->
+  <meta property="og:title" content="GlebasNord - Cálculo e Validação de Glebas Nordeste" />
+  <meta property="og:description"
+    content="Ferramenta completa para cálculo de área, perímetro, conformidade BACEN/SICOR e análise geoespacial de glebas rurais." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://glebasnord.com.br/" />
+  <meta property="og:image" content="https://glebasnord.com.br/img/og-image.jpg" />
+  <!-- Crie uma imagem atrativa 1200x630 -->
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="GlebasNord - Cálculo de Glebas" />
+  <meta name="twitter:description"
+    content="Ferramenta completa para cálculo de área, perímetro, conformidade BACEN/SICOR e análise geoespacial de glebas rurais." />
+  <meta name="twitter:image" content="https://glebasnord.com.br/img/og-image.jpg" />
+  <meta property="og:locale" content="pt_BR" />
+  <link rel="icon" href="favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="favicon-16x16.png" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
@@ -22,14 +40,9 @@
 ══════════════════════════════════════════════════════════════ -->
   <nav class="navbar navbar-expand-lg bg-dark navbar-dark" data-bs-theme="dark">
     <div class="container-fluid px-3">
-
-      <a class="navbar-brand d-flex align-items-center gap-2" href="./">
-        <!--  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-          <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>-->
-        <span class="fw-bold">GlebasNord</span>
-        <!-- <span class="text-secondary fw-normal fs-6 d-none d-lg-inline ms-1">Glebas Nord</span> -->
+      <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+        <img src="img/logo.png" alt="GlebasNord Logo">
+        <span class="fw-bold fs-4 text-white">GlebasNord</span>
       </a>
 
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
@@ -213,7 +226,7 @@
       <span class="status-divider"></span>
       <span id="statusArea" class="status-item">—</span>
       <span class="status-divider d-none d-md-inline-block"></span>
-      <span class="status-item d-none d-md-inline text-muted opacity-50">CGRN v3.6.8 • SIRGAS 2000</span>
+      <span class="status-item d-none d-md-inline text-muted opacity-50">CGRN v3.6.9 • SIRGAS 2000</span>
     </div>
 
     <div class="ms-auto d-flex align-items-center gap-2 gap-md-3">
@@ -317,13 +330,38 @@
 
             <!-- Tab Upload -->
             <div class="tab-pane fade" id="tabUpload" role="tabpanel">
-              <div class="upload-zone border-2 border-dashed rounded-4 p-5 text-center transition-all" id="uploadZone"
-                role="button" tabindex="0">
-                <div class="mb-3">
-                  <i class="bi bi-cloud-arrow-up fs-1 text-primary opacity-50"></i>
+              <div class="upload-zone border-2 border-dashed rounded-4 p-4 text-center transition-all" id="uploadZone"
+                role="button" tabindex="0" aria-label="Zona de importação de arquivo">
+
+                <!-- Ícone e instruções (estado inicial) -->
+                <div class="upload-idle-state">
+                  <i class="bi bi-cloud-arrow-up fs-1 text-primary opacity-50 mb-2 d-block"></i>
+                  <p class="fw-bold mb-1">Arraste ou clique para selecionar</p>
+                  <p class="small text-muted mb-0">
+                    Arquivos .KML, .SHP (ZIP), .CSV ou .TXT<br>
+                    <span class="opacity-50" style="font-size:.73rem">
+                      CSV/TXT até 10 MB &nbsp;·&nbsp; KML até 20 MB &nbsp;·&nbsp; ZIP até 50 MB
+                    </span>
+                  </p>
                 </div>
-                <p class="fw-bold mb-1">Arraste ou clique para selecionar</p>
-                <p class="small text-muted mb-0">Arquivos .KML, .SHP (ZIP), .CSV ou .TXT</p>
+
+                <!-- Painel de informações do arquivo (exibido logo após selecionar) -->
+                <div id="uploadFileInfo" class="d-none mt-3 text-start"></div>
+
+                <!-- Barra de progresso (exibida durante o processamento) -->
+                <div id="uploadProgress" class="d-none mt-3">
+                  <div class="progress mb-1" style="height:8px;border-radius:4px">
+                    <div id="uploadProgressBar"
+                      class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar"
+                      style="width:0%;transition:width .25s ease" aria-valuenow="0" aria-valuemin="0"
+                      aria-valuemax="100">
+                    </div>
+                  </div>
+                  <div id="uploadProgressMsg" class="small text-muted text-start" style="font-size:.75rem">
+                    Aguardando…
+                  </div>
+                </div>
+
                 <input type="file" id="fileUpload" accept=".csv,.txt,.kml,.zip" class="d-none" />
               </div>
               <div class="mt-4 grid-help rounded-3 p-3 bg-body-tertiary">
@@ -613,7 +651,7 @@
               <circle cx="12" cy="12" r="3" />
             </svg>
             <h5 class="fw-bold mt-3 mb-1">GlebasNord <span class="badge bg-primary ms-1"
-                style="font-size: 0.6rem">v3.6.8</span></h5>
+                style="font-size: 0.6rem">v3.6.9</span></h5>
             <p class="text-muted small">Cálculo e análise de glebas rurais no Nordeste</p>
           </div>
 
@@ -690,7 +728,26 @@
       });
     });
   </script>
-
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "GlebasNord",
+      "url": "https://glebasnord.com.br",
+      "description": "Ferramenta completa para cálculo de área, perímetro, conformidade BACEN/SICOR e análise geoespacial de glebas rurais.",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "BRL"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "Equipe GlebasNord"
+      }
+    }
+</script>
 </body>
 
 </html>

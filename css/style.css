@@ -63,6 +63,11 @@ body {
   letter-spacing: .04em;
 }
 
+.navbar-brand img {
+  height: 31px;
+  filter: brightness(1.1);
+}
+
 .navbar .dropdown-menu {
   font-size: .84rem;
   border-radius: var(--cgrn-radius);
@@ -128,7 +133,7 @@ body {
 .upload-zone {
   border: 2px dashed var(--bs-border-color, #dee2e6);
   border-radius: var(--cgrn-radius);
-  padding: 2rem 1rem;
+  padding: 1.5rem 1rem;
   text-align: center;
   cursor: pointer;
   transition: border-color .2s, background .2s;
@@ -138,6 +143,33 @@ body {
 .upload-zone.drag-over {
   border-color: var(--cgrn-accent);
   background: color-mix(in srgb, var(--cgrn-accent) 5%, transparent);
+}
+
+/* Esmaece instrucoes durante drag */
+.upload-zone.drag-over .upload-idle-state {
+  opacity: .4;
+  pointer-events: none;
+}
+
+/* Card de informacoes do arquivo selecionado */
+.upload-file-card {
+  cursor: default;
+  user-select: text;
+  font-size: .82rem;
+  transition: all .15s ease;
+}
+
+/* Animacao ao aparecer */
+#uploadFileInfo:not(.d-none),
+#uploadProgress:not(.d-none) {
+  animation: fadein .2s ease;
+}
+
+/* Mensagem de progresso */
+#uploadProgressMsg {
+  font-family: var(--cgrn-mono);
+  font-size: .72rem;
+  min-height: 1.2em;
 }
 
 /* Campo CAR com fonte mono e feedback colorido */

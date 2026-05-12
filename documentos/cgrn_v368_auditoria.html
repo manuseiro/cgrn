@@ -1,0 +1,112 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 0 20px}
+.kpi{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px}
+.kpi .n{font-size:26px;font-weight:500;line-height:1.1}
+.kpi .l{font-size:12px;color:var(--color-text-secondary);margin-top:4px}
+.green{color:var(--color-text-success)}.red{color:var(--color-text-danger)}.amber{color:var(--color-text-warning)}.blue{color:var(--color-text-info)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:var(--color-text-secondary);padding:7px 10px;border-bottom:0.5px solid var(--color-border-secondary);text-align:left}
+td{padding:9px 10px;border-bottom:0.5px solid var(--color-border-tertiary);vertical-align:top;line-height:1.6}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--color-background-secondary)}
+.badge{display:inline-flex;align-items:center;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500;white-space:nowrap;margin-bottom:2px}
+.b-ok{background:var(--color-background-success);color:var(--color-text-success)}
+.b-open{background:var(--color-background-danger);color:var(--color-text-danger)}
+.b-warn{background:var(--color-background-warning);color:var(--color-text-warning)}
+.b-info{background:var(--color-background-info);color:var(--color-text-info)}
+.file{font-family:var(--font-mono);font-size:11px;color:var(--color-text-tertiary)}
+.sec{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-secondary);padding:16px 0 8px;display:block;border-top:0.5px solid var(--color-border-tertiary);margin-top:4px}
+.sec:first-of-type{border-top:none;padding-top:0}
+</style>
+<div class="kpis">
+  <div class="kpi"><div class="n green">12</div><div class="l">Corrigidos ✓</div></div>
+  <div class="kpi"><div class="n red">3</div><div class="l">Ainda pendentes</div></div>
+  <div class="kpi"><div class="n amber">4</div><div class="l">Novos achados</div></div>
+  <div class="kpi"><div class="n blue">2</div><div class="l">Melhorias opcionais</div></div>
+</div>
+
+<span class="sec">✅ Corrigidos — 12 itens confirmados</span>
+<table>
+  <thead><tr><th style="width:46%">Item</th><th>Arquivo</th></tr></thead>
+  <tbody>
+    <tr><td><span class="badge b-ok">✓</span> <code>www.bcb.gov.br</code> e <code>bcb.gov.br</code> adicionados à whitelist</td><td class="file">proxy.php:75</td></tr>
+    <tr><td><span class="badge b-ok">✓</span> <code>import { state }</code> removido de sicor.js (comentado)</td><td class="file">sicor.js:9</td></tr>
+    <tr><td><span class="badge b-ok">✓</span> Versão v3.6.8 consistente — header, boot log, statusBar, modal Sobre</td><td class="file">main.js:2,55 · index.html:216,616</td></tr>
+    <tr><td><span class="badge b-ok">✓</span> Changelog atualizado — v3.6.8 como Atual, template literal removido</td><td class="file">changelog.html:100</td></tr>
+    <tr><td><span class="badge b-ok">✓</span> <code>areaToColor(g.area, maxArea, g.glebaId)</code> na tabela de resultados</td><td class="file">ui.js:152</td></tr>
+    <tr><td><span class="badge b-ok">✓</span> <code>turf.intersect(gleba.turfPolygon, ti.feature)</code> — API correta</td><td class="file">terras_indigenas.js:183</td></tr>
+    <tr><td><span class="badge b-ok">✓</span> <code>dom.js</code> — <code>import</code> e <code>log/warn</code> movidos para o topo</td><td class="file">dom.js:5</td></tr>
+    <tr><td><span class="badge b-ok">✓</span> <code>terras_indigenas.js</code> — <code>bboxIntersects</code> import no topo</td><td class="file">terras_indigenas.js:10</td></tr>
+    <tr><td><span class="badge b-ok">✓</span> <code>api/cache/.htaccess</code> — acesso direto ao cache bloqueado</td><td class="file">api/cache/.htaccess</td></tr>
+    <tr><td><span class="badge b-ok">✓</span> TI atualizada para <code>tis_poligonais_portarias</code> — inclui portarias em andamento</td><td class="file">config.js:48</td></tr>
+    <tr><td><span class="badge b-ok">✓</span> <code>buildSicorItem</code> usa <code>CHECKS.SICOR</code> e campos corretos</td><td class="file">conformidade.js:386</td></tr>
+    <tr><td><span class="badge b-ok">✓</span> <code>parseWKT</code> agora cria <code>turf.multiPolygon</code> para vários anéis</td><td class="file">sicor.js:148</td></tr>
+  </tbody>
+</table>
+
+<span class="sec">🔴 Ainda pendentes — 3 itens</span>
+<table>
+  <thead><tr><th style="width:35%">Item</th><th style="width:22%">Arquivo · Linha</th><th>Situação atual</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><span class="badge b-warn">⚠ Médio</span> Regex <code>[^)]+</code> em <code>parseWKT</code></td>
+      <td class="file">sicor.js:126</td>
+      <td>Ainda usa <code>/\(\(([^)]+)\)\)/g</code> — funciona para polígonos simples (caso típico do SICOR) mas falha silenciosamente para polígonos com buracos (holes). Correção recomendada com <code>/\(([^()]+)\)/g</code></td>
+    </tr>
+    <tr>
+      <td><span class="badge b-warn">⚠ Baixo</span> <code>console.warn</code> direto em <code>map.js</code></td>
+      <td class="file">map.js:216,262</td>
+      <td>Duas ocorrências de <code>console.warn()</code> direto — <code>warn</code> não está no bloco de imports de <code>map.js</code>. Ignora <code>CONFIG.DEBUG</code></td>
+    </tr>
+    <tr>
+      <td><span class="badge b-warn">⚠ Baixo</span> Centroide KML exportado com <code>toFixed(5)</code></td>
+      <td class="file">kml.js:190</td>
+      <td>Descrição do Placemark exibe coordenadas do centroide com 5 casas decimais — inconsistente com <code>COORD_PRECISION = 8</code> do restante do sistema</td>
+    </tr>
+  </tbody>
+</table>
+
+<span class="sec">🆕 Novos achados — 4 itens</span>
+<table>
+  <thead><tr><th style="width:35%">Item</th><th style="width:22%">Arquivo · Linha</th><th>Impacto</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><span class="badge b-open">Médio</span> TI e Bioma fallback apontam para URLs externas, não arquivos locais</td>
+      <td class="file">config.js:49,140</td>
+      <td><code>TI.URL_FALLBACK</code> aponta para <code>manuseiro.github.io</code> e <code>BIOMA.URL_FALLBACK</code> também — mas os arquivos locais <code>api/tis_poligonais_portarias.json</code> (2.3MB) e <code>api/qg_2025_240_bioma_nordeste.json</code> existem no repositório e nunca são usados. Se o GitHub Pages cair, não há fallback real</td>
+    </tr>
+    <tr>
+      <td><span class="badge b-warn">Baixo</span> <code>api/terras_indigenas_nordeste.geojson</code> arquivo órfão</td>
+      <td class="file">api/</td>
+      <td>Arquivo de 1.5MB da camada TI anterior — substituído por <code>tis_poligonais_portarias.json</code> mas nunca removido do repositório. Nenhum arquivo JS o referencia mais</td>
+    </tr>
+    <tr>
+      <td><span class="badge b-warn">Baixo</span> <code>.gitignore</code> ausente</td>
+      <td class="file">raiz do projeto</td>
+      <td>Sem <code>.gitignore</code>, arquivos temporários (cache PHP, <code>.DS_Store</code>) podem ser commitados acidentalmente como já ocorreu anteriormente</td>
+    </tr>
+    <tr>
+      <td><span class="badge b-info">Info</span> <code>import { state }</code> comentado em vez de removido</td>
+      <td class="file">sicor.js:9</td>
+      <td><code>//import { state } from '../utils/state.js';</code> — comentar é aceitável como nota histórica, mas remover completamente é mais limpo</td>
+    </tr>
+  </tbody>
+</table>
+
+<span class="sec">💡 Melhorias opcionais</span>
+<table>
+  <thead><tr><th style="width:35%">Item</th><th style="width:22%">Arquivo</th><th>Sugestão</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><span class="badge b-info">UX</span> TI fallback via proxy para consistência</td>
+      <td class="file">terras_indigenas.js:44</td>
+      <td><code>fetch(CONFIG.TI.URL_FALLBACK)</code> busca sem proxy. GitHub Pages tem CORS aberto então funciona, mas é inconsistente com o padrão dos outros serviços que usam proxy</td>
+    </tr>
+    <tr>
+      <td><span class="badge b-info">Docs</span> <code>/* globals turf, L */</code> ausente em sicor.js</td>
+      <td class="file">sicor.js</td>
+      <td>Usa <code>turf</code> como global CDN sem o comentário JSDoc que documenta a dependência — apenas cosmético mas melhora a legibilidade</td>
+    </tr>
+  </tbody>
+</table>

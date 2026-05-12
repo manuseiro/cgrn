@@ -1,0 +1,4 @@
+# Ignorar uma pasta inteira
+documentos
+# Ignorar um arquivo específico
+api/cache/*json

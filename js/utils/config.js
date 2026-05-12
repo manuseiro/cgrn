@@ -144,6 +144,19 @@ export const CONFIG = Object.freeze({
   STORAGE: Object.freeze({ KEY: 'cgrn_project_v3' }),
 
   /**
+   * Limites de tamanho para importação de arquivos.
+   * Valores em bytes. Rejeita antes de ler o arquivo para não bloquear a UI.
+   */
+  UPLOAD: Object.freeze({
+    MAX_CSV_BYTES: 10 * 1024 * 1024,  //  10 MB
+    MAX_TXT_BYTES: 10 * 1024 * 1024,  //  10 MB
+    MAX_KML_BYTES: 20 * 1024 * 1024,  //  20 MB
+    MAX_ZIP_BYTES: 50 * 1024 * 1024,  //  50 MB
+    /** Timeout do Worker em milissegundos (2 minutos) */
+    WORKER_TIMEOUT_MS: 120_000,
+  }),
+
+  /**
    * Coordenadas de exemplo — imóvel próximo ao Açude de Orós (CE)
    * Escolhido por estar em área de Caatinga sem conflitos
    */

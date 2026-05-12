@@ -6,7 +6,6 @@
  */
 
 import { CONFIG } from '../utils/config.js';
-//import { state } from '../utils/state.js';
 import { log, warn, updateSicorStatus } from '../components/ui.js';
 import { bboxIntersects } from '../utils/geo.js';
 
