@@ -1,12 +1,47 @@
+<?php
+/**
+ * @file index.php
+ * @description Entry point dinâmico do GlebasNord.
+ */
+require_once 'api/Database.php';
+
+try {
+  $db = Database::getInstance();
+  $settings = $db->getSettings();
+} catch (Exception $e) {
+  $settings = [];
+}
+
+// Item 3: Modo Manutenção
+if (($settings['MAINTENANCE_MODE'] ?? '0') === '1') {
+  include 'admin/maintenance.php'; // Vou criar este arquivo simples
+  exit;
+}
+
+// Fallbacks para SEO
+$siteTitle = $settings['SEO_TITLE'] ?? 'GlebasNord | Auditoria de Glebas e Crédito Rural';
+$siteDesc = $settings['SEO_DESCRIPTION'] ?? 'Análise automatizada de conformidade ambiental e BACEN para o Nordeste.';
+?>
 <!DOCTYPE html>
 <html lang="pt-BR" data-bs-theme="light">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GlebasNord — Cálculo e análise de glebas da Região Nordeste</title>
-  <meta name="description"
-    content="Ferramenta gratuita de cálculo de glebas da região Nordeste. Validação BACEN/SICOR, verificação de Terras Indígenas, UCs, embargos IBAMA, CAR e mais. Importe KML, Shapefile ou desenhe no mapa." />
+  <title><?php echo htmlspecialchars($siteTitle); ?></title>
+  <meta name="description" content="<?php echo htmlspecialchars($siteDesc); ?>" />
+  <meta name="keywords" content="<?php echo htmlspecialchars($settings['SEO_KEYWORDS'] ?? ''); ?>" />
+
+  <?php if (!empty($settings['SEO_ANALYTICS_ID'])): ?>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo $settings['SEO_ANALYTICS_ID']; ?>"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      gtag('js', new Date());
+      gtag('config', '<?php echo $settings['SEO_ANALYTICS_ID']; ?>');
+    </script>
+  <?php endif; ?>
   <!-- Canonical -->
   <link rel="canonical" href="https://glebasnord.com.br/" />
   <!-- Open Graph / Social (muito importante para compartilhamento) -->
@@ -15,8 +50,7 @@
     content="Ferramenta completa para cálculo de área, perímetro, conformidade BACEN/SICOR e análise geoespacial de glebas rurais." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://glebasnord.com.br/" />
-  <meta property="og:image" content="https://glebasnord.com.br/img/og-image.jpg" />
-  <!-- Crie uma imagem atrativa 1200x630 -->
+  <meta property="og:image" content="https://glebasnord.com.br/img/og-image.jpg" /><!-- imagem atrativa 1200x630 -->
   <!-- Twitter Cards -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="GlebasNord - Cálculo de Glebas" />
@@ -24,8 +58,11 @@
     content="Ferramenta completa para cálculo de área, perímetro, conformidade BACEN/SICOR e análise geoespacial de glebas rurais." />
   <meta name="twitter:image" content="https://glebasnord.com.br/img/og-image.jpg" />
   <meta property="og:locale" content="pt_BR" />
-  <link rel="icon" href="favicon-16x16.png" />
-  <link rel="apple-touch-icon" href="favicon-16x16.png" />
+  <link rel="icon" href="img/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="img/apple-touch-icon-iphone-60x60.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="img/apple-touch-icon-ipad-76x76.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="img/apple-touch-icon-iphone-retina-120x120.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="img/apple-touch-icon-ipad-retina-152x152.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
@@ -35,14 +72,25 @@
 
 <body>
 
+  <?php if (($settings['GLOBAL_BANNER_SHOW'] ?? '0') === '1'): ?>
+  <!-- Item 3: Banner de Aviso Global -->
+  <div class="alert alert-warning alert-dismissible fade show rounded-0 mb-0 border-0 shadow-sm" role="alert" style="z-index: 1100; position: relative;">
+    <div class="container-fluid px-3 d-flex align-items-center gap-2">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <strong>Aviso:</strong> <?php echo htmlspecialchars($settings['GLOBAL_BANNER_MSG'] ?? ''); ?>
+      <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  </div>
+  <?php endif; ?>
+
   <!-- ══════════════════════════════════════════════════════════════
      NAVBAR
 ══════════════════════════════════════════════════════════════ -->
   <nav class="navbar navbar-expand-lg bg-dark navbar-dark" data-bs-theme="dark">
     <div class="container-fluid px-3">
-      <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="./">
         <img src="img/logo.png" alt="GlebasNord Logo">
-        <span class="fw-bold fs-4 text-white">GlebasNord</span>
+        <h1 class="fw-bold fs-4 text-white mb-0" style="font-size: 1.5rem;">GlebasNord</h1>
       </a>
 
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
@@ -319,13 +367,13 @@
               <textarea id="coordenadas" class="form-control font-monospace coord-area rounded-3 border-2" rows="8"
                 placeholder="Exemplo:&#10;1 1 -6.2410 -38.9140&#10;1 2 -6.2410 -38.8980&#10;1 3 -6.2270 -38.8980&#10;1 4 -6.2270 -38.9140&#10;1 5 -6.2410 -38.9140"
                 spellcheck="false" autocorrect="off" autocapitalize="off" style="font-size: 0.9rem"></textarea>
-              <!--  Habilitar Somente em Ambiente de Desenvolvimento/Teste
+              <!--  Habilitar Somente em Ambiente de Desenvolvimento/Teste-->
               <div class="d-flex align-items-center gap-2 mt-3 flex-wrap">
                 <button id="inserirExemplo" class="btn btn-outline-secondary btn-sm px-3 ">
                   <i class="bi bi-lightbulb me-1"></i>Exemplo (Orós/CE)
                 </button>
                 <small class="text-muted border-start ps-2">lat [−18,−1] | lon [−48,−34]</small>
-              </div>-->
+              </div>
             </div>
 
             <!-- Tab Upload -->
@@ -651,7 +699,7 @@
               <circle cx="12" cy="12" r="3" />
             </svg>
             <h5 class="fw-bold mt-3 mb-1">GlebasNord <span class="badge bg-primary ms-1"
-                style="font-size: 0.6rem">v3.6.9</span></h5>
+                style="font-size: 0.6rem">v3.7.1</span></h5>
             <p class="text-muted small">Cálculo e análise de glebas rurais no Nordeste</p>
           </div>
 
@@ -697,37 +745,6 @@
   <script src="https://unpkg.com/leaflet-image@0.4.0/leaflet-image.js"></script>
   <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
   <script type="module" src="js/main.js"></script>
-
-  <script>
-    /* Drag-and-drop na upload zone (sem dep. de módulo) */
-    document.addEventListener('DOMContentLoaded', function () {
-      const zone = document.getElementById('uploadZone');
-      const input = document.getElementById('fileUpload');
-      if (!zone || !input) return;
-
-      zone.addEventListener('click', () => input.click());
-      zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') input.click(); });
-      zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-      zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-      zone.addEventListener('drop', e => {
-        e.preventDefault(); zone.classList.remove('drag-over');
-        const file = e.dataTransfer?.files?.[0];
-        if (!file) return;
-        try {
-          const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-        } catch (_) { alert('Arraste não suportado. Use o botão de seleção.'); }
-      });
-
-      /* Após upload de arquivo, volta para aba Manual */
-      input.addEventListener('change', () => {
-        setTimeout(() => {
-          const btn = document.getElementById('tab-manual-btn');
-          if (btn) bootstrap.Tab.getOrCreateInstance(btn).show();
-        }, 600);
-      });
-    });
-  </script>
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",

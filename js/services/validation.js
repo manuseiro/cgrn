@@ -98,9 +98,28 @@ function parseRawText(text) {
     const line = raw.trim();
     if (!line) return;
 
-    const parts = line.split(/[\s,;]+/);
+    // Estratégia de detecção de separador e tratamento de vírgula decimal
+    let parts;
+    if (line.includes(';')) {
+      // Caso 1: Semicolon (comum no Brasil com vírgula decimal)
+      parts = line.split(';').map(p => p.trim().replace(',', '.'));
+    } else if (line.includes('\t')) {
+      // Caso 2: Tabulação
+      parts = line.split('\t').map(p => p.trim().replace(',', '.'));
+    } else {
+      // Caso 3: Espaços ou Vírgulas
+      // Primeiro tentamos espaços (se houver pelo menos 3 espaços, prováveis 4 colunas)
+      const spaceParts = line.split(/\s+/).filter(p => p.length > 0);
+      if (spaceParts.length >= 4) {
+        parts = spaceParts.map(p => p.trim().replace(',', '.'));
+      } else {
+        // Caso 4: Vírgula como separador (formato CSV clássico)
+        parts = line.split(',').map(p => p.trim());
+      }
+    }
+
     if (parts.length < 4) {
-      errors.push(`Linha ${i + 1}: esperado 4 valores.`);
+      errors.push(`Linha ${i + 1}: formato inválido. Use espaço, ';' ou tab para separar Gleba, Ponto, Lat e Lon.`);
       return;
     }
 
@@ -109,7 +128,7 @@ function parseRawText(text) {
     const lon = Number(parts[3]);
 
     if ([glebaId, lat, lon].some(isNaN)) {
-      errors.push(`Linha ${i + 1}: valores não numéricos.`);
+      errors.push(`Linha ${i + 1}: valores não numéricos encontrados.`);
       return;
     }
 
@@ -117,11 +136,7 @@ function parseRawText(text) {
     const fixedLat = Number(lat.toFixed(COORD_PRECISION));
     const fixedLon = Number(lon.toFixed(COORD_PRECISION));
 
-    if (fixedLat < NORDESTE.latMin || fixedLat > NORDESTE.latMax ||
-      fixedLon < NORDESTE.lngMin || fixedLon > NORDESTE.lngMax) {
-      errors.push(`Linha ${i + 1}: coordenadas fora do Nordeste.`);
-      return;
-    }
+    // Removido bloqueio regional aqui — a validação agora ocorre em validateSingleGleba como aviso.
 
     if (!glebaMap.has(glebaId)) glebaMap.set(glebaId, []);
     glebaMap.get(glebaId).push([fixedLon, fixedLat]);
@@ -193,6 +208,19 @@ function validateSingleGleba(glebaId, points, validarPontos, allWarnings) {
   }
 
   const polyBbox = turf.bbox(poly);
+
+  // Verificação regional (Apenas aviso, não impede a busca conforme solicitado pelo usuário)
+  const isNordeste = points.every(([lon, lat]) => 
+    lat >= NORDESTE.latMin && lat <= NORDESTE.latMax &&
+    lon >= NORDESTE.lngMin && lon <= NORDESTE.lngMax
+  );
+
+  if (!isNordeste) {
+    allWarnings.push(
+      `<i class="bi bi-geo-alt-fill text-warning"></i> Gleba ${glebaId}: coordenadas localizadas fora da região de cobertura total (Nordeste/SUDENE). Análises ambientais podem ser parciais.`
+    );
+  }
+
   const { municipios, semiArido } = findMunicipios(points, polyBbox, validarPontos);
 
   if (validarPontos && municipios.size > MAX_MUNICIPIOS) {

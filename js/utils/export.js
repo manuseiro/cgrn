@@ -28,44 +28,25 @@ function ts() {
 // ─── CSV ──────────────────────────────────────────────────────────────────
 
 export function exportToCSV(glebas) {
-  if (!glebas.length) { showToast('Nenhuma gleba para exportar.','warning'); return; }
+  if (!glebas.length) { showToast('Nenhuma gleba para exportar.', 'warning'); return; }
 
-  const headers = [
-    'Gleba','Área (ha)','Perímetro (m)','Municípios','Semiárido',
-    'Bioma','TI Sobreposição','TI Nomes',
-    'UC Integral','Embargo IBAMA','Desmatamento PRODES',
-    'Conformidade BACEN','Centroid Lat','Centroid Lon',
-  ];
+  const header = 'Gleba;Ponto;Lat;Lon';
+  const rows = [];
 
-  const rows = glebas.map(g => {
-    const conf = state.conformidade.get(g.glebaId);
-    return [
-      g.glebaId,
-      g.area.toFixed(2),
-      g.perimeter.toFixed(2),
-      g.municipioCount,
-      g.semiArido === true ? 'Sim' : g.semiArido === false ? 'Não' : '—',
-      g.bioma ?? '—',
-      g.tiIntersecoes?.length ? 'Sim' : 'Não',
-      g.tiIntersecoes?.map(t=>t.nome).join('; ') ?? '',
-      conf?.itens?.find(i=>i.id==='uc_integral')?.status ?? '—',
-      conf?.itens?.find(i=>i.id==='embargo')?.status ?? '—',
-      conf?.itens?.find(i=>i.id==='desmatamento')?.status ?? '—',
-      conf?.sintese ?? 'Não verificado',
-      g.centroid[1].toFixed(8),
-      g.centroid[0].toFixed(8),
-    ];
+  glebas.forEach(g => {
+    // g.coords é um array de [lat, lon]
+    g.coords.forEach((coord, i) => {
+      const lat = coord[0].toString().replace('.', ',');
+      const lon = coord[1].toString().replace('.', ',');
+      rows.push(`${g.glebaId};${i + 1};${lat};${lon}`);
+    });
   });
 
-  const totalArea = glebas.reduce((s,g)=>s+g.area, 0);
-  rows.push(['TOTAL', totalArea.toFixed(2), '', glebas.length+' gleba(s)','','','','','','','','','','']);
+  const csv = [header, ...rows].join('\r\n');
 
-  const csv = [headers, ...rows]
-    .map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','))
-    .join('\r\n');
-
-  const blob = new Blob(['\uFEFF'+csv], { type:'text/csv;charset=utf-8;' });
-  triggerDownload(URL.createObjectURL(blob), `glebas_${ts()}.csv`);
+  // Adiciona o BOM (\uFEFF) para que o Excel identifique como UTF-8 e trate os caracteres corretamente
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  triggerDownload(URL.createObjectURL(blob), `glebas_coordenadas_${ts()}.csv`);
 }
 
 // ─── GeoJSON ──────────────────────────────────────────────────────────────

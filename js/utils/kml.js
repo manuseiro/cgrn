@@ -12,7 +12,7 @@
 import { CONFIG } from './config.js';
 import { log, warn, showToast, setCoordText } from '../components/ui.js';
 
-const { COORD_PRECISION } = CONFIG.VALIDATION;
+// Usando CONFIG.VALIDATION.COORD_PRECISION dinamicamente nas funções de exportação
 
 // ─── KML IMPORT ──────────────────────────────────────────────────────────────
 
@@ -98,7 +98,7 @@ export function kmlToCoordText(kmlText) {
 
     // Gera linhas no formato: glebaId pontoId lat lon
     pontos.forEach(([lat, lon], i) => {
-      lines.push(`${glebaId} ${i + 1} ${lat.toFixed(COORD_PRECISION)} ${lon.toFixed(COORD_PRECISION)}`);
+      lines.push(`${glebaId} ${i + 1} ${lat.toFixed(CONFIG.VALIDATION.COORD_PRECISION)} ${lon.toFixed(CONFIG.VALIDATION.COORD_PRECISION)}`);
     });
 
     log(`KML: gleba ${glebaId} "${nome}" com ${pontos.length} pontos`);
@@ -156,7 +156,7 @@ export function glebesToKML(glebas, projectName = 'Glebas CGRN') {
 
     // Coordenadas KML: lon,lat,altitude
     const coords = g.geoJsonCoords
-      .map(([lon, lat]) => `${lon.toFixed(COORD_PRECISION)},${lat.toFixed(COORD_PRECISION)},0`)
+      .map(([lon, lat]) => `${lon.toFixed(CONFIG.VALIDATION.COORD_PRECISION)},${lat.toFixed(CONFIG.VALIDATION.COORD_PRECISION)},0`)
       .join('\n          ');
 
     // Metadados para o balão
@@ -187,7 +187,7 @@ export function glebesToKML(glebas, projectName = 'Glebas CGRN') {
         </table>
         <div style="margin-top:10px; font-size:10px; color:#999; border-top:1px solid #eee; pt-5px;">
           Exportado pelo GlebasNord em ${now}<br>
-          Coordenadas: ${g.centroid[1].toFixed(5)}, ${g.centroid[0].toFixed(5)}
+          Coordenadas: ${g.centroid[1].toFixed(CONFIG.VALIDATION.COORD_PRECISION)}, ${g.centroid[0].toFixed(CONFIG.VALIDATION.COORD_PRECISION)}
         </div>
       </div>
     ]]>`;

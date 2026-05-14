@@ -1,10 +1,10 @@
 /**
- * @file main.js — v3.6.8
+ * @file main.js — v3.7.1
  * @description Orquestrador principal da aplicação CGRN.
  *
  */
 
-import { CONFIG } from './utils/config.js';
+import { CONFIG, syncConfig } from './utils/config.js';
 import { state } from './utils/state.js';
 import {
   initMap, renderPolygons, renderMarkers, renderCentroids,
@@ -44,15 +44,17 @@ import {
 import { loadICMBIO, setICMBioVisible } from './services/icmbio.js';
 import { loadIBAMA, setIbamaVisible } from './services/ibama.js';
 import { loadSicorData } from './services/sicor.js';
+import { loadCustomLayers } from './services/layers.js';
 import { verificarConformidade, CHECKS } from './services/conformidade.js';
 import { modals } from './components/modal.js';
-const { COORD_PRECISION } = CONFIG.VALIDATION;
+// Coordenadas dinâmicas do CONFIG.VALIDATION serão usadas diretamente nas funções
 //let searchTimeout; - variável já declarada dentro de bindEvents()
 
 // ─── Boot ─────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
-  log('CGRN v3.6.8 inicializando...');
+  log('CGRN v3.6.9 inicializando...');
+  await syncConfig(); // Sincroniza parâmetros com o DB
   modals.init();
   initMap();
   bindEvents();
@@ -67,7 +69,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadICMBIO(),
     loadIBAMA(),
     loadBioma(),
-    loadSicorData(),   // ← novo — inicia download em paralelo no boot
+    loadSicorData(),
+    loadCustomLayers(state.map),
   ]);
 
   log('CGRN pronto ✅');
@@ -318,9 +321,9 @@ function bindEvents() {
     if (!pts || !pts.length) return;
 
     const nextGid = state.glebas.reduce((max, g) => g.glebaId > max ? g.glebaId : max, 0) + 1;
-    const lines = pts.map((ll, i) => `${nextGid} ${i + 1} ${ll.lat.toFixed(COORD_PRECISION)} ${ll.lng.toFixed(COORD_PRECISION)}`);
+    const lines = pts.map((ll, i) => `${nextGid} ${i + 1} ${ll.lat.toFixed(CONFIG.VALIDATION.COORD_PRECISION)} ${ll.lng.toFixed(CONFIG.VALIDATION.COORD_PRECISION)}`);
     // Fecha o polígono
-    lines.push(`${nextGid} ${lines.length + 1} ${pts[0].lat.toFixed(COORD_PRECISION)} ${pts[0].lng.toFixed(COORD_PRECISION)}`);
+    lines.push(`${nextGid} ${lines.length + 1} ${pts[0].lat.toFixed(CONFIG.VALIDATION.COORD_PRECISION)} ${pts[0].lng.toFixed(CONFIG.VALIDATION.COORD_PRECISION)}`);
 
     setCoordText(current ? current.trim() + '\n' + lines.join('\n') : lines.join('\n'));
     clearMessage();
@@ -338,10 +341,10 @@ function bindEvents() {
       const latlngs = Array.isArray(pts[0]) ? pts[0] : pts;
 
       latlngs.forEach((ll, i) => lines.push(
-        `${gid} ${i + 1} ${ll.lat.toFixed(COORD_PRECISION)} ${ll.lng.toFixed(COORD_PRECISION)}`
+        `${gid} ${i + 1} ${ll.lat.toFixed(CONFIG.VALIDATION.COORD_PRECISION)} ${ll.lng.toFixed(CONFIG.VALIDATION.COORD_PRECISION)}`
       ));
       // Garante fechamento do polígono
-      lines.push(`${gid} ${latlngs.length + 1} ${latlngs[0].lat.toFixed(COORD_PRECISION)} ${latlngs[0].lng.toFixed(COORD_PRECISION)}`);
+      lines.push(`${gid} ${latlngs.length + 1} ${latlngs[0].lat.toFixed(CONFIG.VALIDATION.COORD_PRECISION)} ${latlngs[0].lng.toFixed(CONFIG.VALIDATION.COORD_PRECISION)}`);
     });
     setCoordText(lines.join('\n'));
     state.cache.clear();
@@ -418,11 +421,11 @@ function bindEvents() {
       seedCarCache(nextGid, carData);
 
       const lines = feat.map((ll, i) =>
-        `${nextGid} ${i + 1} ${ll[1].toFixed(COORD_PRECISION)} ${ll[0].toFixed(COORD_PRECISION)}`
+        `${nextGid} ${i + 1} ${ll[1].toFixed(CONFIG.VALIDATION.COORD_PRECISION)} ${ll[0].toFixed(CONFIG.VALIDATION.COORD_PRECISION)}`
       );
       const f = feat[0], l = feat[feat.length - 1];
       if (f[0] !== l[0] || f[1] !== l[1]) {
-        lines.push(`${nextGid} ${lines.length + 1} ${f[1].toFixed(COORD_PRECISION)} ${f[0].toFixed(COORD_PRECISION)}`);
+        lines.push(`${nextGid} ${lines.length + 1} ${f[1].toFixed(CONFIG.VALIDATION.COORD_PRECISION)} ${f[0].toFixed(CONFIG.VALIDATION.COORD_PRECISION)}`);
       }
       const current = getCoordText();
       setCoordText(current ? current + '\n' + lines.join('\n') : lines.join('\n'));
@@ -477,6 +480,25 @@ async function processAndRender(opts = {}) {
 
     state.glebas = glebas;
     renderPolygons(state.glebas);
+
+    // Item 6: BI - Registrar telemetria para o Mapa de Calor
+    if (glebas.length > 0) {
+      try {
+        const center = turf.center(turf.featureCollection(glebas.map(g => g.turfPolygon))).geometry.coordinates;
+        const mainMun = glebas[0].municipios?.[0] || 'Desconhecido';
+        
+        fetch('api/log_event.php', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'ADD_GLEBA',
+            details: `Gleba em ${mainMun}. Total: ${glebas.length}`,
+            lat: center[1],
+            lon: center[0]
+          })
+        });
+      } catch (e) { console.warn('Falha na telemetria BI', e); }
+    }
+
     if (state.showMarkers) renderMarkers(state.glebas);
     if (state.showCentroids) renderCentroids(state.glebas);
     renderResultsTable(state.glebas);
@@ -584,8 +606,8 @@ async function runConformidade(glebas) {
   if (state.isProcessing) return;
   state.isProcessing = true;
 
-  const btn = document.getElementById('btnConformidade');
-  if (btn) setButtonLoading(btn, 'Verificando...');
+  const btnsConformidade = document.querySelectorAll('[data-action="conformidade"], #btnConformidadeModal');
+  btnsConformidade.forEach(b => setButtonLoading(b, 'Verificando...'));
 
   const loadingToast = showToast('Verificando conformidade BACEN/SICOR. Isso consulta bases nacionais (ICMBio, IBAMA, SICAR) e pode levar alguns segundos...', 'info', 0);
 
@@ -596,7 +618,7 @@ async function runConformidade(glebas) {
 
     const aprovadas = resultados.filter(r => r.status === 'fulfilled' && !r.value.reprovada).length;
     const reprovadas = resultados.filter(r => r.status === 'fulfilled' && r.value.reprovada).length;
-    const pendentes = resultados.filter(r => r.status === 'rejected').length;
+    const pendentes = resultados.filter(r => r.status === 'fulfilled' && r.value.temPendente).length;
 
     renderResultsTable(state.glebas);
     modals.open('resultadosModal');
@@ -608,8 +630,8 @@ async function runConformidade(glebas) {
     showToast(msg, reprovadas > 0 ? 'danger' : 'success', 8000);
 
   } finally {
-    if (loadingToast?.hide) loadingToast.hide(); // Fecha o toast de loading
-    if (btn) setButtonNormal(btn);
+    if (loadingToast?.hide) loadingToast.hide();
+    btnsConformidade.forEach(b => setButtonNormal(b));
     state.isProcessing = false;
   }
 }
@@ -883,7 +905,7 @@ async function searchCARByCode() {
 function editarGleba(glebaId) {
   const g = state.glebas.find(g => g.glebaId === glebaId);
   if (!g) return;
-  const lines = g.coords.map(([lat, lon], i) => `${glebaId} ${i + 1} ${lat.toFixed(COORD_PRECISION)} ${lon.toFixed(COORD_PRECISION)}`);
+  const lines = g.coords.map(([lat, lon], i) => `${glebaId} ${i + 1} ${lat.toFixed(CONFIG.VALIDATION.COORD_PRECISION)} ${lon.toFixed(CONFIG.VALIDATION.COORD_PRECISION)}`);
   if (el.glebaEditArea) el.glebaEditArea.value = lines.join('\n');
   if (el.editGlebaId) el.editGlebaId.value = String(glebaId);
   const lbl = document.getElementById('editarGlebaModalLabel');

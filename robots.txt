@@ -1,4 +1,3 @@
-robots.txt
 User-agent: *
 Allow: /
 Sitemap: https://glebasnord.com.br/sitemap.xml

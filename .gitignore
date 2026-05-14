@@ -1,4 +1,11 @@
 # Ignorar uma pasta inteira
 documentos
+scratch
 # Ignorar um arquivo específico
-api/cache/*json
+api/.env.php
+api/cache/*.json
+api/cache/*.xml
+gerarsenha.php
+database.sql
+robots.txt
+sitemap.xml

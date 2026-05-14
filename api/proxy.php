@@ -58,25 +58,18 @@ if (!$targetUrl) {
     exit;
 }
 
-// Lista de domínios permitidos (White-list por segurança)
-$allowedDomains = [
-    'car.gov.br',
-    'geoserver.car.gov.br',
-    'ibama.gov.br',
-    'siscom.ibama.gov.br',
-    'ibge.gov.br',
-    'servicodados.ibge.gov.br',
-    'geoservicos.ibge.gov.br',
-    'geoservicos.inde.gov.br',
-    'geoservices.icmbio.gov.br',
-    'geoserver.funai.gov.br',
-    'manuseiro.github.io',
-    'terrabrasilis.dpi.inpe.br',
-    'www.bcb.gov.br',
-    'bcb.gov.br',
-    'olinda.bcb.gov.br',
-    'glebasnord.com.br',
-];
+// ── Conexão com Banco de Dados (Ambiente Admin) ───────────────────────────
+try {
+    require_once __DIR__ . '/Database.php';
+    $db = Database::getInstance();
+    $allowedDomains = $db->getAllowedDomains();
+} catch (Exception $e) {
+    // Fallback de segurança: domínios vitais caso o banco esteja offline
+    $allowedDomains = [
+        'car.gov.br', 'geoserver.car.gov.br', 'ibama.gov.br', 
+        'siscom.ibama.gov.br', 'bcb.gov.br', 'manuseiro.github.io'
+    ];
+}
 
 $parsedUrl = parse_url($targetUrl);
 $host = $parsedUrl['host'] ?? '';
@@ -84,7 +77,11 @@ $host = $parsedUrl['host'] ?? '';
 if (!in_array($host, $allowedDomains)) {
     http_response_code(403);
     header('Content-Type: application/json');
-    echo json_encode(['error' => 'Domínio não autorizado pelo proxy.', 'host' => $host]);
+    echo json_encode([
+        'error' => 'Domínio não autorizado pelo proxy.', 
+        'host' => $host,
+        'info' => 'Adicione este domínio no Painel Administrativo.'
+    ]);
     exit;
 }
 

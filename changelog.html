@@ -4,10 +4,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Changelog - GlebasNord</title>
+  <title>Changelog | GlebasNord - Cálculo e análise de glebas da Região Nordeste </title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="css/style.css">
+  <meta name="description"
+    content="Histórico de versões do GlebasNord: veja as novidades, correções e melhorias de cada release da ferramenta de análise de glebas rurais." />
+  <link rel="canonical" href="https://glebasnord.com.br/changelog.html" />
+  <meta property="og:title" content="Changelog | GlebasNord - Cálculo e análise de glebas da Região Nordeste" />
+  <meta property="og:description" content="Histórico de versões e melhorias do GlebasNord." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://glebasnord.com.br/changelog.html" />
+  <meta property="og:image" content="https://glebasnord.com.br/img/og-image.jpg" />
+  <meta property="og:locale" content="pt_BR" />
+  <link rel="icon" href="img/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="img/apple-touch-icon-iphone-60x60.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="img/apple-touch-icon-ipad-76x76.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="img/apple-touch-icon-iphone-retina-120x120.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="img/apple-touch-icon-ipad-retina-152x152.png">
   <style>
     html,
     body {
@@ -77,11 +91,12 @@
     <div class="container-fluid px-4 py-3">
       <!-- Navbar consistente -->
       <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm mb-4 rounded-4 px-3">
-        <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="./">
+          <img src="img/logo.png" alt="GlebasNord Logo" style="height: 32px;">
           <span class="fw-bold fs-4">GlebasNord</span>
         </a>
         <div class="ms-auto">
-          <a href="/" class="btn btn-outline-light btn-sm px-3">
+          <a href="./" class="btn btn-outline-light btn-sm px-3">
             <i class="bi bi-arrow-left me-2"></i>Voltar ao App
           </a>
         </div>
@@ -94,11 +109,51 @@
         </div>
 
         <div class="timeline">
+          <!-- Versão 3.7.1 -->
+          <div class="timeline-item">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-success version-badge">v3.7.1</span>
+              <span class="text-muted small">14/05/2026 (Atual)</span>
+            </div>
+            <div class="card border-0 shadow-sm rounded-4">
+              <div class="card-body p-4">
+                <h5 class="fw-bold mb-3 text-primary">Admin BI & Segurança Avançada</h5>
+                <ul class="mb-0 small">
+                  <li><strong>Central de Health Check:</strong> Monitoramento em tempo real da saúde das APIs externas (SICAR, IBAMA, ICMBio, INPE).</li>
+                  <li><strong>Business Intelligence (BI):</strong> Novo mapa de calor e ranking de demanda por município integrado ao painel admin.</li>
+                  <li><strong>Gestão de Camadas:</strong> Interface administrativa para adicionar camadas personalizadas (WMS/GeoJSON) sem alteração de código.</li>
+                  <li><strong>Proteção de Segurança:</strong> Implementação de bloqueio de IP por tentativas falhas de login (Brute Force Protection).</li>
+                  <li><strong>Auditoria Dinâmica:</strong> Novos filtros de busca por IP e Ação nos logs de auditoria do dashboard.</li>
+                  <li><strong>Manutenção Automatizada:</strong> Ferramentas integradas para limpeza de logs antigos e otimização de cache.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Versão 3.6.9 -->
+          <div class="timeline-item">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-secondary version-badge">v3.6.9</span>
+              <span class="text-muted small">13/05/2026</span>
+            </div>
+            <div class="card border-0 shadow-sm rounded-4">
+              <div class="card-body p-4">
+                <h5 class="fw-bold mb-3 text-primary">SEO e Refinamento de Interface</h5>
+                <ul class="mb-0 small">
+                  <li><strong>Otimização de SEO:</strong> Implementação de hierarquia de títulos semânticos (H1) e
+                    melhorias em metatags para indexação.</li>
+                  <li><strong>Consistência Visual:</strong> Padronização da identidade visual e logos em todas as
+                    páginas do sistema.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
           <!-- Versão 3.6.8 -->
           <div class="timeline-item">
             <div class="d-flex align-items-center gap-2 mb-2">
-              <span class="badge bg-success version-badge">v3.6.8</span>
-              <span class="text-muted small">09/05/2026 (Atual)</span>
+              <span class="badge bg-secondary version-badge">v3.6.8</span>
+              <span class="text-muted small">09/05/2026</span>
             </div>
             <div class="card border-0 shadow-sm rounded-4">
               <div class="card-body p-4">

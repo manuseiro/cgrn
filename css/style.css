@@ -5,12 +5,20 @@
 
 /* ─── Variáveis ─────────────────────────────────────────────── */
 :root {
-  --cgrn-accent: #448aff;
+  --cgrn-primary: #B9770E;  /* Ocre Solo / Ouro Velho */
+  --cgrn-secondary: #27AD60; /* Verde Mata / Agricultura */
+  --cgrn-accent: #D35400;   /* Terracota / Sertão */
+  --cgrn-bg-light: #FDFEFE; 
   --cgrn-nav-h: 56px;
   --cgrn-status-h: 32px;
-  --cgrn-radius: 10px;
-  --cgrn-shadow: 0 2px 16px rgba(0, 0, 0, .13);
+  --cgrn-radius: 12px;
+  --cgrn-shadow: 0 4px 20px rgba(185, 119, 14, .12);
   --cgrn-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace;
+  
+  /* Sobrescrevendo Bootstrap Primário */
+  --bs-primary: var(--cgrn-primary);
+  --bs-primary-rgb: 185, 119, 14;
+  --bs-link-color: var(--cgrn-primary);
 }
 
 [data-bs-theme="dark"] {
@@ -141,8 +149,8 @@ body {
 
 .upload-zone:hover,
 .upload-zone.drag-over {
-  border-color: var(--cgrn-accent);
-  background: color-mix(in srgb, var(--cgrn-accent) 5%, transparent);
+  border-color: var(--cgrn-primary);
+  background: color-mix(in srgb, var(--cgrn-primary) 5%, transparent);
 }
 
 /* Esmaece instrucoes durante drag */
@@ -178,7 +186,7 @@ body {
 }
 
 #carSearchCode:focus {
-  box-shadow: 0 0 0 .2rem rgba(13, 110, 253, .15);
+  box-shadow: 0 0 0 .2rem rgba(185, 119, 14, .15);
 }
 
 #carProgressBar {
@@ -213,7 +221,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-size: 0.62rem;
-  color: var(--bs-primary);
+  color: var(--cgrn-primary);
 }
 
 .results-table tbody tr:nth-of-type(odd) {
@@ -225,7 +233,7 @@ body {
 }
 
 .results-table tbody tr:hover {
-  background-color: rgba(68, 138, 255, 0.05) !important;
+  background-color: rgba(185, 119, 14, 0.05) !important;
 }
 
 /* Badges Modernos */
@@ -586,7 +594,7 @@ body {
 }
 
 #adicionarGleba .nav.nav-pills .nav-link.active {
-  color: var(--bs-primary);
+  color: var(--cgrn-primary);
   background: var(--bs-modal-bg, #fff);
   border-color: var(--bs-border-color) var(--bs-border-color) var(--bs-modal-bg, #fff);
   font-weight: 600;

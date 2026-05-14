@@ -12,17 +12,22 @@
  *  • Drag-and-drop funcional na uploadZone
  */
 
+import { CONFIG } from '../utils/config.js';
 import { setCoordText, showMessage, showToast, log, warn } from '../components/ui.js';
 import { kmlToCoordText } from '../utils/kml.js';
 import { shapefileToCoordText } from '../utils/shapefile.js';
 
 // ─── Limites de tamanho (bytes) ───────────────────────────────────────────────
-const MAX_SIZES = Object.freeze({
-  csv: 10 * 1024 * 1024,  //  10 MB
-  txt: 10 * 1024 * 1024,  //  10 MB
-  kml: 20 * 1024 * 1024,  //  20 MB
-  zip: 50 * 1024 * 1024,  //  50 MB
-});
+const getMaxSize = (ext) => {
+  const cfg = CONFIG.UPLOAD;
+  const mapping = {
+    csv: cfg.MAX_CSV_BYTES,
+    txt: cfg.MAX_TXT_BYTES, // usa o mesmo do csv como padrão
+    kml: cfg.MAX_KML_BYTES,
+    zip: cfg.MAX_ZIP_BYTES
+  };
+  return mapping[ext] || (10 * 1024 * 1024); // fallback 10MB
+};
 
 const EXT_ICONS = Object.freeze({
   csv: 'bi-file-earmark-spreadsheet-fill',
@@ -47,7 +52,7 @@ function showFileInfo(file, ext) {
   const el = getEl('uploadFileInfo');
   if (!el) return;
 
-  const maxSize = MAX_SIZES[ext] ?? 10485760;
+  const maxSize = getMaxSize(ext);
   const overLimit = file.size > maxSize;
   const icon = EXT_ICONS[ext] ?? 'bi-file-earmark';
 
@@ -164,7 +169,7 @@ async function processFile(file) {
   showFileInfo(file, ext);
 
   // 2. Rejeita antes de ler se exceder o limite
-  const maxSize = MAX_SIZES[ext] ?? 10485760;
+  const maxSize = getMaxSize(ext);
   if (file.size > maxSize) {
     showMessage([
       '<i class="bi bi-exclamation-octagon-fill me-1"></i><strong>Arquivo muito grande:</strong> ' + formatBytes(file.size),
@@ -191,27 +196,31 @@ async function processFile(file) {
       showProgress(95, 'Finalizando...');
 
     } else {
+      // Para KML, CSV e TXT, lemos o texto primeiro
       var text = await readTextWithProgress(file, function (pct) {
         showProgress(pct * 0.35, 'Lendo arquivo... ' + pct + '%');
       });
 
-      showProgress(38, 'Enviando para processamento...');
+      if (ext === 'kml') {
+        showProgress(40, 'Processando KML...');
+        var kmlRes = kmlToCoordText(text);
+        normalized = kmlRes.text; 
+        count = kmlRes.count; 
+        errors = kmlRes.errors;
 
-      try {
-        var result = await parseWithWorker(ext, text, function (prog) {
-          showProgress(38 + Math.round(prog.pct * 0.57), prog.message);
-        });
-        normalized = result.text;
-        count = result.count;
-        errors = result.errors;
+      } else {
+        // csv | txt - utiliza Web Worker para arquivos pesados
+        try {
+          var result = await parseWithWorker(ext, text, function (prog) {
+            showProgress(38 + Math.round(prog.pct * 0.57), prog.message);
+          });
+          normalized = result.text;
+          count = result.count;
+          errors = result.errors;
 
-      } catch (workerErr) {
-        warn('[upload] Worker falhou, usando main thread:', workerErr.message);
-        showProgress(40, 'Processando (modo compatibilidade)...');
-        if (ext === 'kml') {
-          var kmlRes = kmlToCoordText(text);
-          normalized = kmlRes.text; count = kmlRes.count; errors = kmlRes.errors;
-        } else {
+        } catch (workerErr) {
+          warn('[upload] Worker falhou, usando main thread:', workerErr.message);
+          showProgress(40, 'Processando (modo compatibilidade)...');
           normalized = normalizeFlatFile(text, ext);
           var ids = new Set(normalized.split('\n').filter(Boolean).map(function (l) { return l.split(' ')[0]; }));
           count = ids.size;

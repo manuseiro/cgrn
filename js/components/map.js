@@ -7,24 +7,29 @@ import { CONFIG } from '../utils/config.js';
 import { state, clearGlebas } from '../utils/state.js';
 import {
   areaToColor, updateStatusCoords,
-  formatArea, formatPerimeter, log
+  formatArea, formatPerimeter, log, warn   // ← adicionar warn
 } from './ui.js';
 
 const { COORD_PRECISION } = CONFIG.VALIDATION;
 
 export function initMap() {
-  const map = L.map('map', { center: CONFIG.MAP.CENTER, zoom: CONFIG.MAP.ZOOM });
+  const map = L.map('map', { 
+    center: CONFIG.MAP.CENTER, 
+    zoom: CONFIG.MAP.ZOOM,
+    preferCanvas: true 
+  });
 
   const osmLayer = L.tileLayer(CONFIG.MAP.TILE_URL, {
     attribution: CONFIG.MAP.TILE_ATTRIBUTION, maxZoom: CONFIG.MAP.MAX_ZOOM,
+    crossOrigin: true
   });
   const darkLayer = L.tileLayer(
     'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    { attribution: '&copy; CARTO', maxZoom: 19 }
+    { attribution: '&copy; CARTO', maxZoom: 19, crossOrigin: true }
   );
   const satLayer = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    { attribution: '&copy; Esri, Maxar', maxZoom: 18 }
+    { attribution: '&copy; Esri, Maxar', maxZoom: 18, crossOrigin: true }
   );
 
   osmLayer.addTo(map);
@@ -77,15 +82,28 @@ export function renderPolygons(glebas) {
     const color = areaToColor(g.area, maxArea, g.glebaId);
     const conf = state.conformidade.get(g.glebaId);
 
-    // Borda vermelha se reprovada, amarela se alerta, azul se ok
-    const strokeColor = conf?.reprovada ? '#dc2626'
-      : g.tiIntersecoes?.length ? '#F68B1F'
-        : conf?.temAlerta ? '#F68B1F'
-          : color;
+    // Item 1: Estilos dinâmicos do banco
+    const styles = CONFIG.GLEBA_STYLES || {
+      OK:     { color: '#27AD60', opacity: 0.6 },
+      REJECT: { color: '#C0392B', opacity: 0.6 },
+      WARN:   { color: '#F1C40F', opacity: 0.6 }
+    };
+
+    const isReject = conf?.reprovada;
+    const isWarn   = (g.tiIntersecoes?.length > 0) || conf?.temAlerta;
+    
+    const activeStyle = isReject ? styles.REJECT : (isWarn ? styles.WARN : styles.OK);
+    const strokeColor = activeStyle.color;
+    const fillColor   = color; // Mantém a cor por área para o preenchimento ou usa activeStyle.color?
+    // Decidimos usar a cor do status para a borda e a cor da área (ou do status) para o preenchimento
+    // Para maior clareza visual, vamos usar a cor do status em ambos
 
     const polygon = L.polygon(g.coords, {
-      color: strokeColor, weight: 2.5, opacity: 0.5,
-      fillColor: color, fillOpacity: 0.5,
+      color: strokeColor, 
+      weight: 2.5, 
+      opacity: 0.8,
+      fillColor: activeStyle.color, 
+      fillOpacity: activeStyle.opacity,
     });
 
     polygon.bindPopup(buildPopup(g), { maxWidth: 300 });
@@ -213,7 +231,7 @@ export function renderValidationMarkers(glebas, overlapFeatures = []) {
           state.validationMarkerLayers.push(marker);
         });
       } catch (e) {
-        console.warn(`Gleba ${gleba.glebaId}: Erro ao processar autointerseções para o mapa.`, e);
+        warn(`Gleba ${gleba.glebaId}: Erro ao processar autointerseções para o mapa.`, e);
       }
     }
   });
@@ -259,7 +277,7 @@ export function renderValidationMarkers(glebas, overlapFeatures = []) {
         });
       } catch (err) { /* explode falhou para geometria simples */ }
     } catch (e) {
-      console.warn('Erro ao renderizar polígono de sobreposição:', e);
+      warn('Erro ao renderizar polígono de sobreposição:', e);
     }
   });
 

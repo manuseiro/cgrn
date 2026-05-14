@@ -216,7 +216,7 @@ const TIPO_IMOVEL_LABEL = {
 function _carCacheKey(gleba) {
   if (gleba.glebaId != null) return `car_g${gleba.glebaId}`;
   const [lon, lat] = gleba.centroid ?? [0, 0];
-  return `car_${lon.toFixed(5)}_${lat.toFixed(5)}`;
+  return `car_${lon.toFixed(CONFIG.VALIDATION.COORD_PRECISION)}_${lat.toFixed(CONFIG.VALIDATION.COORD_PRECISION)}`;
 }
 
 /**
@@ -493,25 +493,51 @@ export async function findCARByCode(codigo) {
  * @param {number} ms
  */
 async function fetchWithTimeout(url, ms) {
-  const ctrl = new AbortController();
-  const id = setTimeout(() => ctrl.abort(), ms);
-
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), ms);
   const proxiedUrl = CONFIG.PROXY_URL + encodeURIComponent(url);
 
   try {
-    return await fetch(proxiedUrl, {
-      signal: ctrl.signal,
+    const response = await fetch(proxiedUrl, {
+      signal: controller.signal,
       headers: { 'Accept': 'application/json, application/xml, text/xml' },
     });
-  } catch (err) {
-    if (err.name === 'AbortError') {
-      warn(`Timeout (${ms}ms):`, url);
-    } else {
-      warn('Erro via proxy:', err.message);
+    
+    if (!response.ok) {
+      logApiError(url, `HTTP ${response.status}`, response.status);
     }
+    
+    return response;
+  } catch (err) {
+    const reason = err.name === 'AbortError' ? 'Timeout' : err.message;
+    warn(`Erro na API (${reason}):`, url);
+    logApiError(url, reason, 'Falha');
     throw err;
   } finally {
     clearTimeout(id);
   }
 }
+
+/**
+ * Item 6: BI - Registra erros de APIs externas no banco.
+ */
+function logApiError(url, message, status) {
+  try {
+    const apiName = url.includes('ibama') ? 'IBAMA' : 
+                   url.includes('icmbio') ? 'ICMBio' : 
+                   url.includes('funai') ? 'FUNAI' : 
+                   url.includes('terrabrasilis') ? 'PRODES/DETER' : 
+                   url.includes('car.gov.br') ? 'SICAR' : 'Outra';
+    
+    fetch('api/log_event.php', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'API_ERROR',
+        details: `Erro na API ${apiName}: ${message} (${url.substring(0, 50)}...)`,
+        status: status
+      })
+    });
+  } catch (e) { /* silent */ }
+}
+
 export { UC_PROTECAO_INTEGRAL, UC_USO_SUSTENTAVEL };

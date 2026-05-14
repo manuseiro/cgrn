@@ -122,19 +122,16 @@ function parseWKT(wkt, properties) {
     const rings = [];
 
     // Expressão para pegar o que está dentro de parênteses aninhados
-    const matches = clean.match(/\(\(([^)]+)\)\)/g) || [clean];
-
-    for (const m of matches) {
-      const coords = m.replace(/[()]/g, '').split(',').map(pair => {
+    const ringRegex = /\(([^()]+)\)/g;
+    let rm;
+    while ((rm = ringRegex.exec(clean)) !== null) {
+      const coords = rm[1].split(',').map(pair => {
         const [lon, lat] = pair.trim().split(/\s+/).map(Number);
-        return [lon, lat];
-      });
-
+        return (!isNaN(lon) && !isNaN(lat)) ? [lon, lat] : null;
+      }).filter(Boolean);
       if (coords.length >= 4) {
-        // Garante fechamento
-        if (coords[0][0] !== coords[coords.length - 1][0] || coords[0][1] !== coords[coords.length - 1][1]) {
-          coords.push([...coords[0]]);
-        }
+        const f = coords[0], l = coords[coords.length - 1];
+        if (f[0] !== l[0] || f[1] !== l[1]) coords.push([...f]);
         rings.push(coords);
       }
     }

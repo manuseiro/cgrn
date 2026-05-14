@@ -52,6 +52,8 @@ export function showToast(message, type = 'info', delay = 4500) {
   const toast = new bootstrap.Toast(node, { delay: delay || 99999, autohide: delay > 0 });
   toast.show();
   node.addEventListener('hidden.bs.toast', () => node.remove());
+
+  return toast;
 }
 
 // ─── Mensagens inline ─────────────────────────────────────────────────────
