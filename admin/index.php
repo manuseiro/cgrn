@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/../api/Security.php';
+Security::initSession();
 // Se já estiver logado, vai direto para o dashboard
 if (isset($_SESSION['admin_id'])) {
     header('Location: dashboard.php');
@@ -35,15 +36,21 @@ if (isset($_SESSION['admin_id'])) {
                         <p class="text-center text-muted small mb-4">Painel Administrativo</p>
 
                         <?php if (isset($_GET['error'])): ?>
-                            <div class="alert alert-danger py-2 small" role="alert">
-                                <i class="bi bi-exclamation-circle me-2"></i>
-                                <?php 
-                                    if ($_GET['error'] === 'db') echo "Erro de conexão com o banco de dados.";
-                                    else if ($_GET['error'] === 'empty') echo "Preencha todos os campos.";
-                                    else echo "Usuário ou senha inválidos.";
-                                ?>
-                            </div>
-                        <?php endif; ?>
+            <div class="alert alert-danger border-0 shadow-sm mb-4 small">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <?php 
+                    if ($_GET['error'] === 'db') echo "Erro de conexão com o banco de dados.";
+                    else if ($_GET['error'] === 'empty') echo "Preencha todos os campos.";
+                    else {
+                        echo "Usuário ou senha inválidos.";
+                        if (isset($_GET['attempts'])) {
+                            echo "<br><b>Tentativa: " . (int)$_GET['attempts'] . " de 5</b>.";
+                            echo "<span class='d-block mt-1'>Cuidado: No 5º erro seu IP será bloqueado.</span>";
+                        }
+                    }
+                ?>
+            </div>
+        <?php endif; ?>
 
                         <form action="auth.php" method="POST">
                             <div class="mb-3">

@@ -3,7 +3,11 @@
  * @file index.php
  * @description Entry point dinâmico do GlebasNord.
  */
+require_once __DIR__ . '/api/Security.php';
 require_once 'api/Database.php';
+
+Security::initSession();
+Security::checkAccess(); // Verifica Firewall e Manutenção Programada
 
 try {
   $db = Database::getInstance();
@@ -73,14 +77,15 @@ $siteDesc = $settings['SEO_DESCRIPTION'] ?? 'Análise automatizada de conformida
 <body>
 
   <?php if (($settings['GLOBAL_BANNER_SHOW'] ?? '0') === '1'): ?>
-  <!-- Item 3: Banner de Aviso Global -->
-  <div class="alert alert-warning alert-dismissible fade show rounded-0 mb-0 border-0 shadow-sm" role="alert" style="z-index: 1100; position: relative;">
-    <div class="container-fluid px-3 d-flex align-items-center gap-2">
-      <i class="bi bi-exclamation-triangle-fill"></i>
-      <strong>Aviso:</strong> <?php echo htmlspecialchars($settings['GLOBAL_BANNER_MSG'] ?? ''); ?>
-      <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
+    <!-- Item 3: Banner de Aviso Global -->
+    <div class="alert alert-warning alert-dismissible fade show rounded-0 mb-0 border-0 shadow-sm" role="alert"
+      style="z-index: 1100; position: relative;">
+      <div class="container-fluid px-3 d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <strong>Aviso:</strong> <?php echo htmlspecialchars($settings['GLOBAL_BANNER_MSG'] ?? ''); ?>
+        <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
     </div>
-  </div>
   <?php endif; ?>
 
   <!-- ══════════════════════════════════════════════════════════════
@@ -274,7 +279,7 @@ $siteDesc = $settings['SEO_DESCRIPTION'] ?? 'Análise automatizada de conformida
       <span class="status-divider"></span>
       <span id="statusArea" class="status-item">—</span>
       <span class="status-divider d-none d-md-inline-block"></span>
-      <span class="status-item d-none d-md-inline text-muted opacity-50">CGRN v3.6.9 • SIRGAS 2000</span>
+      <span class="status-item d-none d-md-inline text-muted opacity-50">CGRN v3.7.2 • SIRGAS 2000</span>
     </div>
 
     <div class="ms-auto d-flex align-items-center gap-2 gap-md-3">
@@ -699,7 +704,7 @@ $siteDesc = $settings['SEO_DESCRIPTION'] ?? 'Análise automatizada de conformida
               <circle cx="12" cy="12" r="3" />
             </svg>
             <h5 class="fw-bold mt-3 mb-1">GlebasNord <span class="badge bg-primary ms-1"
-                style="font-size: 0.6rem">v3.7.1</span></h5>
+                style="font-size: 0.6rem">v3.7.2</span></h5>
             <p class="text-muted small">Cálculo e análise de glebas rurais no Nordeste</p>
           </div>
 

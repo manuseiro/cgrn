@@ -4,18 +4,13 @@
 
 ---
 
-### ✨ Principais Novidades
+### ✨ Principais Novidades (v3.7.2)
 
-- **README.md amplamente aprimorado**:
-  - Descrição clara do projeto e objetivos
-  - Arquitetura detalhada com diagrama de módulos
-  - Tabelas de funcionalidades, camadas suportadas e formatos de import/export
-  - Instruções completas de instalação, uso e configuração
-  - Badges, licença e informações para contribuidores
-- **Melhorias no motor de conformidade BACEN/SICOR**
-- **Otimização de performance** e robustez geral (especialmente no CAR e análise espacial)
-- **Refatorações** em componentes principais
-- **Ajustes de interface** e experiência do usuário
+- **Painel Administrativo Completo**: Dashboard integrado com controle de acessos (Multi-Admin RBAC) e firewall de IP proativo.
+- **Gerenciamento de Cache do CAR**: Nova interface centralizada para monitorar e limpar o cache das requisições geoespaciais.
+- **Segurança Reforçada**: Proteção contra SSRF, rate limiting aprimorado e higienização rigorosa em rotas sensíveis.
+- **Estabilidade do Sistema**: Correção de condições de corrida nas importações assíncronas, garantindo inicialização confiável do mapa.
+- **Otimizações para SEO**: Ajustes de tags e estrutura para melhor indexação da aplicação.
 
 ---
 

@@ -103,7 +103,7 @@
                   <p class="lead">Guia completo e prático para calcular, validar e analisar glebas rurais com foco na
                     conformidade BACEN/SICOR.</p>
                   <hr>
-                  <p><strong>Versão atual:</strong> 3.7.1</p>
+                  <p><strong>Versão atual:</strong> 3.7.2</p>
                 </section>
 
                 <section id="primeiros-passos" class="doc-section mb-5">

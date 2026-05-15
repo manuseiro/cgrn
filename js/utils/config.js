@@ -111,19 +111,36 @@ export const CONFIG = {
 };
 
 /**
+ * Congela profundamente um objeto para garantir imutabilidade total (C4)
+ */
+function deepFreeze(obj) {
+  Object.freeze(obj);
+  Object.getOwnPropertyNames(obj).forEach(prop => {
+    if (obj.hasOwnProperty(prop) && obj[prop] !== null &&
+      (typeof obj[prop] === "object" || typeof obj[prop] === "function") &&
+      !Object.isFrozen(obj[prop])) {
+      deepFreeze(obj[prop]);
+    }
+  });
+  return obj;
+}
+
+/**
  * Busca as configurações do banco de dados e atualiza o objeto CONFIG.
  * Deve ser chamado antes da inicialização principal da aplicação.
  */
 export async function syncConfig() {
+  if (Object.isFrozen(CONFIG)) return; // C4: Já está sincronizado e congelado
+
   try {
     const response = await fetch('api/get_config.php');
     if (!response.ok) throw new Error('HTTP ' + response.status);
-    
+
     const result = await response.json();
 
     if (result.status === 'success' && result.data) {
       const d = result.data;
-      
+
       // Mapeamento: Banco -> Objeto CONFIG
       if (d.AREA_MIN_HA) CONFIG.VALIDATION.AREA_MIN_HA = parseFloat(d.AREA_MIN_HA);
       if (d.AREA_MAX_HA) CONFIG.VALIDATION.AREA_MAX_HA = parseFloat(d.AREA_MAX_HA);
@@ -131,7 +148,7 @@ export async function syncConfig() {
       if (d.COORD_PRECISION) CONFIG.VALIDATION.COORD_PRECISION = parseInt(d.COORD_PRECISION);
       if (d.PROXY_URL) CONFIG.PROXY_URL = d.PROXY_URL;
       if (d.API_TIMEOUT_MS) CONFIG.CONFORMIDADE.TIMEOUT_MS = parseInt(d.API_TIMEOUT_MS);
-      
+
       // 1. Cores dos Estados (SUDENE)
       const ufs = ['AL', 'BA', 'CE', 'MA', 'PB', 'PE', 'PI', 'RN', 'SE'];
       ufs.forEach(uf => {
@@ -141,16 +158,16 @@ export async function syncConfig() {
 
       // 1. Estilos das Glebas
       CONFIG.GLEBA_STYLES = {
-        OK:     { color: d.GLEBA_COLOR_OK || '#27AD60', opacity: parseFloat(d.GLEBA_OPACITY_OK || '0.6') },
+        OK: { color: d.GLEBA_COLOR_OK || '#27AD60', opacity: parseFloat(d.GLEBA_OPACITY_OK || '0.6') },
         REJECT: { color: d.GLEBA_COLOR_REJECT || '#C0392B', opacity: parseFloat(d.GLEBA_OPACITY_REJECT || '0.6') },
-        WARN:   { color: d.GLEBA_COLOR_WARN || '#F1C40F', opacity: parseFloat(d.GLEBA_OPACITY_WARN || '0.6') }
+        WARN: { color: d.GLEBA_COLOR_WARN || '#F1C40F', opacity: parseFloat(d.GLEBA_OPACITY_WARN || '0.6') }
       };
 
       // 4. Limites de Upload (MB -> Bytes)
       if (d.MAX_UPLOAD_CSV_MB) CONFIG.UPLOAD.MAX_CSV_BYTES = parseInt(d.MAX_UPLOAD_CSV_MB) * 1024 * 1024;
       if (d.MAX_UPLOAD_KML_MB) CONFIG.UPLOAD.MAX_KML_BYTES = parseInt(d.MAX_UPLOAD_KML_MB) * 1024 * 1024;
       if (d.MAX_UPLOAD_ZIP_MB) CONFIG.UPLOAD.MAX_ZIP_BYTES = parseInt(d.MAX_UPLOAD_ZIP_MB) * 1024 * 1024;
-      
+
       // Configurações do Mapa
       if (d.MAP_TILE_URL) CONFIG.MAP.TILE_URL = d.MAP_TILE_URL;
       if (d.MAP_TILE_ATTR) CONFIG.MAP.TILE_ATTRIBUTION = d.MAP_TILE_ATTR;
@@ -163,5 +180,8 @@ export async function syncConfig() {
     }
   } catch (err) {
     console.warn('⚠️ CGRN: Falha ao carregar config do DB. Usando fallback local.', err.message);
+  } finally {
+    // C4: Congela o objeto para impedir interceptação via mutação de CONFIG.PROXY_URL
+    deepFreeze(CONFIG);
   }
 }

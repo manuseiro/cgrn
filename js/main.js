@@ -1,5 +1,5 @@
 /**
- * @file main.js — v3.7.1
+ * @file main.js — v3.7.2
  * @description Orquestrador principal da aplicação CGRN.
  *
  */
@@ -53,7 +53,7 @@ import { modals } from './components/modal.js';
 // ─── Boot ─────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
-  log('CGRN v3.6.9 inicializando...');
+  log('CGRN v3.7.2 inicializando...');
   await syncConfig(); // Sincroniza parâmetros com o DB
   modals.init();
   initMap();

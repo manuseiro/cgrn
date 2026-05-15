@@ -9,7 +9,8 @@ if (extension_loaded('zlib') && !headers_sent()) {
  * @description Proxy com Cache Inteligente (Stale-While-Revalidate) para contornar problemas de CORS e lentidão/quedas das APIs governamentais.
  */
 
-session_start();
+require_once __DIR__ . '/Security.php';
+Security::initSession();
 
 // ── Rate Limiting (60 req/min por IP) ──────────────────────────────────────
 $ip = $_SERVER['REMOTE_ADDR'];

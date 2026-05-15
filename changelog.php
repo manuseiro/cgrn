@@ -109,11 +109,32 @@
         </div>
 
         <div class="timeline">
+          <!-- Versão 3.7.2 -->
+          <div class="timeline-item">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-danger version-badge">v3.7.2</span>
+              <span class="text-muted small">15/05/2026 (Atual)</span>
+            </div>
+            <div class="card border-0 shadow-sm rounded-4">
+              <div class="card-body p-4">
+                <h5 class="fw-bold mb-3 text-primary">Security Hardening & Auditoria</h5>
+                <ul class="mb-0 small">
+                  <li><strong>Proteção CSRF:</strong> Implementação de tokens obrigatórios em todas as ações administrativas e manutenção.</li>
+                  <li><strong>Hardening de Sessão:</strong> Regeneração de ID pós-login, cookies HttpOnly/Secure/Lax e timeout de inatividade.</li>
+                  <li><strong>Segurança de API:</strong> Restrição de CORS (CORS Wildcard removido) e headers de proteção (X-Content-Type).</li>
+                  <li><strong>Prevenção de SSRF:</strong> Bloqueio de IPs privados e locais na whitelist do proxy.</li>
+                  <li><strong>Imutabilidade JS:</strong> Restauração do Object.freeze() no CONFIG e proteção contra injeção em tempo de execução.</li>
+                  <li><strong>Supply Chain Protection:</strong> Adição de Subresource Integrity (SRI) para todas as dependências de CDN.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
           <!-- Versão 3.7.1 -->
           <div class="timeline-item">
             <div class="d-flex align-items-center gap-2 mb-2">
-              <span class="badge bg-success version-badge">v3.7.1</span>
-              <span class="text-muted small">14/05/2026 (Atual)</span>
+              <span class="badge bg-secondary version-badge">v3.7.1</span>
+              <span class="text-muted small">14/05/2026</span>
             </div>
             <div class="card border-0 shadow-sm rounded-4">
               <div class="card-body p-4">

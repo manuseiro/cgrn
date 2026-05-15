@@ -3,7 +3,8 @@
  * @file logout.php
  * @description Encerra a sessão administrativa.
  */
-session_start();
+require_once __DIR__ . '/../api/Security.php';
+Security::initSession();
 
 // Opcional: logar o logout antes de destruir a sessão
 if (isset($_SESSION['admin_id'])) {

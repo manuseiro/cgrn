@@ -1,6 +1,7 @@
 # Ignorar uma pasta inteira
 documentos
 scratch
+api/sessions/*
 # Ignorar um arquivo específico
 api/.env.php
 api/cache/*.json

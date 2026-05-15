@@ -5,7 +5,7 @@
  */
 require_once __DIR__ . '/Database.php';
 
-header('Content-Type: application/json');
+require_once __DIR__ . '/api_header.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['status' => 'error', 'message' => 'Apenas POST permitido']);

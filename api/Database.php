@@ -32,9 +32,8 @@ class Database {
             ]);
             
         } catch (PDOException $e) {
-            // Em produção, oculte detalhes sensíveis
             error_log("Erro de Conexão DB: " . $e->getMessage());
-            throw new Exception("Falha na conexão com o banco de dados.");
+            throw new Exception("Falha na conexão com o banco de dados: " . $e->getMessage());
         }
     }
 
